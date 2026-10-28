@@ -1,0 +1,47 @@
+const { _electron: electron } = require('playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+const root = path.resolve(__dirname, '..'), tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dk-close-'));
+const first = path.join(tmp, 'Primeiro'), second = path.join(tmp, 'Segundo'); fs.mkdirSync(first); fs.mkdirSync(second); fs.writeFileSync(path.join(first,'nota.txt'),'Conteúdo original');
+let app;
+(async () => {
+  try {
+    app = await electron.launch({ args: [root], env: { ...process.env, DK_TERMINAL_TEST: '1', DK_TERMINAL_TEST_PROJECT: first, DK_TERMINAL_DATA_DIR: path.join(tmp, 'profile') } });
+    const page = await app.firstWindow(); await page.locator('#startup-loading').waitFor({ state: 'detached' });
+    await page.locator('.project-select').click(); await page.locator('.terminal-pane[data-ready=true]').waitFor();
+    const firstId = await page.locator('.terminal-pane[data-ready=true]').getAttribute('id');
+    await page.locator('#new-session').click(); await page.waitForFunction(()=>document.querySelectorAll('.terminal-pane[data-ready=true]').length===2);
+    const firstIds=await page.locator('.terminal-pane[data-ready=true]').evaluateAll(items=>items.map(item=>item.id.slice(5)));
+    await page.locator('.tree-file').filter({hasText:'nota.txt'}).click();await page.locator('.cm-content').click();await page.keyboard.insertText(' alteração');
+    await page.waitForFunction(()=>!!document.querySelector('.dk-editor-dirty[aria-label="Alterações não salvas"]'));
+    await app.evaluate(({dialog}, dir) => { global.__choice=2;global.__promptCount=0;dialog.showMessageBox=async()=>{global.__promptCount++;return {response:global.__choice};};dialog.showOpenDialog = async () => ({canceled:false, filePaths:[dir]}); }, second);
+    await page.locator('#open-project').click(); await page.getByText('Segundo', { exact:true }).first().waitFor();
+    const secondId=await page.locator('.terminal-pane[data-ready=true]:visible').getAttribute('id');
+    const old = page.locator('.project-row').filter({has: page.locator('.project-select[title="Primeiro"]')});
+    await old.hover(); await old.locator('.forget-project').click();
+    await page.waitForFunction(()=>window.dk && document.querySelectorAll('.project-row').length===2);
+    await new Promise(resolve=>setTimeout(resolve,400));
+    assert.equal(await app.evaluate(()=>global.__promptCount),1);assert.equal(await old.isVisible(),true);
+    for(const id of firstIds)await page.evaluate(id=>window.dk.writeTerminal(id,''),id);
+    await app.evaluate(()=>{global.__choice=1;});
+    await old.hover(); await old.locator('.forget-project').click();await old.waitFor({state:'detached'});
+    for(const id of firstIds)await assert.rejects(page.evaluate(id=>window.dk.writeTerminal(id,''),id),/encerrada/i);
+    assert.equal(await page.locator('#project-title').innerText(), 'Segundo');
+    assert.equal(await page.locator('.terminal-pane[data-ready=true]:visible').getAttribute('id'),secondId);
+    assert.equal(await page.locator('#launcher').isVisible(), false);
+    const active = page.locator('.project-row').filter({has: page.locator('.project-select[title="Segundo"]')});
+    await active.hover(); await active.locator('.forget-project').click();
+    await page.locator('#launcher.launcher-workspace').waitFor();
+    assert.equal(await page.locator('#breadcrumb-project').innerText(), 'Início');
+    assert.equal(await page.locator('.project-row').count(), 0);
+    assert.equal(await page.locator('#tabs .tab').count(), 0);
+    assert.equal(await page.locator('#folder-tree').innerText(), '');
+    assert.equal(await page.locator('#launcher-recents .launcher-recent').count(), 2);
+    const saved=JSON.parse(fs.readFileSync(path.join(tmp,'profile','settings.json'),'utf8'));
+    assert.equal(saved.projects.length,2);
+    await page.locator('#launcher-recents .launcher-recent').filter({hasText:'Primeiro'}).click(); await page.locator('#launcher').waitFor({state:'hidden'});
+    await page.locator('.terminal-pane[data-ready=true]:visible').waitFor();
+    assert.notEqual(await page.locator('.terminal-pane[data-ready=true]:visible').getAttribute('id'), firstId);
+    console.log('✓ Fechar projeto protege arquivos, encerra sessões vinculadas e mantém outros projetos e recentes');
+  } finally { if (app) await app.close(); fs.rmSync(tmp, {recursive:true,force:true}); }
+})().catch(error => { console.error(error); process.exitCode=1; });

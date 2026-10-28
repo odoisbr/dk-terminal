@@ -1,0 +1,30 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { listDirectory } = require('../electron/file-tree.cjs');
+test('árvore lista somente o diretório solicitado e não atravessa links externos', t => {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dk-tree-')));
+  const outside = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dk-tree-outside-')));
+  t.after(() => { fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(outside, { recursive: true, force: true }); });
+  fs.mkdirSync(path.join(root, 'src'));
+  fs.writeFileSync(path.join(root, 'src', 'app.ts'), 'conteúdo não lido');
+  fs.writeFileSync(path.join(root, 'README.md'), 'teste');
+  fs.symlinkSync(outside, path.join(root, 'externo'), process.platform === 'win32' ? 'junction' : 'dir');
+  const entries = listDirectory(root).entries;
+  assert.equal(entries[0].name, 'src');
+  assert.equal(entries.find(item => item.name === 'externo').kind, 'link');
+  assert.equal(entries.some(item => item.name === 'app.ts'), false);
+  assert.equal(listDirectory(root, 'src').entries[0].name, 'app.ts');
+  assert.throws(() => listDirectory(root, '..'), /fora do projeto/);
+  assert.throws(() => listDirectory(root, 'externo'), /fora do projeto/);
+  assert.throws(() => listDirectory(root, outside), /inválido/);
+});
+test('diretórios grandes têm resposta limitada e informam o corte', t => {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dk-tree-limit-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (let index = 0; index < 502; index++) fs.writeFileSync(path.join(root, String(index)), '');
+  const listing = listDirectory(root);
+  assert.equal(listing.entries.length, 500); assert.equal(listing.truncated, true);
+});

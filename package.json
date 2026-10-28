@@ -1,0 +1,53 @@
+{
+  "name": "dk-terminal",
+  "productName": "DK Terminal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ambiente local de projetos e terminais para o Design Kit",
+  "main": "electron/main.cjs",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "node scripts/create-motion.cjs && tsc --noEmit && vite build",
+    "start": "npm run build && electron .",
+    "dev": "npm start",
+    "postinstall": "electron-rebuild -f -w node-pty",
+    "test": "node --test tests/*.test.cjs",
+    "test:desktop": "npm run build && node tests/desktop.cjs",
+    "package": "npm run build && node scripts/package.mjs",
+    "test:editor": "npm run build && node tests/editor-desktop.cjs",
+    "test:launcher": "npm run build && node tests/launcher-desktop.cjs && node tests/sea-login-desktop.cjs",
+    "test:all": "npm run build && npm test && node tests/single-instance-desktop.cjs && node tests/project-close-desktop.cjs && node tests/extra-cli-desktop.cjs && node tests/machine-desktop.cjs && node tests/local-gitlab-desktop.cjs && node tests/new-project-desktop.cjs && node tests/welcome-desktop.cjs && node tests/launcher-desktop.cjs && node tests/sea-login-desktop.cjs && node tests/editor-desktop.cjs && node tests/idle-desktop.cjs && node tests/desktop.cjs"
+  },
+  "dependencies": {
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/lang-css": "6.3.1",
+    "@codemirror/lang-html": "6.4.12",
+    "@codemirror/lang-javascript": "6.2.5",
+    "@codemirror/lang-json": "6.0.2",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/lang-python": "6.2.1",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/theme-one-dark": "6.1.3",
+    "@lezer/markdown": "1.8.1",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/addon-search": "0.16.0",
+    "@xterm/headless": "6.0.0",
+    "@xterm/xterm": "6.0.0",
+    "codemirror": "6.0.2",
+    "dompurify": "3.4.17",
+    "mermaid": "12.2.0",
+    "node-pty": "1.1.0",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "@electron/rebuild": "4.2.1",
+    "electron": "45.1.0",
+    "playwright": "1.64.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.5"
+  }
+}

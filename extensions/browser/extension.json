@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "id": "browser",
+  "name": "Browser",
+  "version": "0.1.0",
+  "description": "Prévia isolada para projetos e serviços executados localmente.",
+  "type": "browser",
+  "permission": "browser.preview"
+}

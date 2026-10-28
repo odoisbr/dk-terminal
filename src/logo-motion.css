@@ -1,0 +1,12 @@
+#dk { clip-path: url(#dk-reveal); animation: dk-wordmark 3200ms ease-in-out infinite; }
+#seta { stroke-dasharray: 1; stroke-dashoffset: 1; animation: dk-arrival 3200ms cubic-bezier(.16,1,.3,1) infinite; }
+.dk-reveal-mask { transform-origin: 68px 47px; animation: dk-reveal 3200ms cubic-bezier(.22,.61,.36,1) infinite; }
+@keyframes dk-arrival {
+  0%,4% { opacity: 0; stroke-dashoffset: 1; transform: translate(-19px,19px); filter: drop-shadow(0 0 0 transparent); }
+  23% { opacity: 1; stroke-dashoffset: 0; transform: translate(0,0); filter: drop-shadow(0 0 3px #dff79366); }
+  38%,82% { opacity: 1; stroke-dashoffset: 0; transform: translate(0,0); filter: drop-shadow(0 0 0 transparent); }
+  98%,100% { opacity: 0; stroke-dashoffset: 0; transform: translate(0,-1px); filter: drop-shadow(0 0 0 transparent); }
+}
+@keyframes dk-reveal { 0%,25% { transform: scaleX(0); } 49%,100% { transform: scaleX(1); } }
+@keyframes dk-wordmark { 0%,25% { opacity: 0; transform: translateY(2px); } 48%,82% { opacity: 1; transform: translateY(0); } 98%,100% { opacity: 0; transform: translateY(-1px); } }
+@media (prefers-reduced-motion: reduce) { #dk, #seta, .dk-reveal-mask { animation: none; transform: none; opacity: 1; filter: none; } #seta { stroke-dashoffset: 0; } }

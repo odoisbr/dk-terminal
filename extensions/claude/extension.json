@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "claude",
+  "name": "Claude Code",
+  "version": "0.1.0",
+  "description": "Abre o Claude Code instalado na pasta do projeto.",
+  "permission": "terminal",
+  "command": "claude",
+  "args": []
+}

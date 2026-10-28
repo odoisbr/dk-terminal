@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "codex",
+  "name": "Codex",
+  "version": "0.1.0",
+  "description": "Abre o Codex CLI instalado na pasta do projeto.",
+  "permission": "terminal",
+  "command": "codex",
+  "args": []
+}

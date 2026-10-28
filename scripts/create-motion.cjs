@@ -1,0 +1,11 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const assets = path.join(root, 'assets');
+const motion = fs.readFileSync(path.join(root, 'src/logo-motion.css'), 'utf8');
+const overlay = fs.readFileSync(path.join(root, 'src/loading.css'), 'utf8');
+const original = fs.readFileSync(path.join(assets, 'dk-logo.svg'), 'utf8');
+const defs = '<defs><clipPath id="dk-reveal" clipPathUnits="userSpaceOnUse"><rect class="dk-reveal-mask" x="68" y="47" width="92" height="74" /></clipPath></defs>';
+const animated = original.replace('id="seta"', 'id="seta" pathLength="1"').replace('<path id="dk"', `<style>${motion}</style>${defs}<path id="dk"`);
+fs.writeFileSync(path.join(assets, 'dk-loading.svg'), animated);
+fs.writeFileSync(path.join(assets, 'dk-loading.html'), `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>DK · Loading</title><style>html,body{margin:0;width:100%;height:100%;background:#101214}${overlay}</style></head><body><div id="startup-loading" role="status" aria-label="Carregando DK Terminal">${animated}<div class="loading-progress" aria-hidden="true"></div><p>Preparando seu espaço</p></div></body></html>`);

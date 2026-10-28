@@ -1,0 +1,9 @@
+#startup-loading { position: fixed; inset: 0; z-index: 200; background: #101214; color: #f2f1ea; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 1; transition: opacity 240ms ease; -webkit-app-region: drag; }
+#startup-loading svg { width: 186px; height: auto; overflow: visible; }
+.loading-progress { width: 86px; height: 2px; border-radius: 2px; background: #2c3328; overflow: hidden; margin-top: 34px; }
+.loading-progress::after { content: ''; display: block; width: 100%; height: 100%; background: #dff793; transform: scaleX(.15); transform-origin: left; animation: dk-progress 3200ms ease-in-out infinite; }
+#startup-loading p { margin: 17px 0 0; font: 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; letter-spacing: .2px; color: #a2aaa4; }
+body.booting #app { opacity: 0; pointer-events: none; }
+#startup-loading.is-leaving { opacity: 0; pointer-events: none; }
+@keyframes dk-progress { 0% { transform: scaleX(.1); transform-origin: left; opacity: .4; } 48% { transform: scaleX(1); transform-origin: left; opacity: 1; } 49% { transform-origin: right; } 100% { transform: scaleX(.1); transform-origin: right; opacity: .4; } }
+@media (prefers-reduced-motion: reduce) { .loading-progress::after { animation: none; transform: scaleX(.45); } #startup-loading { transition: none; } }

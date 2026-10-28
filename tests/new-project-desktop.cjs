@@ -1,0 +1,22 @@
+const { _electron: electron }=require('playwright');
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const root=path.resolve(__dirname,'..'),temp=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'dk-new-project-'))),parent=path.join(temp,'destino');fs.mkdirSync(parent);fs.mkdirSync(path.join(parent,'Existente'));
+let app;
+(async()=>{try{
+ app=await electron.launch({executablePath:process.env.DK_TERMINAL_EXECUTABLE||undefined,args:process.env.DK_TERMINAL_EXECUTABLE?[]:[root],env:{...process.env,DK_TERMINAL_TEST:'1',DK_TERMINAL_DATA_DIR:path.join(temp,'profile')}});
+ let page=await app.firstWindow();await page.locator('#startup-loading').waitFor({state:'detached'});
+ await assert.rejects(page.evaluate(()=>window.dk.createProject('../fora')),/nome de pasta válido/i);
+ await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});},parent);
+ await page.locator('#launcher-create-project').click();
+ await page.locator('#new-project-name').fill('Existente');await page.getByRole('button',{name:'Escolher pasta e criar'}).click();
+ await page.getByText('Já existe uma pasta com esse nome no local escolhido.',{exact:true}).first().waitFor();
+ await page.locator('#new-project-name').fill('Projeto novo');await page.getByRole('button',{name:'Escolher pasta e criar'}).click();
+ await page.locator('#launcher').waitFor({state:'hidden'});assert.equal(await page.locator('#project-title').innerText(),'Projeto novo');
+ assert.deepEqual(fs.readdirSync(path.join(parent,'Projeto novo')),[]);
+ await page.locator('.project-row').hover();await page.locator('.forget-project').click();await page.locator('#launcher').waitFor({state:'visible'});
+ assert.equal(await page.locator('#launcher-recents .launcher-recent').filter({hasText:'Projeto novo'}).count(),1);
+ await app.close();app=null;
+ app=await electron.launch({executablePath:process.env.DK_TERMINAL_EXECUTABLE||undefined,args:process.env.DK_TERMINAL_EXECUTABLE?[]:[root],env:{...process.env,DK_TERMINAL_TEST:'1',DK_TERMINAL_DATA_DIR:path.join(temp,'profile')}});page=await app.firstWindow();await page.locator('#startup-loading').waitFor({state:'detached'});
+ assert.equal(await page.locator('#launcher-recents .launcher-recent').filter({hasText:'Projeto novo'}).count(),1);
+ console.log('✓ Projeto vazio criado sem sobrescrever; recente local permanece após fechar e reiniciar');
+}finally{if(app)await app.close();fs.rmSync(temp,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1});
