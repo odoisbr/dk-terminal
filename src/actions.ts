@@ -13,6 +13,7 @@ interface ActionResult {
   timedOut?: boolean;
   cancelled?: boolean;
   truncated?: boolean;
+  cleanupPartial?: boolean;
   jsonParsed?: boolean;
 }
 type RecordValue = Record<string, unknown>;
@@ -73,6 +74,7 @@ export function renderAction(host: HTMLElement, result: ActionResult): void {
     const message = result.timedOut ? 'A ação atingiu o prazo e foi interrompida. Os dados abaixo são a saída recebida até a interrupção.' : result.cancelled ? 'A ação foi cancelada. Os dados abaixo são a saída recebida até o cancelamento.' : 'A saída ultrapassou 2 MB e a ação foi interrompida. A saída recebida aparece parcialmente abaixo.';
     host.append(node('p', 'dk-action-notice', message));
   }
+  if (result.cleanupPartial) host.append(node('p', 'dk-action-notice', 'Não foi possível confirmar o encerramento de todos os processos associados à ação.'));
   const formatted = node('div'), raw = node('pre', 'dk-action-log'); raw.hidden = true; host.append(formatted, raw);
   const hasJson = result.jsonParsed === true || result.data !== null && result.data !== undefined;
   if (hasJson) {

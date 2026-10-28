@@ -117,6 +117,7 @@ export class FileEditor {
   private readonly view: EditorView;
   private projectRoot = '';
   private currentKey: string | null = null;
+  private viewTabKey: string | null = null;
   private destroyed = false;
 
   constructor(private readonly host: HTMLElement, private readonly options: EditorOptions) {
@@ -185,6 +186,7 @@ export class FileEditor {
     const tabs = [...this.tabs.values()].filter(tab => tab.root === root);
     for (const tab of tabs) if (!await this.allowReplace(tab)) return false;
     for (const tab of tabs) this.tabs.delete(tab.key);
+    for (const key of this.imageCache.keys()) if (key.startsWith(root + '\0')) this.imageCache.delete(key);
     this.recentByProject.delete(root); this.emitDirty();
     if (this.projectRoot === root) this.activate(null, false); else this.renderTabs();
     return true;
@@ -239,7 +241,16 @@ export class FileEditor {
   private activate(key: string | null, focus = true): void {
     const tab = key ? this.tabs.get(key) : undefined;
     this.currentKey = tab?.key ?? null;
-    if (tab) { this.recentByProject.set(tab.root, tab.key); if (tab.state) this.view.setState(tab.state); }
+    if (tab) this.recentByProject.set(tab.root, tab.key);
+    if (tab?.state) { this.view.setState(tab.state); this.viewTabKey = tab.key; }
+    else if (this.viewTabKey !== null) {
+      // Do not keep the last document and its undo tree alive after it closes
+      // or while a non-text preview is displayed. Open tabs retain their own state.
+      // Keep CodeMirror's base fields available for any pending blur or
+      // completion callback while dropping the old document and undo history.
+      this.view.setState(EditorState.create({ extensions: [basicSetup, EditorState.readOnly.of(true)] }));
+      this.viewTabKey = null;
+    }
     this.render();
     if (focus && tab) this.options.onSelect();
     if (focus && tab?.state && (!mermaidFile(tab.file.name) || tab.showCode) && (!htmlFile(tab.file.name) || tab.showCode)) this.view.focus();

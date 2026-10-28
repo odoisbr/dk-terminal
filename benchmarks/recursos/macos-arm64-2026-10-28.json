@@ -1,0 +1,5174 @@
+{
+  "method": "Mediana de três leituras por cenário; RSS e CPU via ps, sem GC forçado. Três pares alternados em repouso. Outra instância do DK e outros aplicativos permaneceram ativos. Disponibilidade do macOS não é pressão.",
+  "machine": {
+    "chip": "Apple M3",
+    "memoryGiB": 8,
+    "macOS": "27.2",
+    "architecture": "arm64"
+  },
+  "baselineRevision": "fc30402",
+  "before": {
+    "version": "antes_valido",
+    "platform": "darwin",
+    "arch": "arm64",
+    "started": "2026-10-28T19:44:58.424Z",
+    "samples": {
+      "idle_no_project": {
+        "appMiB": 455.9375,
+        "appCpu": 0.5,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 3.465423583984375,
+        "samples": [
+          {
+            "jsHeapMiB": 3.465423583984375,
+            "appMiB": 461.140625,
+            "appCpu": 0.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 204400,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 95712,
+                "cpu": 0.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 43328,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 128768,
+                "cpu": 0.2,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 3.465423583984375,
+            "appMiB": 455.9375,
+            "appCpu": 1.3,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 204400,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 90704,
+                "cpu": 1.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 43328,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 128448,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 3.465423583984375,
+            "appMiB": 452.671875,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 204304,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 88304,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 43120,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 127808,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "one_terminal": {
+        "appMiB": 462.203125,
+        "appCpu": 9.3,
+        "childMiB": 1.671875,
+        "childCpu": 0,
+        "childCount": 1,
+        "jsHeapMiB": 4.278572082519531,
+        "samples": [
+          {
+            "jsHeapMiB": 4.278572082519531,
+            "appMiB": 462.203125,
+            "appCpu": 10.6,
+            "childMiB": 1.671875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 204240,
+                "cpu": 0.6,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 89472,
+                "cpu": 3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 42624,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 136960,
+                "cpu": 7,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.278572082519531,
+            "appMiB": 462.96875,
+            "appCpu": 9.3,
+            "childMiB": 1.671875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 203952,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 89408,
+                "cpu": 2.9,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 42624,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 138096,
+                "cpu": 6.4,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.278572082519531,
+            "appMiB": 407.34375,
+            "appCpu": 7.4,
+            "childMiB": 1.671875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 152784,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 86960,
+                "cpu": 2.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 39168,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 138208,
+                "cpu": 5.3,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "four_terminals": {
+        "appMiB": 420.8125,
+        "appCpu": 8.6,
+        "childMiB": 9.828125,
+        "childCpu": 0,
+        "childCount": 4,
+        "jsHeapMiB": 5.624324798583984,
+        "samples": [
+          {
+            "jsHeapMiB": 5.624324798583984,
+            "appMiB": 420.5,
+            "appCpu": 11,
+            "childMiB": 9.828125,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 155424,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 82464,
+                "cpu": 2.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38960,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 153744,
+                "cpu": 8.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 5.624324798583984,
+            "appMiB": 420.8125,
+            "appCpu": 7.6,
+            "childMiB": 9.828125,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 155680,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 81920,
+                "cpu": 2.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38960,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 154352,
+                "cpu": 5.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 5.6336822509765625,
+            "appMiB": 424.59375,
+            "appCpu": 8.6,
+            "childMiB": 9.828125,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 158384,
+                "cpu": 0.9,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 81936,
+                "cpu": 2.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 39040,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 155424,
+                "cpu": 5.3,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_terminals": {
+        "appMiB": 425.28125,
+        "appCpu": 7.8,
+        "childMiB": 17.5,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 6.716499328613281,
+        "samples": [
+          {
+            "jsHeapMiB": 6.716499328613281,
+            "appMiB": 446.8125,
+            "appCpu": 10.8,
+            "childMiB": 20.703125,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 158736,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 82608,
+                "cpu": 2.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 39040,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 177152,
+                "cpu": 8.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.716499328613281,
+            "appMiB": 424.703125,
+            "appCpu": 7.8,
+            "childMiB": 17.5,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 152528,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 80448,
+                "cpu": 2.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 39040,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 162880,
+                "cpu": 5.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.716499328613281,
+            "appMiB": 425.28125,
+            "appCpu": 6.3999999999999995,
+            "childMiB": 17.5,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 152800,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 80448,
+                "cpu": 1.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38544,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 163696,
+                "cpu": 4.6,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_after_output": {
+        "appMiB": 657.515625,
+        "appCpu": 9.3,
+        "childMiB": 17.15625,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 33.79326248168945,
+        "samples": [
+          {
+            "jsHeapMiB": 33.79323959350586,
+            "appMiB": 668.09375,
+            "appCpu": 24.8,
+            "childMiB": 17.15625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 155040,
+                "cpu": 0.9,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 78736,
+                "cpu": 9.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38384,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 411968,
+                "cpu": 14.6,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 33.79326248168945,
+            "appMiB": 657.515625,
+            "appCpu": 9.3,
+            "childMiB": 17.15625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 154400,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76880,
+                "cpu": 3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38384,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 403632,
+                "cpu": 6.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 33.79326248168945,
+            "appMiB": 644.03125,
+            "appCpu": 6.800000000000001,
+            "childMiB": 15.609375,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 153968,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 75744,
+                "cpu": 1.9,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38384,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 391392,
+                "cpu": 4.9,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_after_switch": {
+        "appMiB": 648.921875,
+        "appCpu": 8,
+        "childMiB": 14.96875,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 38.84405517578125,
+        "samples": [
+          {
+            "jsHeapMiB": 38.83127212524414,
+            "appMiB": 648.921875,
+            "appCpu": 9.9,
+            "childMiB": 14.96875,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 152464,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77824,
+                "cpu": 2.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38384,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 395824,
+                "cpu": 7.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 38.84405517578125,
+            "appMiB": 649.890625,
+            "appCpu": 8,
+            "childMiB": 14.96875,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 153392,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77568,
+                "cpu": 2.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38384,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 396144,
+                "cpu": 5.6,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 38.84405517578125,
+            "appMiB": 646.125,
+            "appCpu": 7.6000000000000005,
+            "childMiB": 14.96875,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 152368,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77264,
+                "cpu": 2.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38384,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 393616,
+                "cpu": 5.4,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "one_after_close": {
+        "appMiB": 644.546875,
+        "appCpu": 8.1,
+        "childMiB": 1.421875,
+        "childCpu": 0,
+        "childCount": 1,
+        "jsHeapMiB": 6.747638702392578,
+        "samples": [
+          {
+            "jsHeapMiB": 6.747638702392578,
+            "appMiB": 651.015625,
+            "appCpu": 6.5,
+            "childMiB": 1.421875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 149872,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76288,
+                "cpu": 1.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38384,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 402096,
+                "cpu": 4.9,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.747638702392578,
+            "appMiB": 644.546875,
+            "appCpu": 8.1,
+            "childMiB": 1.4375,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 150288,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76016,
+                "cpu": 2.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38368,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 395344,
+                "cpu": 5.8,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.747638702392578,
+            "appMiB": 640.25,
+            "appCpu": 9.9,
+            "childMiB": 1.40625,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 150912,
+                "cpu": 1.7,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 75776,
+                "cpu": 2.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37904,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 391024,
+                "cpu": 5.9,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "zero_after_close": {
+        "appMiB": 648.09375,
+        "appCpu": 2.1,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 6.978584289550781,
+        "samples": [
+          {
+            "jsHeapMiB": 6.978584289550781,
+            "appMiB": 643.90625,
+            "appCpu": 3.2,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 152352,
+                "cpu": 3.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76240,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37808,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 392960,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.978584289550781,
+            "appMiB": 648.6875,
+            "appCpu": 2.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 157248,
+                "cpu": 1.9,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76144,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37808,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 393056,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.978584289550781,
+            "appMiB": 648.09375,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 156640,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76144,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37808,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 393056,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "zero_after_cycles": {
+        "appMiB": 541.3125,
+        "appCpu": 0.1,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 4.538242340087891,
+        "samples": [
+          {
+            "jsHeapMiB": 4.931385040283203,
+            "appMiB": 548.6875,
+            "appCpu": 12.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 157296,
+                "cpu": 0.8,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 86096,
+                "cpu": 0.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37808,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 280656,
+                "cpu": 11.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.538242340087891,
+            "appMiB": 541.3125,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 157312,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 81552,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37808,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 277632,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.538242340087891,
+            "appMiB": 535.9375,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 156112,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 78336,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37808,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 276544,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "large_editor_open": {
+        "appMiB": 558.28125,
+        "appCpu": 5.1,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.157157897949219,
+        "samples": [
+          {
+            "jsHeapMiB": 8.157157897949219,
+            "appMiB": 562.921875,
+            "appCpu": 5.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 158512,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 82848,
+                "cpu": 2.6,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37584,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 297488,
+                "cpu": 2.5,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.157157897949219,
+            "appMiB": 558.234375,
+            "appCpu": 5.6,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 158544,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 78176,
+                "cpu": 3.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37584,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 297328,
+                "cpu": 2.4,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.157157897949219,
+            "appMiB": 558.28125,
+            "appCpu": 3.3,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 158560,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 78192,
+                "cpu": 2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37584,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 297344,
+                "cpu": 1.3,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "large_editor_closed": {
+        "appMiB": 550.265625,
+        "appCpu": 1.3,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.30813980102539,
+        "samples": [
+          {
+            "jsHeapMiB": 8.30813980102539,
+            "appMiB": 556.921875,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 157632,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 82672,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37584,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 292400,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.30813980102539,
+            "appMiB": 550.265625,
+            "appCpu": 1.3,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 156576,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77936,
+                "cpu": 1.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37584,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 291376,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.316612243652344,
+            "appMiB": 533.078125,
+            "appCpu": 5.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 155296,
+                "cpu": 2.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 81760,
+                "cpu": 2.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37584,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 271232,
+                "cpu": 0.9,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "rest_after_work": {
+        "appMiB": 520.21875,
+        "appCpu": 0.3,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.316612243652344,
+        "samples": [
+          {
+            "jsHeapMiB": 8.316612243652344,
+            "appMiB": 520.140625,
+            "appCpu": 0.3,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 154032,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77472,
+                "cpu": 0.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37584,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 263536,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.316612243652344,
+            "appMiB": 520.21875,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 154112,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77472,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37584,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 263536,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.316612243652344,
+            "appMiB": 520.875,
+            "appCpu": 2.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 154304,
+                "cpu": 2.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77504,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37584,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 263984,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "checks": {
+      "floodDurationMs": 602,
+      "floodCharacters": [
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156
+      ],
+      "fileBytes": 1032890,
+      "remainingTerminalPanes": 0
+    },
+    "limitations": [
+      "RSS soma páginas compartilhadas entre processos.",
+      "CPU por processo vem do ps e representa uma amostra; não é medição energética.",
+      "Codex real não é invocado por este benchmark."
+    ],
+    "systemAvailabilityQuery": "The system has 8589934592 (524288 pages with a page size of 16384).\nSystem-wide memory free percentage: 49%"
+  },
+  "after": {
+    "version": "otimizacao-final",
+    "platform": "darwin",
+    "arch": "arm64",
+    "started": "2026-10-28T20:15:42.932Z",
+    "samples": {
+      "idle_no_project": {
+        "appMiB": 523.0625,
+        "appCpu": 0.5,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 2.7899703979492188,
+        "samples": [
+          {
+            "jsHeapMiB": 2.7899703979492188,
+            "appMiB": 528.140625,
+            "appCpu": 1.4,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 234256,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104848,
+                "cpu": 0.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48912,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 152800,
+                "cpu": 0.8,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 2.7899703979492188,
+            "appMiB": 523.03125,
+            "appCpu": 0.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 234272,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 99920,
+                "cpu": 0.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48912,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 152480,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 2.7899703979492188,
+            "appMiB": 523.0625,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 234304,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 99904,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48928,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 152480,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "one_terminal": {
+        "appMiB": 547.34375,
+        "appCpu": 9,
+        "childMiB": 2.796875,
+        "childCpu": 0,
+        "childCount": 1,
+        "jsHeapMiB": 4.775691986083984,
+        "samples": [
+          {
+            "jsHeapMiB": 4.775691986083984,
+            "appMiB": 546.625,
+            "appCpu": 9.9,
+            "childMiB": 2.796875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 235072,
+                "cpu": 0.2,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 105872,
+                "cpu": 2.9,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48928,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 169872,
+                "cpu": 6.8,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.775691986083984,
+            "appMiB": 547.34375,
+            "appCpu": 8.7,
+            "childMiB": 2.796875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 235088,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 105856,
+                "cpu": 2.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48928,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 170608,
+                "cpu": 5.9,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.775691986083984,
+            "appMiB": 548.1875,
+            "appCpu": 9,
+            "childMiB": 2.796875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 235088,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 105856,
+                "cpu": 2.6,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48928,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 171472,
+                "cpu": 6.4,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "four_terminals": {
+        "appMiB": 572,
+        "appCpu": 10.100000000000001,
+        "childMiB": 11.1875,
+        "childCpu": 0,
+        "childCount": 4,
+        "jsHeapMiB": 6.161945343017578,
+        "samples": [
+          {
+            "jsHeapMiB": 6.161945343017578,
+            "appMiB": 571.40625,
+            "appCpu": 12.4,
+            "childMiB": 11.1875,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 235728,
+                "cpu": 1.3,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 106848,
+                "cpu": 3.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49056,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 193488,
+                "cpu": 8,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.161945343017578,
+            "appMiB": 572,
+            "appCpu": 10.100000000000001,
+            "childMiB": 11.1875,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 235728,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 106592,
+                "cpu": 3.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49056,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 194352,
+                "cpu": 6.9,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.173072814941406,
+            "appMiB": 573.15625,
+            "appCpu": 6.199999999999999,
+            "childMiB": 11.1875,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 235952,
+                "cpu": 0.6,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 106592,
+                "cpu": 1.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 195296,
+                "cpu": 3.8,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_terminals": {
+        "appMiB": 593.265625,
+        "appCpu": 9.2,
+        "childMiB": 22.375,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 7.251708984375,
+        "samples": [
+          {
+            "jsHeapMiB": 7.251708984375,
+            "appMiB": 592.4375,
+            "appCpu": 9.7,
+            "childMiB": 22.375,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 236064,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107072,
+                "cpu": 2.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 214448,
+                "cpu": 6.8,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 7.251708984375,
+            "appMiB": 593.265625,
+            "appCpu": 5.699999999999999,
+            "childMiB": 22.375,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 236064,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107056,
+                "cpu": 1.9,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 215312,
+                "cpu": 3.8,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 7.251708984375,
+            "appMiB": 594.140625,
+            "appCpu": 9.2,
+            "childMiB": 22.375,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 236128,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107056,
+                "cpu": 2.7,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 216144,
+                "cpu": 6.5,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_after_output": {
+        "appMiB": 826.46875,
+        "appCpu": 12.899999999999999,
+        "childMiB": 22.5625,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 27.714195251464844,
+        "samples": [
+          {
+            "jsHeapMiB": 27.71417236328125,
+            "appMiB": 826.4375,
+            "appCpu": 29.5,
+            "childMiB": 22.5625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 238336,
+                "cpu": 0.8,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107328,
+                "cpu": 11.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 451536,
+                "cpu": 17.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 27.714195251464844,
+            "appMiB": 826.46875,
+            "appCpu": 12.899999999999999,
+            "childMiB": 22.5625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 238336,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107312,
+                "cpu": 3.7,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 451584,
+                "cpu": 9.2,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 27.714195251464844,
+            "appMiB": 826.515625,
+            "appCpu": 9.5,
+            "childMiB": 22.5625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 238336,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107312,
+                "cpu": 2.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 451632,
+                "cpu": 6.7,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_after_switch": {
+        "appMiB": 832.140625,
+        "appCpu": 11.399999999999999,
+        "childMiB": 22.5625,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 21.080116271972656,
+        "samples": [
+          {
+            "jsHeapMiB": 21.06396484375,
+            "appMiB": 832.203125,
+            "appCpu": 20.3,
+            "childMiB": 22.5625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 238352,
+                "cpu": 0.3,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107488,
+                "cpu": 7.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 457264,
+                "cpu": 12.9,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 21.080116271972656,
+            "appMiB": 832.140625,
+            "appCpu": 11.399999999999999,
+            "childMiB": 22.5625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 238288,
+                "cpu": 0.4,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107472,
+                "cpu": 3.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 457328,
+                "cpu": 7.6,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 21.080116271972656,
+            "appMiB": 832.140625,
+            "appCpu": 9.3,
+            "childMiB": 22.5625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 238288,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107472,
+                "cpu": 2.7,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 457328,
+                "cpu": 6.6,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "one_after_close": {
+        "appMiB": 831.703125,
+        "appCpu": 8.3,
+        "childMiB": 2.828125,
+        "childCpu": 0,
+        "childCount": 1,
+        "jsHeapMiB": 27.359535217285156,
+        "samples": [
+          {
+            "jsHeapMiB": 27.359535217285156,
+            "appMiB": 831.71875,
+            "appCpu": 8.3,
+            "childMiB": 2.828125,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 236448,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108032,
+                "cpu": 2.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 458176,
+                "cpu": 5.9,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 27.359535217285156,
+            "appMiB": 831.703125,
+            "appCpu": 10,
+            "childMiB": 2.828125,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 236448,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108016,
+                "cpu": 3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 458176,
+                "cpu": 7,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 27.359535217285156,
+            "appMiB": 831.640625,
+            "appCpu": 8.2,
+            "childMiB": 2.828125,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 236448,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107952,
+                "cpu": 2.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 458176,
+                "cpu": 5.7,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "zero_after_close": {
+        "appMiB": 696.34375,
+        "appCpu": 0.5,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 4.227561950683594,
+        "samples": [
+          {
+            "jsHeapMiB": 27.582164764404297,
+            "appMiB": 831.859375,
+            "appCpu": 0.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 236576,
+                "cpu": 0.3,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108032,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 458192,
+                "cpu": 0.2,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.206565856933594,
+            "appMiB": 691.5625,
+            "appCpu": 8.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 230592,
+                "cpu": 3.6,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 103424,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 325120,
+                "cpu": 4.8,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.227561950683594,
+            "appMiB": 696.34375,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 230976,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107760,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 325296,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "zero_after_cycles": {
+        "appMiB": 703.484375,
+        "appCpu": 0,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 5.618194580078125,
+        "samples": [
+          {
+            "jsHeapMiB": 5.618194580078125,
+            "appMiB": 708.109375,
+            "appCpu": 0.8,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 232672,
+                "cpu": 0.4,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108768,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 334640,
+                "cpu": 0.4,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 5.618194580078125,
+            "appMiB": 703.484375,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 232624,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104192,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 334528,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 5.618194580078125,
+            "appMiB": 703.484375,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 232624,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104192,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 334528,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "large_editor_open": {
+        "appMiB": 717.84375,
+        "appCpu": 4.1,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.24813461303711,
+        "samples": [
+          {
+            "jsHeapMiB": 8.24813461303711,
+            "appMiB": 722.59375,
+            "appCpu": 3.8,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 235248,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 109760,
+                "cpu": 1.9,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 345904,
+                "cpu": 1.9,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.24813461303711,
+            "appMiB": 717.828125,
+            "appCpu": 5.4,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 235248,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 105056,
+                "cpu": 3.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 345728,
+                "cpu": 2.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.24813461303711,
+            "appMiB": 717.84375,
+            "appCpu": 4.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 235248,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 105072,
+                "cpu": 2.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 345728,
+                "cpu": 1.7,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "large_editor_closed": {
+        "appMiB": 722.375,
+        "appCpu": 0.2,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.473255157470703,
+        "samples": [
+          {
+            "jsHeapMiB": 8.462841033935547,
+            "appMiB": 722.53125,
+            "appCpu": 0.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 235248,
+                "cpu": 0.4,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 109600,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 346000,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.473255157470703,
+            "appMiB": 722.375,
+            "appCpu": 0.2,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 235248,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 109472,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 345968,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.473255157470703,
+            "appMiB": 717.859375,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 235264,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104912,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 345888,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "rest_after_work": {
+        "appMiB": 716.890625,
+        "appCpu": 0,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.473255157470703,
+        "samples": [
+          {
+            "jsHeapMiB": 8.473255157470703,
+            "appMiB": 716.890625,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 234304,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104896,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 345872,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.473255157470703,
+            "appMiB": 716.890625,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 234304,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104896,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 345872,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.473255157470703,
+            "appMiB": 716.890625,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 234304,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104896,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 345872,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "checks": {
+      "floodDurationMs": 450,
+      "floodCharacters": [
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156
+      ],
+      "fileBytes": 1032890,
+      "remainingTerminalPanes": 0
+    },
+    "limitations": [
+      "RSS soma páginas compartilhadas entre processos.",
+      "CPU por processo vem do ps e representa uma amostra; não é medição energética.",
+      "Codex real não é invocado por este benchmark."
+    ],
+    "systemAvailabilityQuery": "The system has 8589934592 (524288 pages with a page size of 16384).\nSystem-wide memory free percentage: 56%"
+  },
+  "idlePaired": [
+    {
+      "repeat": 1,
+      "label": "antes",
+      "samples": [
+        {
+          "rssMiB": 455.25,
+          "cpu": 0.9,
+          "heapMiB": 3.463672637939453
+        },
+        {
+          "rssMiB": 416.53125,
+          "cpu": 0.1,
+          "heapMiB": 3.463672637939453
+        },
+        {
+          "rssMiB": 415.921875,
+          "cpu": 0,
+          "heapMiB": 3.463672637939453
+        }
+      ],
+      "availability": "System-wide memory free percentage: 43%"
+    },
+    {
+      "repeat": 1,
+      "label": "depois",
+      "samples": [
+        {
+          "rssMiB": 458.859375,
+          "cpu": 0,
+          "heapMiB": 2.7556800842285156
+        },
+        {
+          "rssMiB": 453.75,
+          "cpu": 0.30000000000000004,
+          "heapMiB": 2.7556800842285156
+        },
+        {
+          "rssMiB": 453.75,
+          "cpu": 0.1,
+          "heapMiB": 2.7556800842285156
+        }
+      ],
+      "availability": "System-wide memory free percentage: 43%"
+    },
+    {
+      "repeat": 2,
+      "label": "antes",
+      "samples": [
+        {
+          "rssMiB": 472.734375,
+          "cpu": 0,
+          "heapMiB": 3.4663314819335938
+        },
+        {
+          "rssMiB": 459.609375,
+          "cpu": 0,
+          "heapMiB": 3.4663314819335938
+        },
+        {
+          "rssMiB": 459.65625,
+          "cpu": 0,
+          "heapMiB": 3.4663314819335938
+        }
+      ],
+      "availability": "System-wide memory free percentage: 46%"
+    },
+    {
+      "repeat": 2,
+      "label": "depois",
+      "samples": [
+        {
+          "rssMiB": 452.3125,
+          "cpu": 0,
+          "heapMiB": 2.7583465576171875
+        },
+        {
+          "rssMiB": 448.015625,
+          "cpu": 0.1,
+          "heapMiB": 2.7583465576171875
+        },
+        {
+          "rssMiB": 448.078125,
+          "cpu": 0.1,
+          "heapMiB": 2.7583465576171875
+        }
+      ],
+      "availability": "System-wide memory free percentage: 44%"
+    },
+    {
+      "repeat": 3,
+      "label": "antes",
+      "samples": [
+        {
+          "rssMiB": 454.984375,
+          "cpu": 3.2,
+          "heapMiB": 3.4668121337890625
+        },
+        {
+          "rssMiB": 412.296875,
+          "cpu": 0.4,
+          "heapMiB": 3.4668121337890625
+        },
+        {
+          "rssMiB": 399.03125,
+          "cpu": 0.1,
+          "heapMiB": 3.4668121337890625
+        }
+      ],
+      "availability": "System-wide memory free percentage: 37%"
+    },
+    {
+      "repeat": 3,
+      "label": "depois",
+      "samples": [
+        {
+          "rssMiB": 453.265625,
+          "cpu": 0.7000000000000001,
+          "heapMiB": 2.7580718994140625
+        },
+        {
+          "rssMiB": 449.046875,
+          "cpu": 0.2,
+          "heapMiB": 2.7580718994140625
+        },
+        {
+          "rssMiB": 449.109375,
+          "cpu": 0.1,
+          "heapMiB": 2.7580718994140625
+        }
+      ],
+      "availability": "System-wide memory free percentage: 46%"
+    }
+  ],
+  "processes": {
+    "terminalBefore": {
+      "remaining": true,
+      "closeMs": 502
+    },
+    "terminalAfter": {
+      "remaining": false,
+      "closeMs": 1557
+    },
+    "codexSyntheticBefore": {
+      "synthetic": true,
+      "running": {
+        "serverPid": 56999,
+        "childPid": 57003,
+        "childAlive": true,
+        "processes": [
+          {
+            "pid": 56999,
+            "cpu": 21.4,
+            "rssKiB": 42400
+          },
+          {
+            "pid": 57003,
+            "cpu": 30.1,
+            "rssKiB": 39376
+          }
+        ]
+      },
+      "after": {
+        "serverAlive": false,
+        "childAlive": true,
+        "sessionRunning": false
+      }
+    },
+    "codexSyntheticAfter": {
+      "synthetic": true,
+      "running": {
+        "serverPid": 57009,
+        "childPid": 57010,
+        "childAlive": true,
+        "processes": [
+          {
+            "pid": 57009,
+            "cpu": 27.5,
+            "rssKiB": 42480
+          },
+          {
+            "pid": 57010,
+            "cpu": 9,
+            "rssKiB": 39520
+          }
+        ]
+      },
+      "after": {
+        "serverAlive": false,
+        "childAlive": false,
+        "sessionRunning": false
+      }
+    }
+  },
+  "cycles": [
+    {
+      "cycle": 4,
+      "heapMiB": 5.748443603515625,
+      "rssMiB": 340.640625
+    },
+    {
+      "cycle": 8,
+      "heapMiB": 6.9761962890625,
+      "rssMiB": 336.453125
+    },
+    {
+      "cycle": 12,
+      "heapMiB": 7.047504425048828,
+      "rssMiB": 346.328125
+    }
+  ],
+  "interactiveOutput": {
+    "counts": [
+      5000,
+      5000,
+      5000,
+      5000,
+      5000,
+      5000,
+      5000,
+      5000
+    ],
+    "switchMs": 259,
+    "whileOutputPending": true
+  },
+  "cyclesUltimate": [
+    {
+      "cycle": 4,
+      "heapMiB": 5.754913330078125,
+      "rssMiB": 568.328125
+    },
+    {
+      "cycle": 8,
+      "heapMiB": 6.983135223388672,
+      "rssMiB": 584.78125
+    },
+    {
+      "cycle": 12,
+      "heapMiB": 7.052665710449219,
+      "rssMiB": 599.15625
+    }
+  ],
+  "interactiveOutputFinal": {
+    "linesPerTerminal": 5000,
+    "terminalCount": 8,
+    "switchMs": 187,
+    "whileOutputPending": true
+  },
+  "afterPrevious": {
+    "version": "final",
+    "platform": "darwin",
+    "arch": "arm64",
+    "started": "2026-10-28T20:03:43.306Z",
+    "samples": {
+      "idle_no_project": {
+        "appMiB": 431.5625,
+        "appCpu": 1.8,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 2.7616043090820312,
+        "samples": [
+          {
+            "jsHeapMiB": 2.7616043090820312,
+            "appMiB": 435.96875,
+            "appCpu": 2.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 191664,
+                "cpu": 2,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 94960,
+                "cpu": 0.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 41520,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 118288,
+                "cpu": 0.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 2.7616043090820312,
+            "appMiB": 430.953125,
+            "appCpu": 1.8,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 191856,
+                "cpu": 0.3,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 89936,
+                "cpu": 1.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 41520,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 117984,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 2.7616043090820312,
+            "appMiB": 431.5625,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 192128,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 89968,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 41840,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 117984,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "one_terminal": {
+        "appMiB": 457.953125,
+        "appCpu": 9.8,
+        "childMiB": 2.765625,
+        "childCpu": 0,
+        "childCount": 1,
+        "jsHeapMiB": 4.773345947265625,
+        "samples": [
+          {
+            "jsHeapMiB": 4.773345947265625,
+            "appMiB": 456.515625,
+            "appCpu": 15.1,
+            "childMiB": 2.765625,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 193744,
+                "cpu": 0.5,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 92960,
+                "cpu": 4.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40288,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 140480,
+                "cpu": 10.2,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.773345947265625,
+            "appMiB": 457.953125,
+            "appCpu": 4.8,
+            "childMiB": 2.765625,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 193760,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 92960,
+                "cpu": 1.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40288,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 141936,
+                "cpu": 3.6,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.773345947265625,
+            "appMiB": 458.953125,
+            "appCpu": 9.8,
+            "childMiB": 2.765625,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 193776,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 92976,
+                "cpu": 2.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40288,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 142928,
+                "cpu": 7.4,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "four_terminals": {
+        "appMiB": 487.3125,
+        "appCpu": 9.9,
+        "childMiB": 11.078125,
+        "childCpu": 0,
+        "childCount": 4,
+        "jsHeapMiB": 6.0181732177734375,
+        "samples": [
+          {
+            "jsHeapMiB": 6.0181732177734375,
+            "appMiB": 486.890625,
+            "appCpu": 14.100000000000001,
+            "childMiB": 11.078125,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 199008,
+                "cpu": 0.5,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 91408,
+                "cpu": 3.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40704,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 167456,
+                "cpu": 10.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.0181732177734375,
+            "appMiB": 487.3125,
+            "appCpu": 9.9,
+            "childMiB": 11.078125,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 198816,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 91088,
+                "cpu": 2.9,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40704,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 168400,
+                "cpu": 7,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.029209136962891,
+            "appMiB": 489.359375,
+            "appCpu": 9.6,
+            "childMiB": 11.078125,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 199760,
+                "cpu": 0.5,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 91104,
+                "cpu": 2.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40784,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 169456,
+                "cpu": 6.7,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_terminals": {
+        "appMiB": 509.3125,
+        "appCpu": 11,
+        "childMiB": 22.140625,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 7.222064971923828,
+        "samples": [
+          {
+            "jsHeapMiB": 7.222064971923828,
+            "appMiB": 508.515625,
+            "appCpu": 12.4,
+            "childMiB": 22.140625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 199824,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 91536,
+                "cpu": 2.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40784,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 188576,
+                "cpu": 9.5,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 7.222064971923828,
+            "appMiB": 509.3125,
+            "appCpu": 11,
+            "childMiB": 22.140625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 199824,
+                "cpu": 0.4,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 91504,
+                "cpu": 2.7,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40784,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 189424,
+                "cpu": 7.9,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 7.222064971923828,
+            "appMiB": 510.03125,
+            "appCpu": 9.7,
+            "childMiB": 22.140625,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 199776,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 91504,
+                "cpu": 2.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40784,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 190208,
+                "cpu": 7.2,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_after_output": {
+        "appMiB": 718.265625,
+        "appCpu": 12.3,
+        "childMiB": 18.171875,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 46.2337532043457,
+        "samples": [
+          {
+            "jsHeapMiB": 46.23373031616211,
+            "appMiB": 725.703125,
+            "appCpu": 24.2,
+            "childMiB": 18.171875,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 197248,
+                "cpu": 0.7,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 83328,
+                "cpu": 8.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40480,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 422064,
+                "cpu": 14.7,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 46.2337532043457,
+            "appMiB": 718.1875,
+            "appCpu": 10.2,
+            "childMiB": 18.171875,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 192752,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 83168,
+                "cpu": 2.7,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40336,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 419168,
+                "cpu": 7.5,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 46.2337532043457,
+            "appMiB": 718.265625,
+            "appCpu": 12.3,
+            "childMiB": 18.171875,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 192816,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 83168,
+                "cpu": 3.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 40336,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 419184,
+                "cpu": 9.1,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_after_switch": {
+        "appMiB": 633.5625,
+        "appCpu": 10,
+        "childMiB": 17.421875,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 21.08545684814453,
+        "samples": [
+          {
+            "jsHeapMiB": 21.069438934326172,
+            "appMiB": 663.53125,
+            "appCpu": 12.1,
+            "childMiB": 17.421875,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 148384,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 80592,
+                "cpu": 2.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 38656,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 411824,
+                "cpu": 9.2,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 21.08545684814453,
+            "appMiB": 633.421875,
+            "appCpu": 8.5,
+            "childMiB": 17.421875,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 136368,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77280,
+                "cpu": 2.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 397248,
+                "cpu": 6.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 21.08545684814453,
+            "appMiB": 633.5625,
+            "appCpu": 10,
+            "childMiB": 17.421875,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 136368,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77296,
+                "cpu": 2.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 397376,
+                "cpu": 7.6,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "one_after_close": {
+        "appMiB": 641.21875,
+        "appCpu": 10.3,
+        "childMiB": 2.1875,
+        "childCpu": 0,
+        "childCount": 1,
+        "jsHeapMiB": 27.526538848876953,
+        "samples": [
+          {
+            "jsHeapMiB": 27.526538848876953,
+            "appMiB": 641.21875,
+            "appCpu": 11,
+            "childMiB": 2.1875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 139120,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77808,
+                "cpu": 2.7,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 401952,
+                "cpu": 8.2,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 27.526538848876953,
+            "appMiB": 641.453125,
+            "appCpu": 10.3,
+            "childMiB": 2.1875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 139232,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 77792,
+                "cpu": 3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 402096,
+                "cpu": 7.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 27.526538848876953,
+            "appMiB": 636.90625,
+            "appCpu": 7.5,
+            "childMiB": 2.1875,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 138656,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 75888,
+                "cpu": 1.9,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 399920,
+                "cpu": 5.6,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "zero_after_close": {
+        "appMiB": 526.28125,
+        "appCpu": 0.2,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 4.549213409423828,
+        "samples": [
+          {
+            "jsHeapMiB": 27.76042938232422,
+            "appMiB": 637.796875,
+            "appCpu": 0.2,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 138352,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76032,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 400992,
+                "cpu": 0.2,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.549213409423828,
+            "appMiB": 526.28125,
+            "appCpu": 11.9,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 140688,
+                "cpu": 1.3,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 75744,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 284752,
+                "cpu": 10.5,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.204093933105469,
+            "appMiB": 519.703125,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 140752,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 75744,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 277952,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "zero_after_cycles": {
+        "appMiB": 550.390625,
+        "appCpu": 0,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 4.740512847900391,
+        "samples": [
+          {
+            "jsHeapMiB": 4.740512847900391,
+            "appMiB": 556.046875,
+            "appCpu": 1.7999999999999998,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 144336,
+                "cpu": 0.3,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 81216,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 306112,
+                "cpu": 1.4,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.740512847900391,
+            "appMiB": 550.390625,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 144256,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76592,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37568,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 305184,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.740512847900391,
+            "appMiB": 545.40625,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 143904,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76096,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 300960,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "large_editor_open": {
+        "appMiB": 548.515625,
+        "appCpu": 5.5,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.762847900390625,
+        "samples": [
+          {
+            "jsHeapMiB": 8.762847900390625,
+            "appMiB": 553.21875,
+            "appCpu": 3.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 144896,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 81408,
+                "cpu": 1.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 302656,
+                "cpu": 1.7,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.762847900390625,
+            "appMiB": 548.484375,
+            "appCpu": 5.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 144912,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76704,
+                "cpu": 3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 302496,
+                "cpu": 2.5,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.762847900390625,
+            "appMiB": 548.515625,
+            "appCpu": 5.8,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 144928,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76720,
+                "cpu": 2.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 302496,
+                "cpu": 3,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "large_editor_closed": {
+        "appMiB": 551.984375,
+        "appCpu": 0.5,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.95834732055664,
+        "samples": [
+          {
+            "jsHeapMiB": 8.95834732055664,
+            "appMiB": 552.015625,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 144640,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 81312,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 301776,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.95834732055664,
+            "appMiB": 547.296875,
+            "appCpu": 0.5,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 144640,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76608,
+                "cpu": 0.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 301648,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.968524932861328,
+            "appMiB": 551.984375,
+            "appCpu": 0.7,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 144304,
+                "cpu": 0.2,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 80912,
+                "cpu": 0.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 302480,
+                "cpu": 0.3,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "rest_after_work": {
+        "appMiB": 524.90625,
+        "appCpu": 0,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.968524932861328,
+        "samples": [
+          {
+            "jsHeapMiB": 8.968524932861328,
+            "appMiB": 547.71875,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 144304,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 76608,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 302416,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.968524932861328,
+            "appMiB": 524.90625,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 141072,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 75840,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 283056,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.968524932861328,
+            "appMiB": 524.3125,
+            "appCpu": 0.3,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 140336,
+                "cpu": 0.3,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 75856,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 37536,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 283168,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "checks": {
+      "floodDurationMs": 555,
+      "floodCharacters": [
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156
+      ],
+      "fileBytes": 1032890,
+      "remainingTerminalPanes": 0
+    },
+    "limitations": [
+      "RSS soma páginas compartilhadas entre processos.",
+      "CPU por processo vem do ps e representa uma amostra; não é medição energética.",
+      "Codex real não é invocado por este benchmark."
+    ],
+    "systemAvailabilityQuery": "The system has 8589934592 (524288 pages with a page size of 16384).\nSystem-wide memory free percentage: 46%"
+  },
+  "beforeRepeated": {
+    "version": "baseline-repetido",
+    "platform": "darwin",
+    "arch": "arm64",
+    "started": "2026-10-28T20:16:58.256Z",
+    "samples": {
+      "idle_no_project": {
+        "appMiB": 529.609375,
+        "appCpu": 1.4000000000000001,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 3.4542503356933594,
+        "samples": [
+          {
+            "jsHeapMiB": 3.4542503356933594,
+            "appMiB": 534.671875,
+            "appCpu": 2.3,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 233856,
+                "cpu": 1.7,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 106176,
+                "cpu": 0.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48896,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 158576,
+                "cpu": 0.4,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 3.4542503356933594,
+            "appMiB": 529.515625,
+            "appCpu": 1.4000000000000001,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 233856,
+                "cpu": 0.3,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 101216,
+                "cpu": 1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48896,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 158256,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 3.4542503356933594,
+            "appMiB": 529.609375,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 233936,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 101216,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48912,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 158256,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "one_terminal": {
+        "appMiB": 547.8125,
+        "appCpu": 9.6,
+        "childMiB": 2.78125,
+        "childCpu": 0,
+        "childCount": 1,
+        "jsHeapMiB": 4.251495361328125,
+        "samples": [
+          {
+            "jsHeapMiB": 4.251495361328125,
+            "appMiB": 547,
+            "appCpu": 9.4,
+            "childMiB": 2.78125,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 234608,
+                "cpu": 0.2,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 106944,
+                "cpu": 2.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48928,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 169648,
+                "cpu": 6.4,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.251495361328125,
+            "appMiB": 547.8125,
+            "appCpu": 10.7,
+            "childMiB": 2.78125,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 234624,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 106896,
+                "cpu": 3.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48928,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 170512,
+                "cpu": 7.3,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.251495361328125,
+            "appMiB": 548.609375,
+            "appCpu": 9.6,
+            "childMiB": 2.78125,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 234624,
+                "cpu": 0.2,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 106896,
+                "cpu": 2.6,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48928,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 171328,
+                "cpu": 6.8,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "four_terminals": {
+        "appMiB": 565.015625,
+        "appCpu": 10.6,
+        "childMiB": 11.125,
+        "childCpu": 0,
+        "childCount": 4,
+        "jsHeapMiB": 6.603626251220703,
+        "samples": [
+          {
+            "jsHeapMiB": 6.603626251220703,
+            "appMiB": 564.5,
+            "appCpu": 14.7,
+            "childMiB": 11.125,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 234832,
+                "cpu": 1.2,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107840,
+                "cpu": 2.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49056,
+                "cpu": 0.6,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 186320,
+                "cpu": 10.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.603626251220703,
+            "appMiB": 565.015625,
+            "appCpu": 9.2,
+            "childMiB": 11.125,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 234784,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107616,
+                "cpu": 3.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49056,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 187120,
+                "cpu": 6.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.613029479980469,
+            "appMiB": 566.296875,
+            "appCpu": 10.6,
+            "childMiB": 11.125,
+            "childCpu": 0,
+            "childCount": 4,
+            "parts": {
+              "Browser": {
+                "rss": 235056,
+                "cpu": 0.8,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107616,
+                "cpu": 3.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49056,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 188160,
+                "cpu": 6.6,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_terminals": {
+        "appMiB": 587.796875,
+        "appCpu": 12,
+        "childMiB": 22.25,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 6.652652740478516,
+        "samples": [
+          {
+            "jsHeapMiB": 6.652652740478516,
+            "appMiB": 587,
+            "appCpu": 13.5,
+            "childMiB": 22.25,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 235136,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108128,
+                "cpu": 2.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49056,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 208768,
+                "cpu": 10.6,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.652652740478516,
+            "appMiB": 587.796875,
+            "appCpu": 12,
+            "childMiB": 22.25,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 235136,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108096,
+                "cpu": 4.2,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49056,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 209616,
+                "cpu": 7.8,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 6.652652740478516,
+            "appMiB": 588.65625,
+            "appCpu": 8.7,
+            "childMiB": 22.25,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 235184,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108096,
+                "cpu": 2.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49056,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 210448,
+                "cpu": 6.2,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_after_output": {
+        "appMiB": 827.140625,
+        "appCpu": 10.3,
+        "childMiB": 22.453125,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 27.52469253540039,
+        "samples": [
+          {
+            "jsHeapMiB": 27.524669647216797,
+            "appMiB": 827.109375,
+            "appCpu": 26.2,
+            "childMiB": 22.453125,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 237296,
+                "cpu": 0.7,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108224,
+                "cpu": 9.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 452416,
+                "cpu": 15.7,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 27.52469253540039,
+            "appMiB": 827.140625,
+            "appCpu": 10.3,
+            "childMiB": 22.453125,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 237296,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108208,
+                "cpu": 3.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 452464,
+                "cpu": 7,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 27.52469253540039,
+            "appMiB": 827.15625,
+            "appCpu": 8,
+            "childMiB": 22.453125,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 237296,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108208,
+                "cpu": 2.4,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 452480,
+                "cpu": 5.6,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "eight_after_switch": {
+        "appMiB": 826.828125,
+        "appCpu": 11.5,
+        "childMiB": 22.453125,
+        "childCpu": 0,
+        "childCount": 8,
+        "jsHeapMiB": 32.57455825805664,
+        "samples": [
+          {
+            "jsHeapMiB": 32.56171417236328,
+            "appMiB": 826.828125,
+            "appCpu": 15.299999999999999,
+            "childMiB": 22.453125,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 237216,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107728,
+                "cpu": 6,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 452704,
+                "cpu": 9.2,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 32.57455825805664,
+            "appMiB": 826.8125,
+            "appCpu": 11.5,
+            "childMiB": 22.453125,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 237248,
+                "cpu": 0.2,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107696,
+                "cpu": 3.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 452688,
+                "cpu": 7.5,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 32.57455825805664,
+            "appMiB": 826.828125,
+            "appCpu": 9.7,
+            "childMiB": 22.453125,
+            "childCpu": 0,
+            "childCount": 8,
+            "parts": {
+              "Browser": {
+                "rss": 237248,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 107696,
+                "cpu": 2.9,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 452704,
+                "cpu": 6.8,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "one_after_close": {
+        "appMiB": 832.03125,
+        "appCpu": 10.2,
+        "childMiB": 2.8125,
+        "childCpu": 0,
+        "childCount": 1,
+        "jsHeapMiB": 34.709693908691406,
+        "samples": [
+          {
+            "jsHeapMiB": 34.709693908691406,
+            "appMiB": 831.53125,
+            "appCpu": 9.9,
+            "childMiB": 2.8125,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 237200,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108208,
+                "cpu": 2.6,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 457056,
+                "cpu": 7.2,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 34.709693908691406,
+            "appMiB": 832.03125,
+            "appCpu": 13.899999999999999,
+            "childMiB": 2.8125,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 237200,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108192,
+                "cpu": 3.8,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 457584,
+                "cpu": 10.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 34.709693908691406,
+            "appMiB": 832.546875,
+            "appCpu": 10.2,
+            "childMiB": 2.8125,
+            "childCpu": 0,
+            "childCount": 1,
+            "parts": {
+              "Browser": {
+                "rss": 237200,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108192,
+                "cpu": 2.7,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 458112,
+                "cpu": 7.5,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "zero_after_close": {
+        "appMiB": 821.984375,
+        "appCpu": 3.3000000000000003,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 34.92756652832031,
+        "samples": [
+          {
+            "jsHeapMiB": 34.92756652832031,
+            "appMiB": 832.859375,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 237200,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108272,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 458352,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 34.92756652832031,
+            "appMiB": 821.984375,
+            "appCpu": 8.7,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 230768,
+                "cpu": 8.7,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 103728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 458192,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.256435394287109,
+            "appMiB": 690.328125,
+            "appCpu": 3.3000000000000003,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 230128,
+                "cpu": 1.1,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 103728,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49024,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 324016,
+                "cpu": 2.2,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "zero_after_cycles": {
+        "appMiB": 705.765625,
+        "appCpu": 0.1,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 4.809391021728516,
+        "samples": [
+          {
+            "jsHeapMiB": 4.809391021728516,
+            "appMiB": 710.390625,
+            "appCpu": 2.8,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 230928,
+                "cpu": 0.6,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108624,
+                "cpu": 0.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 338816,
+                "cpu": 1.7,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.809391021728516,
+            "appMiB": 705.75,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 230944,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104000,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 338672,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 4.809391021728516,
+            "appMiB": 705.765625,
+            "appCpu": 0,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 230960,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104000,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 338672,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "large_editor_open": {
+        "appMiB": 719.21875,
+        "appCpu": 4.9,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.313682556152344,
+        "samples": [
+          {
+            "jsHeapMiB": 8.313682556152344,
+            "appMiB": 724.875,
+            "appCpu": 5.3,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 233488,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 109472,
+                "cpu": 2.5,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 350240,
+                "cpu": 2.8,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.313682556152344,
+            "appMiB": 719.203125,
+            "appCpu": 4.9,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 232560,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104768,
+                "cpu": 3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 350064,
+                "cpu": 1.9,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.313682556152344,
+            "appMiB": 719.21875,
+            "appCpu": 4.800000000000001,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 232560,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104784,
+                "cpu": 2.6,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 350064,
+                "cpu": 2.2,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "large_editor_closed": {
+        "appMiB": 723.65625,
+        "appCpu": 0.3,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.460880279541016,
+        "samples": [
+          {
+            "jsHeapMiB": 8.460880279541016,
+            "appMiB": 723.875,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 232592,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 109296,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 350288,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.460880279541016,
+            "appMiB": 719.203125,
+            "appCpu": 0.3,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 232608,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 104608,
+                "cpu": 0.3,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49072,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 350176,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.469375610351562,
+            "appMiB": 723.65625,
+            "appCpu": 0.7999999999999999,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 232704,
+                "cpu": 0.7,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 108960,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 49120,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 350240,
+                "cpu": 0.1,
+                "count": 1
+              }
+            }
+          }
+        ]
+      },
+      "rest_after_work": {
+        "appMiB": 699.890625,
+        "appCpu": 0.3,
+        "childMiB": 0,
+        "childCpu": 0,
+        "childCount": 0,
+        "jsHeapMiB": 8.469375610351562,
+        "samples": [
+          {
+            "jsHeapMiB": 8.469375610351562,
+            "appMiB": 699.890625,
+            "appCpu": 0.1,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 226272,
+                "cpu": 0,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 99696,
+                "cpu": 0.1,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48896,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 341824,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.469375610351562,
+            "appMiB": 699.890625,
+            "appCpu": 0.4,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 226272,
+                "cpu": 0.4,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 99696,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48896,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 341824,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          },
+          {
+            "jsHeapMiB": 8.469375610351562,
+            "appMiB": 699.875,
+            "appCpu": 0.3,
+            "childMiB": 0,
+            "childCpu": 0,
+            "childCount": 0,
+            "parts": {
+              "Browser": {
+                "rss": 226272,
+                "cpu": 0.3,
+                "count": 1
+              },
+              "GPU": {
+                "rss": 99696,
+                "cpu": 0,
+                "count": 1
+              },
+              "Utility": {
+                "rss": 48896,
+                "cpu": 0,
+                "count": 1
+              },
+              "Tab": {
+                "rss": 341808,
+                "cpu": 0,
+                "count": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "checks": {
+      "floodDurationMs": 576,
+      "floodCharacters": [
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156,
+        1176156
+      ],
+      "fileBytes": 1032890,
+      "remainingTerminalPanes": 0
+    },
+    "limitations": [
+      "RSS soma páginas compartilhadas entre processos.",
+      "CPU por processo vem do ps e representa uma amostra; não é medição energética.",
+      "Codex real não é invocado por este benchmark."
+    ],
+    "systemAvailabilityQuery": "The system has 8589934592 (524288 pages with a page size of 16384).\nSystem-wide memory free percentage: 56%"
+  }
+}

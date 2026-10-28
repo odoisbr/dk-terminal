@@ -1,5 +1,4 @@
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
+import type { Terminal } from '@xterm/xterm';
 
 type Preferences = { fontSize:number; scrollback:number; idleMinutes:number; idleMemoryMiB:number; idleAlerts:boolean };
 type Options = {
@@ -37,6 +36,7 @@ export class Launcher {
   private query='';
   private loadId=0;
   private activeLogin: { id:string; terminal:Terminal; cleanup:()=>void } | null=null;
+  private loginGeneration=0;
   constructor(private readonly options:Options) {
     this.host=element('section','launcher');this.host.id='launcher';this.host.setAttribute('aria-label','Início e configurações');this.host.hidden=true;
     this.host.innerHTML=`<div class="launcher-shell"><header class="launcher-header"><div><span class="launcher-kicker">DK TERMINAL</span><h1 id="launcher-title">Seu espaço de trabalho</h1></div><button id="launcher-close" class="icon-button" aria-label="Fechar início">×</button></header><nav class="launcher-nav" aria-label="Navegação inicial"><button data-route="home">Início</button><button data-route="gitlab">GitLab SEA</button><button data-route="settings">Perfil e configurações</button></nav><div id="launcher-body" class="launcher-body"></div></div><section id="account-dialog" class="account-dialog" aria-label="Autenticação" hidden><div class="account-card"><header><strong id="account-title">Entrar</strong><button id="account-close" class="icon-button" aria-label="Fechar autenticação">×</button></header><p>A ferramenta oficial gerencia suas credenciais. O DK Terminal não as armazena.</p><div id="account-terminal" class="account-terminal"></div><div id="account-status" role="status"></div></div></section>`;
@@ -198,15 +198,16 @@ export class Launcher {
     copy.append(element('h2','',title),element('p','settings-heading-note',descriptions[title]||''));heading.append(mark(symbols[title]||'settings'),copy);box.append(heading);return box;
   }
   private async login(provider:'sea'|'gitlab') {
-    await this.closeLogin();this.accountDialog.hidden=false;this.host.querySelector('#account-title')!.textContent=provider==='sea'?'Entrar com SEA CLI':'Entrar no GitLab SEA';const status=this.host.querySelector<HTMLElement>('#account-status')!;status.textContent='Iniciando…';
+    await this.closeLogin();const generation=++this.loginGeneration;this.accountDialog.hidden=false;this.host.querySelector('#account-title')!.textContent=provider==='sea'?'Entrar com SEA CLI':'Entrar no GitLab SEA';const status=this.host.querySelector<HTMLElement>('#account-status')!;status.textContent='Iniciando…';
     const target=this.host.querySelector<HTMLElement>('#account-terminal')!;target.replaceChildren();let info:SessionInfo|undefined,terminal:Terminal|undefined;let offData=()=>{},offExit=()=>{};
-    try {info=await window.dk.startAccount(provider);if(this.accountDialog.hidden){await window.dk.closeTerminal(info.id);return;}
+    try {info=await window.dk.startAccount(provider);if(this.accountDialog.hidden||generation!==this.loginGeneration){await window.dk.closeTerminal(info.id);return;}
+      const [{Terminal},{FitAddon}]=await Promise.all([import('@xterm/xterm'),import('@xterm/addon-fit')]);if(this.accountDialog.hidden||generation!==this.loginGeneration){await window.dk.closeTerminal(info.id);return;}
       const id=info.id;terminal=new Terminal({cursorBlink:true,fontSize:13,scrollback:0,theme:{background:'#10181d',foreground:'#e8eff0'},disableStdin:true});const fit=new FitAddon();terminal.loadAddon(fit);terminal.open(target);fit.fit();terminal.onData(data=>{void window.dk.writeTerminal(id,data).catch(this.options.notify);});
       offData=window.dk.onTerminalData(event=>{if(event.id===id)terminal!.write(event.data,()=>{void window.dk.acknowledgeTerminal(id,event.data.length).catch(()=>{});});});
       offExit=window.dk.onTerminalExit(event=>{if(event.id!==id)return;status.textContent=event.exitCode===0?'Autenticação concluída. Feche esta janela para atualizar o perfil.':`Autenticação encerrada (${event.exitCode}).`;terminal!.options.disableStdin=true;});
       const owned=terminal;this.activeLogin={id,terminal:owned,cleanup:()=>{offData();offExit();owned.dispose();target.replaceChildren();}};
-      await window.dk.startTerminal(id,{cols:terminal.cols,rows:terminal.rows});terminal.options.disableStdin=false;status.textContent='Siga as instruções da ferramenta.';terminal.focus();
-    }catch(error){if(info)await window.dk.closeTerminal(info.id).catch(()=>{});offData();offExit();terminal?.dispose();this.activeLogin=null;status.textContent='Não foi possível iniciar a autenticação.';this.options.notify(error);}
+      await window.dk.startTerminal(id,{cols:terminal.cols,rows:terminal.rows});if(generation!==this.loginGeneration||this.accountDialog.hidden)return;terminal.options.disableStdin=false;status.textContent='Siga as instruções da ferramenta.';terminal.focus();
+    }catch(error){if(info)await window.dk.closeTerminal(info.id).catch(()=>{});offData();offExit();terminal?.dispose();if(this.activeLogin?.id===info?.id)this.activeLogin=null;if(generation===this.loginGeneration){status.textContent='Não foi possível iniciar a autenticação.';this.options.notify(error);}}
   }
-  private async closeLogin(){const active=this.activeLogin;this.activeLogin=null;this.accountDialog.hidden=true;if(active){await window.dk.closeTerminal(active.id).catch(()=>{});active.cleanup();if(!this.host.hidden)this.route('settings');}}
+  private async closeLogin(){this.loginGeneration++;const active=this.activeLogin;this.activeLogin=null;this.accountDialog.hidden=true;if(active){await window.dk.closeTerminal(active.id).catch(()=>{});active.cleanup();if(!this.host.hidden)this.route('settings');}}
 }

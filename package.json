@@ -19,7 +19,8 @@
     "package": "npm run build && node scripts/package.mjs",
     "test:editor": "npm run build && node tests/editor-desktop.cjs",
     "test:launcher": "npm run build && node tests/launcher-desktop.cjs && node tests/sea-login-desktop.cjs",
-    "test:all": "npm run build && npm test && node tests/single-instance-desktop.cjs && node tests/project-close-desktop.cjs && node tests/tree-menu-desktop.cjs && node tests/git-desktop.cjs && node tests/git-branches-desktop.cjs && node tests/extra-cli-desktop.cjs && node tests/machine-desktop.cjs && node tests/local-gitlab-desktop.cjs && node tests/new-project-desktop.cjs && node tests/welcome-desktop.cjs && node tests/launcher-desktop.cjs && node tests/sea-login-desktop.cjs && node tests/editor-desktop.cjs && node tests/idle-desktop.cjs && node tests/desktop.cjs"
+    "test:all": "npm run build && npm test && node tests/single-instance-desktop.cjs && node tests/project-close-desktop.cjs && node tests/shutdown-processes-desktop.cjs && node tests/terminal-visibility-desktop.cjs && node tests/terminal-output-desktop.cjs && node tests/session-cycle-desktop.cjs && node tests/tree-menu-desktop.cjs && node tests/git-desktop.cjs && node tests/git-branches-desktop.cjs && node tests/extra-cli-desktop.cjs && node tests/machine-desktop.cjs && node tests/resources-panel-desktop.cjs && node tests/local-gitlab-desktop.cjs && node tests/new-project-desktop.cjs && node tests/welcome-desktop.cjs && node tests/launcher-desktop.cjs && node tests/sea-login-desktop.cjs && node tests/editor-desktop.cjs && node tests/idle-desktop.cjs && node tests/desktop.cjs",
+    "benchmark:resources": "node tests/resource-benchmark.cjs"
   },
   "dependencies": {
     "@codemirror/commands": "6.11.1",

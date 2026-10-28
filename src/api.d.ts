@@ -22,8 +22,8 @@ type UsageWindow = { id: string; label: string; usedPercent: number; resetsAt: n
 type ProviderUsage = { id: string; name: string; account?: string; plan?: string; windows: UsageWindow[]; message: string; source?: string; checkedAt: number };
 type UsageSnapshot = { checkedAt: number; providers: ProviderUsage[] };
 type ResourcePart = { cpuPercent: number | null; memoryKiB: number | null; processCount: number };
-type ResourceSnapshot = { app: ResourcePart; children: ResourcePart | null; total: { cpuPercent: number | null; memoryKiB: number | null }; system: { cpuPercent: number | null; memoryUsedKiB: number | null; memoryTotalKiB: number | null; swap: { usedKiB: number; totalKiB: number } | null }; sessions: { id: string; kind: 'terminal' | 'codex'; root?: string; memoryKiB: number; lastActivity: number }[]; sampledAt: number };
-type DkActionResult = { action: string; label: string; root: string; code: number | null; data: unknown; output: string; stderr: string; startedAt: string; finishedAt: string; jsonParsed?: boolean; timedOut?: boolean; cancelled?: boolean; truncated?: boolean; status?: string; signal?: string | null };
+type ResourceSnapshot = { app: ResourcePart; children: ResourcePart | null; otherProcesses: ResourcePart | null; total: { cpuPercent: number | null; memoryKiB: number | null }; system: { cpuPercent: number | null; memoryUsedKiB: number | null; memoryTotalKiB: number | null; swap: { usedKiB: number; totalKiB: number } | null; availablePercent:number|null; cache:{memoryKiB:number;kind:'estimate'|'purgeable'}|null; pressure:{kind:'linux-psi';someAvg10:number}|null }; sessions: { id: string; pid?:number; kind: 'terminal' | 'codex'; root?: string; memoryKiB: number; lastActivity: number }[]; sampledAt: number };
+type DkActionResult = { action: string; label: string; root: string; code: number | null; data: unknown; output: string; stderr: string; startedAt: string; finishedAt: string; jsonParsed?: boolean; timedOut?: boolean; cancelled?: boolean; truncated?: boolean; cleanupPartial?: boolean; status?: string; signal?: string | null };
 interface Window {
   dk: {
     bootstrap(): Promise<Bootstrap>;
@@ -89,7 +89,7 @@ interface Window {
     writeTerminal(id: string, data: string): Promise<void>;
     resizeTerminal(id: string, size: TerminalSize): Promise<void>;
     acknowledgeTerminal(id: string, count: number): Promise<void>;
-    closeTerminal(id: string): Promise<void>;
+    closeTerminal(id: string): Promise<{partial:boolean}>;
     onTerminalData(callback: (event: { id: string; data: string }) => void): () => void;
     onTerminalExit(callback: (event: { id: string; exitCode: number }) => void): () => void;
     onMenu(callback: (action: string) => void): () => void;

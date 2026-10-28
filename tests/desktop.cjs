@@ -139,7 +139,7 @@ async function main() {
   assert.equal(await page.locator('#search-bar').isVisible(), true);
   await page.locator('#terminal-search').press('Escape');
   await page.locator('.tab.active .tab-close').click();
-  assert.equal(await page.locator('.terminal-pane').count(), 1);
+  await page.waitForFunction(() => document.querySelectorAll('.terminal-pane').length === 1);
   checkpoint('Busca e encerramento da sessão');
   await page.getByRole('button', { name: 'Dividir terminal à direita', exact: true }).click();
   await page.waitForFunction(() => document.querySelectorAll('#terminal-host.split .terminal-pane:not([hidden])').length === 2);
@@ -157,7 +157,9 @@ async function main() {
   await page.evaluate(id => window.dk.writeTerminal(id, 'printf "\\nDK_DETACHED_ALIVE\\n"\r'), detachedId);
   await page.waitForFunction(id => (window.__output[id] || '').includes('DK_DETACHED_ALIVE\r\n'), detachedId);
   await page.locator('.tab.active .tab-close').click();
+  await page.locator(`#pane-${detachedId}`).waitFor({state:'detached'});
   await page.locator(`#tab-${secondId}`).click(); await page.locator('.tab.active .tab-close').click();
+  await page.locator(`#pane-${secondId}`).waitFor({state:'detached'});
   assert.equal(await page.locator('.terminal-pane').count(), 1);
   checkpoint('Separar split mantém sessões ativas e preserva o grupo dos demais painéis');
   await application.evaluate(({ dialog }, other) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [other] }); }, other);

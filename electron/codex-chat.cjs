@@ -3,6 +3,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
 const { directory, executable } = require('./core.cjs');
+const { processSnapshot, descendants, stopRecordedProcesses } = require('./session-processes.cjs');
 
 const LIMIT = 64 * 1024;
 const MAX_MESSAGES = 200;
@@ -395,12 +396,18 @@ class CodexChat {
     const worker = this.active.get(id);
     if (!worker || worker.canceled) return;
     worker.canceled = true;
+    const pid=worker.child?.pid;
+    worker.cancelSnapshot=Number.isInteger(pid) && pid>0 ? processSnapshot().then(rows=>rows?.some(row=>row.pid===pid) ? descendants(rows,pid) : null).catch(()=>null) : Promise.resolve([]);
     for (const permission of worker.permissions.values()) {
       try { this._write(worker, { id: permission.serverId, result: { decision: 'cancel' } }); } catch {}
       permission.message.status = 'expired';
       this._event(worker.session, 'permission', { permission: permission.message });
     }
     worker.permissions.clear();
+    // Capture ownership before asking the app server to exit, since children
+    // can otherwise be reparented and no longer identifiable.
+    await worker.cancelSnapshot;
+    if(this.active.get(id)!==worker || worker.terminal)return;
     this._interrupt(worker);
     worker.cancelTimer = setTimeout(() => {
       for (const request of worker.pending.values()) { clearTimeout(request.timer); request.reject(new Error('Conversa interrompida.')); }
@@ -424,16 +431,24 @@ class CodexChat {
     for (const request of worker.pending.values()) { clearTimeout(request.timer); request.reject(new Error('A conversa foi encerrada.')); }
     worker.pending.clear();
     const child = worker.child;
-    if (!child) return;
-    if (child.exitCode !== null || child.signalCode !== null) { this._kill(worker, 'SIGTERM'); return; }
-    child.stdin.end();
-    await new Promise(resolve => {
-      let done = false;
-      const finish = () => { if (done) return; done = true; clearTimeout(timer); clearTimeout(killTimer); resolve(); };
-      const timer = setTimeout(() => this._kill(worker, 'SIGTERM'), 250);
-      const killTimer = setTimeout(() => { this._kill(worker, 'SIGKILL'); finish(); }, 750);
-      child.once('close', finish);
-    });
+    if (child) {
+      if (child.exitCode !== null || child.signalCode !== null) { if(!worker.cancelSnapshot)this._kill(worker, 'SIGTERM'); }
+      else {
+        child.stdin.end();
+        await new Promise(resolve => {
+          let done = false;
+          const finish = () => { if (done) return; done = true; clearTimeout(timer); clearTimeout(killTimer); resolve(); };
+          const timer = setTimeout(() => this._kill(worker, 'SIGTERM'), 250);
+          const killTimer = setTimeout(() => { this._kill(worker, 'SIGKILL'); finish(); }, 750);
+          child.once('close', finish);
+        });
+      }
+    }
+    if(worker.cancelSnapshot) {
+      const result=await stopRecordedProcesses(await worker.cancelSnapshot);
+      worker.cleanupPartial=Boolean(worker.cleanupPartial || result.partial);
+      if(result.partial)this._append(worker.session,{kind:'system',text:'Não foi possível confirmar o encerramento de todos os processos associados ao Codex.',status:'failed'});
+    }
   }
 
   resourceRoots() { return [...this.active.values()].filter(worker => Number.isInteger(worker.child?.pid) && !worker.terminal).map(worker => ({ id: worker.session.id, pid: worker.child.pid, root: worker.session.root, kind: 'codex', lastActivity: worker.lastActivity })); }
@@ -443,7 +458,7 @@ class CodexChat {
     const workers = [...this.active.values()].filter(worker => worker.session.root === root);
     await Promise.all(workers.map(async worker => {
       await this.cancel(root, worker.session.id);
-      this._kill(worker, 'SIGTERM');
+      if(worker.child && worker.child.exitCode===null && worker.child.signalCode===null) this._kill(worker, 'SIGTERM');
       await worker.run;
     }));
     this._save();
@@ -452,12 +467,14 @@ class CodexChat {
 
   async closeAll() {
     this.closed = true;
-    await Promise.all([...this.active.values()].map(async worker => {
-      await this.cancel(worker.session.root, worker.session.id);
-      this._kill(worker, 'SIGTERM');
+    const workers=[...this.active.values()];
+    const results=await Promise.allSettled(workers.map(async worker => {
+      try { await this.cancel(worker.session.root, worker.session.id); } catch { worker.cleanupPartial=true; }
+      if(worker.child && worker.child.exitCode===null && worker.child.signalCode===null) this._kill(worker, 'SIGTERM');
       await worker.run;
     }));
     this._save();
+    return {partial:results.some(result=>result.status==='rejected') || workers.some(worker=>worker.cleanupPartial)};
   }
 }
 

@@ -1,5 +1,6 @@
 const { spawn } = require('node:child_process');
 const { actionSpec } = require('./core.cjs');
+const { processSnapshot, descendants, stopRecordedProcesses } = require('./session-processes.cjs');
 
 const OUTPUT_LIMIT = 2 * 1024 * 1024;
 const DEADLINE = 60 * 1000;
@@ -10,10 +11,10 @@ function environment(source) {
 }
 
 class Actions {
-  constructor({ env = process.env, kit = null, timeoutMs = DEADLINE } = {}) {
+  constructor({ env = process.env, kit = null, timeoutMs = DEADLINE, snapshot = processSnapshot } = {}) {
     if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > DEADLINE) throw new Error('Prazo da ação inválido.');
     this.env = { ...env };
-    this.kit = kit; this.timeoutMs = timeoutMs; this.running = new Set();
+    this.kit = kit; this.timeoutMs = timeoutMs; this.snapshot = snapshot; this.running = new Set(); this.stopping = new Set();
   }
 
   run(action, project, kit = this.kit) {
@@ -22,24 +23,30 @@ class Actions {
     if (this.running.size >= 4) throw new Error('Aguarde uma das ações em andamento terminar.');
     const startedAt = new Date().toISOString();
     return new Promise(resolve => {
-      const entry = { root: project.path, action, child: null, timedOut: false, cancelled: false, truncated: false, stopTimer: null };
+      const entry = { root: project.path, action, child: null, timedOut: false, cancelled: false, truncated: false, stopPromise: null };
       const stdout = [], stderr = [];
       let size = 0, settled = false, deadline;
       const finish = (code, signal = null, error = null) => {
         if (settled) return; settled = true;
-        clearTimeout(deadline); clearTimeout(entry.stopTimer); this.running.delete(entry);
+        clearTimeout(deadline); this.running.delete(entry);
         const output = Buffer.concat(stdout).toString('utf8'), errorOutput = Buffer.concat(stderr).toString('utf8');
         let data = null, jsonParsed = false;
         if (!entry.truncated && output.trim()) {
           try { data = JSON.parse(output); jsonParsed = true; } catch {}
         }
-        resolve({
+        const result = {
           action, label: spec.label, root: project.path, code, signal, data, jsonParsed,
           output, stderr: error ? [errorOutput, error.message].filter(Boolean).join('\n') : errorOutput,
           startedAt, finishedAt: new Date().toISOString(),
           status: entry.timedOut ? 'timed_out' : entry.cancelled ? 'cancelled' : entry.truncated ? 'truncated' : error || code !== 0 ? 'failed' : 'completed',
           timedOut: entry.timedOut, cancelled: entry.cancelled, truncated: entry.truncated,
-        });
+        };
+        if(entry.stopPromise) {
+          entry.stopPromise.then(cleanup=>{
+            if(cleanup.partial)result.cleanupPartial=true;
+            resolve(result);
+          });
+        } else resolve(result);
       };
       const collect = target => chunk => {
         if (settled || entry.truncated) return;
@@ -64,15 +71,28 @@ class Actions {
   }
 
   stop(entry) {
-    if (!entry.child?.pid || entry.stopTimer) return;
+    if (!entry.child?.pid || entry.stopPromise) return;
     const kill = signal => {
+      if (entry.child.exitCode !== null || entry.child.signalCode !== null) return;
       try {
         if (process.platform === 'win32') entry.child.kill(signal);
         else process.kill(-entry.child.pid, signal);
       } catch (error) { if (error.code !== 'ESRCH') try { entry.child.kill(signal); } catch {} }
     };
-    kill('SIGTERM');
-    entry.stopTimer = setTimeout(() => kill('SIGKILL'), 1000); entry.stopTimer.unref();
+    entry.stopPromise=(async()=>{
+      let rows; try { rows=await this.snapshot(); } catch { rows=null; }
+      const known=rows?.some(row=>row.pid===entry.child.pid)?descendants(rows,entry.child.pid):null;
+      kill('SIGTERM');
+      const leader=new Promise(resolve=>{
+        if(entry.child.exitCode!==null || entry.child.signalCode!==null)return resolve();
+        let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(timer);resolve();};
+        const timer=setTimeout(()=>{kill('SIGKILL');finish();},1000);
+        entry.child.once('close',finish);
+      });
+      const [,cleanup]=await Promise.all([leader,stopRecordedProcesses(known)]);
+      return cleanup;
+    })().catch(()=>{kill('SIGTERM');kill('SIGKILL');return {partial:true};}).finally(()=>this.stopping.delete(entry.stopPromise));
+    this.stopping.add(entry.stopPromise);
   }
 
   cancel(root, action) {
@@ -86,6 +106,7 @@ class Actions {
   closeAll() {
     for (const entry of this.running) { entry.cancelled = true; this.stop(entry); }
   }
+  async closeAllAndWait() { this.closeAll(); const results=await Promise.allSettled([...this.stopping]);return {partial:results.some(result=>result.status==='rejected'||result.value.partial)}; }
 }
 
 module.exports = { Actions };

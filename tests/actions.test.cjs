@@ -50,6 +50,13 @@ test('limita stdout e stderr combinados a 2 MiB e interrompe a ação excedente'
   assert.equal(actions.running.size, 0);
 });
 
+test('mantém o limite de saída e informa limpeza parcial quando a lista de processos está indisponível', async t => {
+  const { actions, project, kit } = fixture(t, `process.stdout.write(Buffer.alloc(2*1024*1024+100,65));setInterval(()=>{},1000);`, { snapshot: async () => null });
+  const result = await actions.run('doctor', project, kit);
+  assert.equal(result.truncated, true); assert.equal(result.cleanupPartial, true);
+  assert.equal(Buffer.byteLength(result.output) + Buffer.byteLength(result.stderr), 2 * 1024 * 1024);
+});
+
 test('prazo encerra o processo sem anunciar conclusão', async t => {
   const { actions, project, kit } = fixture(t, `process.stdout.write('iniciado\\n');setInterval(()=>{},1000);`, { timeoutMs: 150 });
   const result = await actions.run('doctor', project, kit);
@@ -75,4 +82,14 @@ test('erro ao iniciar retorna código nulo e a causa real', async t => {
   const result = await actions.run('doctor', project, kit);
   assert.equal(result.code, null); assert.equal(result.status, 'failed'); assert.equal(result.data, null);
   assert.match(result.stderr, /ENOENT/); assert.equal(actions.running.size, 0);
+});
+
+test('cancelamento encerra descendente que mantém execução após o processo principal sair', {skip:process.platform==='win32'}, async t=>{
+  const source=`const {spawn}=require('node:child_process');spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});require('fs').writeFileSync('action-child.pid',String(process.pid));setInterval(()=>{},1000)"],{stdio:'ignore'});setInterval(()=>{},1000);`;
+  const {root,actions,project,kit}=fixture(t,source);let childPid;
+  t.after(()=>{if(childPid)try{process.kill(childPid,'SIGKILL');}catch{}});
+  const task=actions.run('doctor',project,kit);for(let i=0;i<100&&!fs.existsSync(path.join(root,'action-child.pid'));i++)await delay(30);
+  assert.ok(fs.existsSync(path.join(root,'action-child.pid')));childPid=+fs.readFileSync(path.join(root,'action-child.pid'),'utf8');
+  assert.equal(actions.cancel(root,'doctor'),1);assert.equal((await task).status,'cancelled');await actions.closeAllAndWait();
+  let running=true;for(let i=0;i<40 && running;i++){try{process.kill(childPid,0);}catch(e){if(e.code==='ESRCH')running=false;else throw e;}if(running)await delay(50);}assert.equal(running,false);
 });

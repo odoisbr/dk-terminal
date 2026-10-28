@@ -47,7 +47,7 @@ const initialFiles = launchFiles(process.argv, process.cwd());
 const primaryInstance = app.requestSingleInstanceLock({ files: initialFiles });
 if (!primaryInstance) app.quit();
 let window, terminals, services, extensions, orchestration, preview, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
-let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false;
+let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false, windowClosing = false, windowCleanupDone = false;
 const selected = new Set();
 const closingProjects = new Set();
 let kit = null;
@@ -58,12 +58,13 @@ const pendingFiles = primaryInstance ? [...initialFiles] : [];
 let focusRequested = false;
 
 function focusWindow() {
+  if (windowClosing) { focusRequested = true; return; }
   if (!window || window.isDestroyed()) return;
   if (window.isMinimized()) window.restore();
   window.show(); window.focus(); app.focus({ steal: true });
 }
 function openFiles(files) {
-  if (!prepared) { pendingFiles.push(...files); return; }
+  if (!prepared || windowClosing) { pendingFiles.push(...files); if(windowClosing)focusRequested=true; return; }
   for (const file of files) {
     try {
       const info = remember(folderForFile(file));
@@ -77,7 +78,7 @@ function openFiles(files) {
 app.on('second-instance', (_event, _argv, _cwd, data) => {
   const files = Array.isArray(data?.files) ? data.files.slice(0, 32).filter(file => typeof file === 'string' && file.length <= 8192 && !file.includes('\0') && path.isAbsolute(file)) : [];
   openFiles(files);
-  if (!prepared) { focusRequested = true; return; }
+  if (!prepared || windowClosing) { focusRequested = true; return; }
   if (!window) createWindow();
   focusWindow();
 });
@@ -96,7 +97,11 @@ function authorize(event) {
 }
 function handle(channel, handler) {
   ipcMain.handle(channel, async (event, ...args) => {
-    try { authorize(event); return { ok: true, value: await handler(...args) }; }
+    try {
+      authorize(event);
+      if(windowClosing && ['terminal:create','terminal:split','terminal:start','chat:send','service:start','action:run'].includes(channel)) throw new Error('O aplicativo está encerrando as sessões.');
+      return { ok: true, value: await handler(...args) };
+    }
     catch (error) { return { ok: false, error: error.message || 'Não foi possível concluir a ação.' }; }
   });
 }
@@ -276,7 +281,7 @@ function registerHandlers() {
   handle('service:stop', (root, id) => services.stop(project(root).path, id));
 }
 function createWindow() {
-  allowClose = false; dirtyFiles = [];
+  allowClose = false; dirtyFiles = []; windowClosing = false; windowCleanupDone = false;
   codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event) });
   window = new BrowserWindow({
     width: 1440, height: 920, minWidth: 940, minHeight: 620, backgroundColor: '#101214',
@@ -289,19 +294,46 @@ function createWindow() {
   window.webContents.on('will-attach-webview', event => event.preventDefault());
   window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   window.webContents.session.setPermissionCheckHandler(() => false);
-  window.webContents.on('render-process-gone', () => terminals.closeAll());
+  window.webContents.on('render-process-gone', () => { void terminals.closeAllAndWait().catch(() => {}); });
   window.once('ready-to-show', () => window.show());
   window.on('close', event => {
-    if (!dirtyFiles.length || allowClose) return;
-    event.preventDefault();
-    if (closePrompt) return;
-    closePrompt = true;
-    dialog.showMessageBox(window, { type: 'question', message: 'Há arquivos com alterações não salvas.', detail: 'Volte ao editor para salvar ou descarte as alterações antes de fechar.', buttons: ['Voltar ao editor', 'Descartar alterações'], defaultId: 0, cancelId: 0, noLink: true }).then(({ response }) => {
-      if (response === 1) { allowClose = true; if (quitRequested) app.quit(); else window?.close(); }
-      else { quitRequested = false; send('app:menu', 'editor'); }
-    }).finally(() => { closePrompt = false; });
+    if (dirtyFiles.length && !allowClose) {
+      event.preventDefault();
+      if (closePrompt) return;
+      closePrompt = true;
+      dialog.showMessageBox(window, { type: 'question', message: 'Há arquivos com alterações não salvas.', detail: 'Volte ao editor para salvar ou descarte as alterações antes de fechar.', buttons: ['Voltar ao editor', 'Descartar alterações'], defaultId: 0, cancelId: 0, noLink: true }).then(({ response }) => {
+        if (response === 1) { allowClose = true; if (quitRequested) app.quit(); else window?.close(); }
+        else { quitRequested = false; send('app:menu', 'editor'); }
+      }).finally(() => { closePrompt = false; });
+      return;
+    }
+    if(windowCleanupDone)return;
+    event.preventDefault();if(windowClosing)return;windowClosing=true;
+    const closingWindow=window;
+    // Prevent new edits while the explicit close drains known child processes.
+    try { closingWindow.setEnabled(false); } catch {}
+    try { services.closeAll(); } catch {}
+    void Promise.allSettled([terminals.closeAllAndWait(),actions.closeAllAndWait(),codexChat.closeAll()]).then(async results=>{
+      const terminalResult=results[0];
+      const actionResult=results[1];
+      const chatResult=results[2];
+      const partial=terminalResult.status==='rejected' || terminalResult.value.partial || actionResult.status==='rejected' || actionResult.value.partial || chatResult.status==='rejected' || chatResult.value.partial;
+      if(partial && closingWindow && !closingWindow.isDestroyed()) {
+        try { closingWindow.setEnabled(true); } catch {}
+        try { await dialog.showMessageBox(closingWindow,{type:'warning',message:'Não foi possível confirmar todos os encerramentos.',detail:'Alguns processos associados podem continuar ativos. Confira-os no monitor de atividades do sistema.',buttons:['Fechar'],defaultId:0,noLink:true}); } catch {}
+      }
+      windowCleanupDone=true;
+      if(closingWindow && !closingWindow.isDestroyed()) {
+        try { closingWindow.setEnabled(true); } catch {}
+        if(quitRequested)app.quit();else closingWindow.close();
+      }
+    });
   });
-  window.on('closed', () => { terminals.closeAll(); services.closeAll(); orchestration.close(); preview.close(); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = []; });
+  window.on('closed', () => {
+    terminals.closeAll(); services.closeAll(); orchestration.close(); preview.close(); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
+    const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
+    if(reopen){focusRequested=false;const files=pendingFiles.splice(0);if(files.length)openFiles(files);else createWindow();focusWindow();}
+  });
   window.loadURL('dk-app://app/index.html');
 }
 function menu() {
@@ -349,7 +381,7 @@ if (primaryInstance) app.whenReady().then(async () => {
   if (testing && process.env.DK_TERMINAL_TEST_PROJECT) remember(process.env.DK_TERMINAL_TEST_PROJECT);
   for (const file of pendingFiles.splice(0)) { try { startupProject = remember(folderForFile(file)); } catch {} }
   prepared = true; finishBoot();
-  if (focusRequested) focusWindow();
+  if (focusRequested) { focusRequested=false; focusWindow(); }
 }).catch(error => { dialog.showErrorBox('DK Terminal', error.message); app.quit(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });

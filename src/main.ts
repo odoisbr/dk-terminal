@@ -1,6 +1,6 @@
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import { SearchAddon } from '@xterm/addon-search';
+import type { Terminal } from '@xterm/xterm';
+import type { FitAddon } from '@xterm/addon-fit';
+import type { SearchAddon } from '@xterm/addon-search';
 import '@xterm/xterm/css/xterm.css';
 import './style.css';
 import logoUrl from '../assets/dk-logo.svg';
@@ -57,7 +57,7 @@ app.innerHTML = `
     <button id="open-project" class="button open-button">${icon('plus')}<span>Abrir projeto</span><kbd>⌘ O</kbd></button>
     <div class="section-label"><span>PROJETOS RECENTES</span><span id="project-count">0</span></div>
     <nav id="project-list" aria-label="Projetos recentes"></nav>
-    <div class="sidebar-bottom"><div class="kit-summary"><span class="status-dot" id="kit-dot"></span><div><strong id="kit-label">Detectando plugin DK</strong><span id="kit-description">Verificando instalação do Claude</span></div></div><button id="install-dk-plugin" class="button kit-button" hidden>Instalar plugin DK no Claude</button><div id="system-resources" class="system-resources" tabindex="0" aria-label="Consumo da máquina sendo calculado"><button id="system-resources-toggle" class="system-resources-title" type="button" aria-expanded="true" aria-controls="system-resources-content"><span>MÁQUINA</span>${icon('down')}</button><div id="system-resources-content"><div class="system-resource"><span>CPU</span><strong id="system-cpu">—</strong></div><div class="system-meter"><span id="system-cpu-bar"></span></div><div class="system-resource"><span>Memória · inclui cache</span><strong id="system-memory">—</strong></div><div class="system-meter"><span id="system-memory-bar"></span></div><div class="system-resource"><span>Swap</span><strong id="system-swap">—</strong></div><div class="system-meter"><span id="system-swap-bar"></span></div><button id="optimize-resources" class="button system-optimize" title="Limpar o cache do DK sem interromper projetos" aria-describedby="optimize-explanation">${icon('refresh')}Otimizar recursos</button><p id="optimize-explanation" class="system-optimize-help">Limpa apenas o cache do DK.</p><div id="mac-memory-tools" hidden><button id="clear-system-cache" class="button system-optimize" title="Limpar cache de arquivos do macOS">Limpar cache do macOS</button><p class="system-optimize-help">Limpa cache de arquivos, não a memória dos aplicativos. Pode pedir senha e reduzir a velocidade temporariamente.</p><button id="open-activity-monitor" class="button system-optimize">Monitor de Atividade</button></div><div id="optimize-status" class="system-optimize-status" role="status" aria-live="polite"></div></div></div><div class="sidebar-footnote">LOCAL POR NATUREZA<span id="version">v0.1.0</span></div></div>
+    <div class="sidebar-bottom"><div class="kit-summary"><span class="status-dot" id="kit-dot"></span><div><strong id="kit-label">Detectando plugin DK</strong><span id="kit-description">Verificando instalação do Claude</span></div></div><button id="install-dk-plugin" class="button kit-button" hidden>Instalar plugin DK no Claude</button><div id="system-resources" class="system-resources" tabindex="0" aria-label="Consumo da máquina sendo calculado"><button id="system-resources-toggle" class="system-resources-title" type="button" aria-expanded="true" aria-controls="system-resources-content"><span>MÁQUINA</span>${icon('down')}</button><div id="system-resources-content"><div class="system-resource"><span>CPU</span><strong id="system-cpu">—</strong></div><div class="system-meter"><span id="system-cpu-bar"></span></div><div class="system-resource"><span>Memória · inclui cache</span><strong id="system-memory">—</strong></div><div class="system-meter"><span id="system-memory-bar"></span></div><div class="system-resource"><span>Swap</span><strong id="system-swap">—</strong></div><div class="system-meter"><span id="system-swap-bar"></span></div><div class="resource-breakdown" aria-label="Detalhamento de memória"><div class="system-resource"><span>DK Terminal · RSS</span><strong id="system-dk-memory">—</strong></div><div class="system-resource"><span>Filhos detectados · RSS</span><strong id="system-child-memory">—</strong></div><div class="system-resource"><span>Outros processos · RSS</span><strong id="system-other-memory">—</strong></div><div class="system-resource"><span>Disponibilidade · estimada</span><strong id="system-available">—</strong></div><div class="system-resource"><span id="system-cache-label">Cache recuperável</span><strong id="system-cache">—</strong></div><div class="system-resource"><span>Pressão de memória</span><strong id="system-pressure">—</strong></div><small class="resource-breakdown-note">RSS soma páginas compartilhadas; valores não são parcelas exclusivas da memória da máquina.</small></div><button id="optimize-resources" class="button system-optimize" title="Limpar o cache do DK sem interromper projetos" aria-describedby="optimize-explanation">${icon('refresh')}Otimizar recursos</button><p id="optimize-explanation" class="system-optimize-help">Limpa apenas o cache do DK.</p><details id="mac-memory-tools" hidden><summary>Ferramentas avançadas do macOS</summary><button id="clear-system-cache" class="button system-optimize" title="Limpar cache de arquivos do macOS">Limpar cache do macOS</button><p class="system-optimize-help">Limpa cache de arquivos, não a memória dos aplicativos. Pode pedir senha e reduzir a velocidade temporariamente.</p><button id="open-activity-monitor" class="button system-optimize">Monitor de Atividade</button></details><div id="optimize-status" class="system-optimize-status" role="status" aria-live="polite"></div></div></div><div class="sidebar-footnote">LOCAL POR NATUREZA<span id="version">v0.1.0</span></div></div>
   </aside>
   <main class="workspace">
     <header class="titlebar"><button id="toggle-sidebar" class="icon-button sidebar-toggle" aria-label="Recolher sidebar" aria-expanded="true" title="Recolher ou expandir sidebar">${icon('panel')}</button><span class="breadcrumb">Workspace ${icon('chevron')} <strong id="breadcrumb-project">Início</strong></span><div class="titlebar-actions"><button id="launcher-show" class="icon-button" aria-label="Página inicial" title="Página inicial">${icon('home')}</button><button id="profile-show" class="icon-button" aria-label="Perfil e configurações" title="Perfil e configurações">${icon('settings')}</button><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" title="Alternar tema SEA">Tema SEA</button><span class="local-badge"><span class="status-dot ready"></span>Ambiente local</span></div></header>
@@ -90,7 +90,7 @@ app.innerHTML = `
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const button = (id: string) => $<HTMLButtonElement>(id);
 const api = window.dk;
-type Session = SessionInfo & { terminal: Terminal; fit: FitAddon; search: SearchAddon; element: HTMLDivElement; started: boolean; exited: boolean; exitCode?: number; startup?: HTMLElement; ackPending: number; ackTimer?: ReturnType<typeof setTimeout>; lastSize?: { cols: number; rows: number } };
+type Session = SessionInfo & { terminal: Terminal; fit: FitAddon; search?: SearchAddon; searchLoading?: Promise<SearchAddon | null>; element: HTMLDivElement; started: boolean; exited: boolean; closing?: boolean; exitCode?: number; startup?: HTMLElement; ackPending: number; ackTimer?: ReturnType<typeof setTimeout>; lastSize?: { cols: number; rows: number } };
 const sessions = new Map<string, Session>();
 let projects: Project[] = [], recentProjects: Project[] = [], remoteProjects: {id:number;name:string;path:string}[] = [], current: Project | null = null, activeId: string | null = null;
 let pluginStatus: ClaudePlugin['status'] | 'checking' = 'checking';
@@ -433,6 +433,7 @@ function expandTerminal() {
 }
 function selectMainView(view: typeof mainView) {
   mainView = view;
+  updateTerminalVisibility();
   if (view === 'terminal' || view === 'editor') workspaceView = view;
   $('terminal-view').hidden = view !== 'terminal' && view !== 'editor';
   $('graph-view').hidden = view !== 'graph';
@@ -584,6 +585,15 @@ async function loadGraph() {
   await api.watchOrchestrations(root);
 }
 function active() { return activeId ? sessions.get(activeId) : undefined; }
+function updateTerminalVisibility() {
+  const workspaceVisible = (mainView === 'terminal' || mainView === 'editor') && document.visibilityState === 'visible';
+  for (const session of sessions.values()) {
+    const visible = workspaceVisible && !session.element.hidden;
+    if (session.terminal.options.screenReaderMode !== visible) session.terminal.options.screenReaderMode = visible;
+    const blink = visible && session.id === activeId && document.hasFocus();
+    if (session.terminal.options.cursorBlink !== blink) session.terminal.options.cursorBlink = blink;
+  }
+}
 function fitActive() {
   if (document.querySelector('.terminal-card')?.hasAttribute('hidden')) return;
   for (const session of sessions.values()) {
@@ -618,6 +628,7 @@ function focusSession(id: string | null, focus = true) {
     session.element.style.gridColumn = '';
     if (!session.element.hidden) ordered.push(session.element);
   }
+  updateTerminalVisibility();
   $('editor-view').style.gridColumn = '';
   if (direction === 'right' && count === 3) ordered[2].style.gridColumn = '1 / -1';
   button('single-terminal').hidden = visible.length < 2;
@@ -698,15 +709,16 @@ async function newSession(action?: string, duplicate?: string, agent?: string) {
   try {
     info = duplicate ? await api.splitTerminal(current.path, duplicate, agent) : await api.createTerminal(current.path, action);
     if (duplicate && info.cwdFallback) notify('Não foi possível identificar a pasta atual; o novo terminal abriu na última pasta conhecida.');
+    const [{ Terminal }, { FitAddon }] = await Promise.all([import('@xterm/xterm'), import('@xterm/addon-fit')]);
     terminal = new Terminal({
       fontFamily: '"SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace', fontSize: preferences.fontSize, lineHeight: 1.5,
-      cursorBlink: true, cursorStyle: 'bar', scrollback: preferences.scrollback, screenReaderMode: true, allowProposedApi: false, disableStdin: true,
+      cursorBlink: false, cursorStyle: 'bar', scrollback: preferences.scrollback, screenReaderMode: false, allowProposedApi: false, disableStdin: true,
       theme: { background: document.body.classList.contains('theme-sea') ? '#10181d' : '#101214', foreground: '#d4d9df', cursor: '#6ed9b0', selectionBackground: '#304d46', black: '#31383f', red: '#f38b91', green: '#87d6ad', yellow: '#edcf8c', blue: '#8db9ec', magenta: '#cba9ef', cyan: '#8cd7dc', white: '#e6e9ed', brightBlack: '#7b858f', brightRed: '#ffa6ab', brightGreen: '#a4edc5', brightYellow: '#ffe4a6', brightBlue: '#b0d1ff', brightMagenta: '#e3c4ff', brightCyan: '#a9f0f4', brightWhite: '#ffffff' },
     });
-    const fit = new FitAddon(), search = new SearchAddon();
-    terminal.loadAddon(fit); terminal.loadAddon(search);
+    const fit = new FitAddon();
+    terminal.loadAddon(fit);
     element = document.createElement('div'); element.id = `pane-${info.id}`; element.className = 'terminal-pane'; element.role = 'tabpanel'; element.setAttribute('aria-labelledby', `tab-${info.id}`); $('terminal-host').append(element);
-    const session: Session = { ...info, terminal, fit, search, element, started: false, exited: false, ackPending: 0, startup: startup || undefined };
+    const session: Session = { ...info, terminal, fit, element, started: false, exited: false, ackPending: 0, startup: startup || undefined };
     if (startup) element.append(startup);
     element.onpointerdown = () => { if (activeId !== session.id) focusSession(session.id); };
     sessions.set(info.id, session);
@@ -726,8 +738,12 @@ async function newSession(action?: string, duplicate?: string, agent?: string) {
   } finally { busy = false; release(); }
 }
 async function closeSession(id: string) {
-  const session = sessions.get(id); if (!session) return;
-  await api.closeTerminal(id);
+  const session = sessions.get(id); if (!session || session.closing) return;
+  session.closing = true;
+  let result: {partial:boolean};
+  try { result = await api.closeTerminal(id); }
+  catch(error) { session.closing = false; throw error; }
+  if (sessions.get(id) !== session) return;
   clearTimeout(session.ackTimer); session.ackPending = 0;
   sessions.delete(id); idleSnoozed.delete(id); session.terminal.dispose(); session.element.remove();
   renderIdleNotice();
@@ -735,6 +751,7 @@ async function closeSession(id: string) {
   if (group) { group.ids = group.ids.filter(key => key !== id); if (group.ids.length < 2) paneGroups.delete(session.cwd); }
   if (activeId === id) focusSession([...sessions.values()].filter(s => s.cwd === current?.path).at(-1)?.id || null);
   else renderTabs();
+  if (result?.partial) notify('A sessão foi fechada, mas não foi possível confirmar o encerramento de todos os processos associados.');
 }
 async function splitTerminal(direction: 'right' | 'down', agent?: string) {
   if (!current || !activeId || busy) return;
@@ -750,14 +767,25 @@ async function splitTerminal(direction: 'right' | 'down', agent?: string) {
 function toggleSearch(show = $('search-bar').hidden) {
   if (!active()) return;
   $('search-bar').hidden = !show;
-  if (show) $<HTMLInputElement>('terminal-search').focus(); else active()?.terminal.focus();
+  if (show) { $<HTMLInputElement>('terminal-search').focus(); void ensureSearch(active()!).catch(notify); } else active()?.terminal.focus();
   requestAnimationFrame(fitActive);
+}
+async function ensureSearch(session: Session): Promise<SearchAddon | null> {
+  if (session.search) return session.search;
+  if (!session.searchLoading) session.searchLoading = import('@xterm/addon-search').then(({ SearchAddon }) => {
+    if (sessions.get(session.id) !== session) return null;
+    const addon = new SearchAddon(); session.terminal.loadAddon(addon); session.search = addon; return addon;
+  }).finally(() => { session.searchLoading = undefined; });
+  return session.searchLoading;
 }
 function search(previous = false) {
   const query = $<HTMLInputElement>('terminal-search').value;
   const session = active(); if (!session || !query) return;
-  const found = previous ? session.search.findPrevious(query) : session.search.findNext(query);
-  $<HTMLInputElement>('terminal-search').classList.toggle('no-match', !found);
+  void ensureSearch(session).then(addon => {
+    if (!addon || active() !== session || $('search-bar').hidden || $<HTMLInputElement>('terminal-search').value !== query) return;
+    const found = previous ? addon.findPrevious(query) : addon.findNext(query);
+    $<HTMLInputElement>('terminal-search').classList.toggle('no-match', !found);
+  }).catch(notify);
 }
 
 function acknowledgeOutput(session: Session, count: number) {
@@ -979,7 +1007,7 @@ function renderIdleNotice() {
   const projectName = projects.find(project => project.path === root);
   const projectLabel = projectName?.title || projectName?.name || 'Projeto';
   const label = candidate.kind === 'codex' ? 'Codex' : session?.label || 'Terminal';
-  $('idle-description').textContent = `${label} · ${projectLabel} · ${formatMemory(candidate.memoryKiB)} detectados. Sem entrada ou saída há pelo menos ${preferences.idleMinutes} minutos.`;
+  $('idle-description').textContent = `${label} · ${projectLabel}${candidate.pid ? ` · PID ${candidate.pid}` : ''} · ${formatMemory(candidate.memoryKiB)} de RSS estimado. Sem entrada ou saída há pelo menos ${preferences.idleMinutes} minutos.`;
   button('idle-close').textContent = candidate.kind === 'codex' ? 'Interromper Codex' : 'Encerrar sessão';
 }
 button('idle-keep').onclick = () => { if (idleId) idleSnoozed.set(idleId, Date.now() + idleWarningMs()); renderIdleNotice(); };
@@ -1000,17 +1028,25 @@ function formatMemory(value: number | null) {
 function renderResources(data: ResourceSnapshot) {
   idleSnapshot = data; renderIdleNotice();
   const combined = data.children !== null;
-  $('resource-scope').textContent = combined ? '' : 'DK';
-  $('resource-cpu').textContent = formatCpu(data.total.cpuPercent);
-  $('resource-memory').textContent = formatMemory(data.total.memoryKiB);
+  $('resource-scope').textContent = 'DK';
+  $('resource-cpu').textContent = formatCpu(data.app.cpuPercent);
+  $('resource-memory').textContent = formatMemory(data.app.memoryKiB);
   const details = [
     `DK Terminal: CPU ${formatCpu(data.app.cpuPercent)} · RAM ${formatMemory(data.app.memoryKiB)} · ${data.app.processCount} processo(s)`,
     combined ? `Processos filhos detectados (terminais, agentes e serviços): CPU ${formatCpu(data.children!.cpuPercent)} · RAM ${formatMemory(data.children!.memoryKiB)} · ${data.children!.processCount} processo(s)` : 'Consumo dos processos externos indisponível nesta plataforma.',
+    data.otherProcesses ? `Outros processos detectados: RAM RSS ${formatMemory(data.otherProcesses.memoryKiB)} · ${data.otherProcesses.processCount} processo(s)` : 'Consumo dos demais processos indisponível.',
     'CPU aproximada: 100% corresponde a um núcleo; pode ultrapassar 100%. RAM é a soma residente e pode incluir memória compartilhada.',
     `Atualizado às ${new Date(data.sampledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
   ].join('\n');
   $('resource-indicator').title = details;
   const machine = data.system;
+  $('system-dk-memory').textContent = formatMemory(data.app.memoryKiB);
+  $('system-child-memory').textContent = formatMemory(data.children?.memoryKiB ?? null);
+  $('system-other-memory').textContent = formatMemory(data.otherProcesses?.memoryKiB ?? null);
+  $('system-available').textContent = machine.availablePercent == null ? '—' : formatCpu(machine.availablePercent);
+  $('system-cache-label').textContent = machine.cache?.kind === 'purgeable' ? 'Purgável · parcial' : 'Cache recuperável · estimado';
+  $('system-cache').textContent = formatMemory(machine.cache?.memoryKiB ?? null);
+  $('system-pressure').textContent = machine.pressure?.kind === 'linux-psi' ? `${machine.pressure.someAvg10.toLocaleString('pt-BR', {maximumFractionDigits:2})}% espera` : 'Indisponível';
   const systemCpu = formatCpu(machine.cpuPercent);
   const systemMemory = machine.memoryUsedKiB == null || machine.memoryTotalKiB == null ? '—' : `${formatMemory(machine.memoryUsedKiB)} / ${formatMemory(machine.memoryTotalKiB)}`;
   const swap = machine.swap;
@@ -1021,17 +1057,17 @@ function renderResources(data: ResourceSnapshot) {
   $('system-cpu-bar').classList.toggle('high', machine.cpuPercent != null && machine.cpuPercent >= 80);
   const memoryPercent = machine.memoryUsedKiB == null || !machine.memoryTotalKiB ? 0 : machine.memoryUsedKiB / machine.memoryTotalKiB * 100;
   $('system-memory-bar').style.width = `${Math.max(0, Math.min(100, memoryPercent))}%`;
-  const description = 'Máquina inteira: CPU média de todos os núcleos. Memória não livre inclui dados em cache que o sistema pode recuperar; não equivale à pressão de memória. Swap mostra uso e espaço atualmente alocado; esse total pode variar.';
+  const description = 'Máquina inteira: CPU média de todos os núcleos. Memória não livre inclui cache e não equivale à pressão de memória. RSS é uma soma aproximada por processo e pode contar páginas compartilhadas várias vezes; não é uma divisão exata da memória física. No macOS, purgável cobre apenas uma parte do cache recuperável e disponibilidade não é pressão. No Linux, a pressão PSI indica a porcentagem média de tempo com alguma tarefa esperando memória nos últimos 10 segundos. Swap mostra uso e espaço atualmente alocado.';
   $('system-resources').title = description;
   $('system-resources').setAttribute('aria-label', `${description} CPU ${systemCpu}; memória não livre ${systemMemory}; swap ${systemSwap}.`);
-  $('resource-indicator').setAttribute('aria-label', `${combined ? 'DK Terminal e processos filhos detectados' : 'Somente DK Terminal'}: CPU ${formatCpu(data.total.cpuPercent)}, RAM ${formatMemory(data.total.memoryKiB)}.`);
+  $('resource-indicator').setAttribute('aria-label', `DK Terminal: CPU ${formatCpu(data.app.cpuPercent)}, RAM RSS ${formatMemory(data.app.memoryKiB)}. Processos filhos e outros processos estão no detalhamento da máquina.`);
 }
 async function refreshResources() {
   clearTimeout(resourceTimer);
   if (document.visibilityState !== 'visible' || resourceBusy) return;
   resourceBusy = true;
   try { const data = await api.readResources(); renderResources(data); }
-  catch { $('resource-cpu').textContent = '—'; $('resource-memory').textContent = '—'; $('resource-scope').textContent = ''; $('resource-indicator').title = 'Consumo de recursos indisponível.'; $('resource-indicator').setAttribute('aria-label', 'Consumo de recursos indisponível.'); $('system-cpu').textContent = $('system-memory').textContent = $('system-swap').textContent = '—'; $('system-cpu-bar').style.width = $('system-memory-bar').style.width = $('system-swap-bar').style.width = '0%'; $('system-cpu-bar').classList.remove('high'); $('system-resources').title = 'Consumo da máquina indisponível.'; $('system-resources').setAttribute('aria-label', 'Consumo da máquina indisponível.'); }
+  catch { $('resource-cpu').textContent = '—'; $('resource-memory').textContent = '—'; $('resource-scope').textContent = 'DK'; $('resource-indicator').title = 'Consumo de recursos indisponível.'; $('resource-indicator').setAttribute('aria-label', 'Consumo de recursos indisponível.'); for(const id of ['system-cpu','system-memory','system-swap','system-dk-memory','system-child-memory','system-other-memory','system-available','system-cache','system-pressure']) $(id).textContent='—'; $('system-cpu-bar').style.width = $('system-memory-bar').style.width = $('system-swap-bar').style.width = '0%'; $('system-cpu-bar').classList.remove('high'); $('system-resources').title = 'Consumo da máquina indisponível.'; $('system-resources').setAttribute('aria-label', 'Consumo da máquina indisponível.'); }
   finally {
     resourceBusy = false;
     if (document.visibilityState === 'visible') {
@@ -1041,9 +1077,12 @@ async function refreshResources() {
   }
 }
 document.addEventListener('visibilitychange', () => {
+  updateTerminalVisibility();
   clearTimeout(resourceTimer);
   if (document.visibilityState === 'visible') { resourceHasSample = false; void refreshResources(); }
 });
+window.addEventListener('focus', updateTerminalVisibility);
+window.addEventListener('blur', updateTerminalVisibility);
 let resizeFrame = 0;
 new ResizeObserver(() => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(fitActive); }).observe($('terminal-host'));
 new ResizeObserver(() => { if (mainView === 'browser' && browserURL) api.resizeBrowser(previewBounds()).catch(() => {}); }).observe($('browser-canvas'));

@@ -50,6 +50,27 @@ test('interpreta swap do macOS e do Linux sem inventar valores indisponíveis', 
 
 test('mede apenas processos identificados de cada terminal e nunca atribui os coletores', () => {
   const rows=parseProcessTable('100 1 0 5000\n300 100 0 60000\n400 300 0 9000\n999 300 0 80000\n500 1 0 1000\n');
-  assert.deepEqual(sessionResources(rows,[{id:'sessao',pid:300,lastActivity:123},{id:'sem-pid',pid:1234,lastActivity:3}],[999]),[{id:'sessao',kind:'terminal',root:undefined,memoryKiB:69000,lastActivity:123}]);
+  assert.deepEqual(sessionResources(rows,[{id:'sessao',pid:300,lastActivity:123},{id:'sem-pid',pid:1234,lastActivity:3}],[999]),[{id:'sessao',pid:300,kind:'terminal',root:undefined,memoryKiB:69000,lastActivity:123}]);
   assert.deepEqual(sessionResources(null,[{id:'x',pid:1,lastActivity:1}]),[]);
+});
+
+test('distingue outros processos dos descendentes sem atribuir o coletor ao usuário',()=>{
+  const sample=aggregateResources(metrics,table,100,999,true);
+  assert.deepEqual(sample.otherProcesses,{cpuPercent:25,memoryKiB:50000,processCount:1});
+  assert.equal(aggregateResources(metrics,null,100,999,true).otherProcesses,null);
+});
+test('interpreta memória disponível, cache estimado e pressão PSI do Linux',()=>{
+  const {parseLinuxMemory}=require('../electron/resources.cjs');
+  const memory='MemTotal: 8000 kB\nMemAvailable: 3000 kB\nCached: 2000 kB\nSReclaimable: 500 kB\nShmem: 300 kB\n';
+  assert.deepEqual(parseLinuxMemory(memory,'some avg10=1.25 avg60=0.40 avg300=0.10 total=50\n'),{availablePercent:37.5,cache:{memoryKiB:2200,kind:'estimate'},pressure:{kind:'linux-psi',someAvg10:1.25}});
+  assert.deepEqual(parseLinuxMemory('MemTotal: 8 kB\n','malformado'),{availablePercent:null,cache:null,pressure:null});
+});
+test('interpreta apenas a parcela purgável e disponibilidade do macOS sem inventar pressão',()=>{
+  const {parseMacMemory}=require('../electron/resources.cjs');
+  assert.deepEqual(parseMacMemory('Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages purgeable: 4.\n','System-wide memory free percentage: 33%'),{availablePercent:33,cache:{memoryKiB:64,kind:'purgeable'},pressure:null});
+  assert.deepEqual(parseMacMemory('não disponível','erro'),{availablePercent:null,cache:null,pressure:null});
+});
+test('coleta detalhes de memória no máximo a cada 30 segundos',async()=>{
+  let now=10000,count=0;const monitor=new ResourceMonitor(()=>metrics,{rootPid:100,clock:()=>now,getTable:async()=>({rows:table}),getSwap:async()=>null,getMemoryDetails:async()=>{count++;return {availablePercent:40,cache:null,pressure:null};}});
+  assert.equal((await monitor.read()).system.availablePercent,40);now+=2000;await monitor.read();assert.equal(count,1);now+=30000;await monitor.read();assert.equal(count,2);
 });
