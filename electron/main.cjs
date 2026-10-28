@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, protocol, net } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, ShareMenu, Menu, protocol, net } = require('electron');
 const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
@@ -8,6 +8,7 @@ const { Terminals } = require('./terminals.cjs');
 const { Services } = require('./services.cjs');
 const { Extensions } = require('./extensions.cjs');
 const { listDirectory } = require('./file-tree.cjs');
+const { treeAction } = require('./tree-actions.cjs');
 const { Orchestration } = require('./orchestration.cjs');
 const { PreviewBrowser } = require('./browser.cjs');
 const { readProjectFile, saveProjectFile } = require('./files.cjs');
@@ -19,6 +20,7 @@ const { ClaudePluginMonitor, installClaudePlugin } = require('./claude-plugin.cj
 const { Integrations } = require('./integrations.cjs');
 const { LocalRepositories } = require('./local-repositories.cjs');
 const { clearMachineFileCache } = require('./machine-cache.cjs');
+const { Git } = require('./git.cjs');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'dk-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 app.setName('DK Terminal');
@@ -44,7 +46,7 @@ function launchFiles(argv, cwd, skip = process.defaultApp ? 2 : 1) {
 const initialFiles = launchFiles(process.argv, process.cwd());
 const primaryInstance = app.requestSingleInstanceLock({ files: initialFiles });
 if (!primaryInstance) app.quit();
-let window, terminals, services, extensions, orchestration, preview, usage, codexChat, actions, resources, integrations, localRepositories, config, stateFile, env;
+let window, terminals, services, extensions, orchestration, preview, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false;
 const selected = new Set();
 const closingProjects = new Set();
@@ -120,6 +122,20 @@ function registerHandlers() {
   handle('account:status', provider => integrations.account(provider));
   handle('account:start', provider => terminals.create({path: os.homedir()}, integrations.authSpec(provider)));
   handle('gitlab:projects', (query,page) => integrations.listProjects(query,page));
+  handle('git:status', root => git.status(project(root).path));
+  handle('git:history', root => git.history(project(root).path));
+  handle('git:diff', (root, name) => git.diff(project(root).path, name));
+  handle('git:commit-detail', (root, hash) => git.commitDetail(project(root).path, hash));
+  handle('git:commit', (root, names, message) => git.commit(project(root).path, names, message));
+  handle('git:sync', (root, action) => git.sync(project(root).path, action));
+  handle('git:gitlab', async (root, destination) => {
+    if (!['project','merge-requests','new-merge-request'].includes(destination)) throw new Error('Destino GitLab inválido.');
+    const state = await git.status(project(root).path);
+    if (!state.gitlab) throw new Error('O projeto não está vinculado ao grupo Design do GitLab SEA.');
+    const base = `https://gitlab.seatecnologia.com.br/${state.gitlab}`;
+    const url = destination === 'project' ? base : destination === 'merge-requests' ? `${base}/-/merge_requests` : `${base}/-/merge_requests/new?${new URLSearchParams({'merge_request[source_branch]':state.branch})}`;
+    await shell.openExternal(url); return true;
+  });
   handle('gitlab:project', async id => {
     const remote = await integrations.getProject(id);
     config.remoteProjects = [{id:remote.id,name:remote.name,path:remote.path}, ...(config.remoteProjects || []).filter(item=>item.id!==id)].slice(0,12); save();
@@ -188,6 +204,7 @@ function registerHandlers() {
   });
   handle('project:activate', root => remember(project(root).path));
   handle('tree:list', (root, relative) => listDirectory(project(root).path, relative));
+  handle('tree:action', (root, relative, action) => treeAction(project(root).path, relative, action, {shell,clipboard,ShareMenu,window}));
   handle('file:read', (root, relative) => readProjectFile(project(root).path, relative));
   handle('file:save', (root, relative, text, revision) => saveProjectFile(project(root).path, relative, text, revision));
   handle('file:dirty', files => {
@@ -309,6 +326,7 @@ if (primaryInstance) app.whenReady().then(async () => {
   usage = new Usage(env);
   actions = new Actions({ env });
   integrations = new Integrations(env);
+  git = new Git(env);
   localRepositories = new LocalRepositories('/Volumes/SEA', env);
   resources = new ResourceMonitor(() => app.getAppMetrics(), { getTerminals: () => [...terminals.resourceRoots(), ...(codexChat?.resourceRoots() || [])] });
   extensions = new Extensions([path.join(app.getAppPath(), 'extensions'), path.join(app.getPath('userData'), 'extensions')], env);

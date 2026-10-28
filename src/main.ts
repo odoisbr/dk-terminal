@@ -13,6 +13,8 @@ import geminiIcon from '../assets/gemini.svg';
 import { renderOrchestration } from './orchestration';
 import { renderUsage } from './usage';
 import { Launcher } from './launcher';
+import { GitView } from './git-view';
+import { TreeMenu } from './tree-menu';
 
 const paths: Record<string, string> = {
   home: '<path d="M3 11 12 3l9 8M5 10v10h14V10M9 20v-6h6v6"/>',
@@ -74,7 +76,8 @@ app.innerHTML = `
       <section id="action-view" class="action-card" aria-label="Resultado do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('scan')}Resultado do DK</strong><button id="cancel-action" class="button secondary" hidden>Interromper</button><button id="action-back" class="button secondary">Voltar ao terminal</button></div><div id="action-content" role="status" aria-live="polite"></div></section>
       <section id="chat-view" class="chat-card" aria-label="Codex" hidden></section>
       <aside class="context-panel" aria-label="Painel do projeto">
-        <div class="inspector-tabs" role="tablist" aria-label="Informações do projeto"><button id="tab-files" role="tab" aria-selected="true" aria-controls="panel-files" data-panel="files">Pasta</button><button id="tab-context" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-context" data-panel="context">Contexto</button><button id="tab-services" role="tab" aria-selected="false" aria-controls="panel-services" data-panel="services" tabindex="-1">Serviços</button><button id="tab-usage" role="tab" aria-selected="false" aria-controls="panel-usage" data-panel="usage" tabindex="-1">Consumo</button></div>
+        <div class="inspector-tabs" role="tablist" aria-label="Informações do projeto"><button id="tab-files" role="tab" aria-selected="true" aria-controls="panel-files" data-panel="files">Pasta</button><button id="tab-git" role="tab" aria-selected="false" aria-controls="panel-git" data-panel="git" tabindex="-1">Git</button><button id="tab-context" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-context" data-panel="context">Contexto</button><button id="tab-services" role="tab" aria-selected="false" aria-controls="panel-services" data-panel="services" tabindex="-1">Serviços</button><button id="tab-usage" role="tab" aria-selected="false" aria-controls="panel-usage" data-panel="usage" tabindex="-1">Consumo</button></div>
+        <section id="panel-git" class="inspector-panel" role="tabpanel" aria-labelledby="tab-git" tabindex="0" hidden></section>
         <section id="panel-context" class="inspector-panel" role="tabpanel" aria-labelledby="tab-context" tabindex="0" hidden><div class="context-heading">${icon('code')}<h2>Contexto do projeto</h2></div><div id="context-empty"><p>Ao abrir uma pasta, você verá aqui a estrutura reconhecida pelo DK.</p><div class="context-illustration"><span>projeto.yml</span><span>.dk/projeto.json</span><span>.git/</span></div></div><div id="context-details" hidden><div class="context-label">PASTA ATIVA</div><strong id="context-name"></strong><span class="project-tag" id="context-kind"></span><div class="context-label files-label">ESTRUTURA RECONHECIDA</div><ul id="project-files"></ul><p class="context-note" id="context-note"></p></div><div class="context-tip"><span class="tip-number">01 / ESPAÇO LOCAL</span><p>Cada sessão fica na pasta em que foi aberta. Troque de projeto sem misturar seus terminais.</p></div></section>
         <section id="panel-services" class="inspector-panel" role="tabpanel" aria-labelledby="tab-services" tabindex="0" hidden><p id="services-placeholder" class="context-note">Abra um projeto para acompanhar seus serviços.</p><div id="services-section" class="services-section" hidden><div class="section-label"><span>SERVIÇOS DO PROJETO</span><span id="service-count">0</span></div><div id="service-list"></div></div></section>
         <section id="panel-files" class="inspector-panel" role="tabpanel" aria-labelledby="tab-files" tabindex="0"><div class="tree-toolbar tree-project-heading"><span class="tree-project-symbol">${icon('folder')}</span><div class="tree-project-copy"><span>ARQUIVOS DO PROJETO</span><strong id="tree-project-name">Pasta do projeto</strong></div><button id="refresh-tree" class="icon-button" aria-label="Atualizar árvore de pastas" title="Atualizar árvore">${icon('refresh')}</button></div><p id="tree-placeholder" class="context-note">Abra um projeto para visualizar suas pastas e arquivos.</p><div id="folder-tree" aria-label="Pastas e arquivos do projeto"></div></section>
@@ -99,13 +102,15 @@ const closingProjects = new Set<string>();
 const projectServices = new Map<string, Service[]>();
 const serviceLogs = new Set<string>();
 const paneGroups = new Map<string, { ids: string[]; direction: 'right' | 'down' }>();
-let selectedPanel: 'context' | 'services' | 'files' | 'usage' = 'files';
+let selectedPanel: 'context' | 'services' | 'files' | 'usage' | 'git' = 'files';
 let treeProject: string | null = null;
 let mainView: 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'action' = 'terminal';
 let workspaceView: 'terminal' | 'editor' = 'terminal';
 let focusedPane: 'terminal' | 'editor' = 'terminal';
 let browserWantedService = '', browserURL = '';
 let fileEditor: import('./editor').FileEditor | null = null;
+const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, hasUnsaved:()=>!!fileEditor?.hasUnsaved()});
+const treeMenu = new TreeMenu({currentRoot:()=>current?.path||null,openFile:(root,name)=>openFile(root,name),notify});
 let editorOpening: Promise<import('./editor').FileEditor> | null = null;
 let usageSnapshot: UsageSnapshot | null = null, usageLoading = false;
 let chatView: import('./chat').CodexChatView | null = null;
@@ -333,6 +338,7 @@ function selectPanel(panel: typeof selectedPanel) {
   });
   if (panel === 'services') renderServices();
   if (panel === 'usage') run(() => loadUsage());
+  if (panel === 'git') void gitView.refresh();
   if (panel === 'files' && current?.path !== treeProject) run(loadRootTree);
 }
 function fileType(name: string): string {
@@ -361,6 +367,8 @@ function directoryList(root: string, listing: DirectoryListing): HTMLUListElemen
       control.innerHTML = `${icon('chevron', 'tree-chevron')}${icon('folder')}<span></span>`;
       control.querySelector('span')!.textContent = entry.name;
       control.title = entry.relative; control.setAttribute('aria-expanded', 'false');
+      control.oncontextmenu = event => treeMenu.open(event,control,root,entry);
+      control.onkeydown = event => {if(event.key==='ContextMenu'||(event.shiftKey&&event.key==='F10'))treeMenu.open(event,control,root,entry);};
       let children: HTMLUListElement | null = null, expanded = false, loading = false;
       control.onclick = () => run(async () => {
         if (loading) return;
@@ -378,6 +386,8 @@ function directoryList(root: string, listing: DirectoryListing): HTMLUListElemen
     } else {
       const row = document.createElement('button'); row.className = 'tree-file'; row.dataset.relative = entry.relative; row.dataset.type = fileType(entry.name);
       row.onclick = () => run(() => openFile(root, entry.relative)); row.title = entry.relative + (entry.kind === 'link' ? ' · Link simbólico' : '');
+      row.oncontextmenu = event => treeMenu.open(event,row,root,entry);
+      row.onkeydown = event => {if(event.key==='ContextMenu'||(event.shiftKey&&event.key==='F10'))treeMenu.open(event,row,root,entry);};
       row.innerHTML = `${icon('file')}<span></span>`; row.querySelector('span')!.textContent = entry.name + (entry.kind === 'link' ? ' ↗' : ''); item.append(row);
     }
     list.append(item);

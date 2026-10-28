@@ -1,6 +1,9 @@
 type Project = { path: string; name: string; title?: string; isDk: boolean; files: { name: string; present: boolean }[] };
 type Extension = { id: string; name: string; description: string; version: string; available: boolean; kind: 'terminal' | 'browser' };
 type RemoteProject = { id: number; name: string; path: string; branch: string };
+type GitChange = { path:string; code:string; previous:string|null };
+type GitStatus = { repository:false } | { repository:true; branch:string; hasHead:boolean; changes:GitChange[]; ahead:number|null; behind:number|null; hasOrigin:boolean; gitlab:string|null };
+type GitCommit = { hash:string; author:string; date:string; message:string };
 type ToolStatus = { id: string; name: string; purpose: string; required: boolean; available: boolean; installed: boolean; version: string | null };
 type Bootstrap = { projects: Project[]; startupProject: Project | null; remoteProjects: {id:number;name:string;path:string}[]; kit: { path: string } | null; extensions: Extension[]; extensionErrors: string[]; platform: string; version: string };
 type ClaudePlugin = { status: 'installed' | 'missing' | 'disabled' | 'no-claude' | 'unavailable'; kit: { path: string } | null; activeKit: { path: string } | null; version?: string };
@@ -26,6 +29,13 @@ interface Window {
     accountStatus(provider: 'sea' | 'gitlab'): Promise<{status:'missing'|'connected'|'unavailable';name:string|null}>;
     startAccount(provider: 'sea' | 'gitlab'): Promise<SessionInfo>;
     gitlabProjects(query:string,page:number): Promise<{items:RemoteProject[];hasMore:boolean}>;
+    gitStatus(path:string):Promise<GitStatus>;
+    gitHistory(path:string):Promise<GitCommit[]>;
+    gitDiff(path:string,name:string):Promise<string>;
+    gitCommitDetail(path:string,hash:string):Promise<string>;
+    gitCommit(path:string,names:string[],message:string):Promise<boolean>;
+    gitSync(path:string,action:'fetch'|'pull'|'push'):Promise<boolean>;
+    gitOpenGitlab(path:string,destination:'project'|'merge-requests'|'new-merge-request'):Promise<boolean>;
     gitlabProject(id:number): Promise<RemoteProject>;
     gitlabTree(id:number,folder:string,page:number): Promise<{entries:{name:string;path:string;kind:'directory'|'file'}[];hasMore:boolean}>;
     gitlabFile(id:number,name:string): Promise<{name:string;kind:'text'|'image';content?:string;dataUrl?:string;readOnly:true}>;
@@ -46,6 +56,7 @@ interface Window {
     installClaudePlugin(path: string | null): Promise<ClaudePlugin>;
     revealProject(path: string): Promise<void>;
     listDirectory(path: string, relative?: string): Promise<DirectoryListing>;
+    treeAction(path:string,relative:string,action:'reveal'|'open-system'|'copy-path'|'copy-name'|'share'):Promise<boolean>;
     readFile(path: string, relative: string): Promise<ProjectFile>;
     saveFile(path: string, relative: string, text: string, revision: string): Promise<ProjectFile>;
     confirmCloseFile(name: string): Promise<'save' | 'discard' | 'cancel'>;
