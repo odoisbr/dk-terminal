@@ -124,6 +124,13 @@ function registerHandlers() {
   handle('gitlab:projects', (query,page) => integrations.listProjects(query,page));
   handle('git:status', root => git.status(project(root).path));
   handle('git:history', root => git.history(project(root).path));
+  handle('git:branches', root => git.branches(project(root).path));
+  handle('git:graph', root => git.graph(project(root).path));
+  handle('git:branch-action', (root, action, name) => {
+    const info=project(root);
+    if(action!=='delete' && dirtyFiles.some(file=>{const rel=path.relative(info.path,file);return rel && rel!=='..'&&!rel.startsWith('..'+path.sep)&&!path.isAbsolute(rel);})) throw new Error('Salve os arquivos abertos no editor antes de trocar de branch.');
+    return git.branchAction(info.path, action, name);
+  });
   handle('git:diff', (root, name) => git.diff(project(root).path, name));
   handle('git:commit-detail', (root, hash) => git.commitDetail(project(root).path, hash));
   handle('git:commit', (root, names, message) => git.commit(project(root).path, names, message));

@@ -4,6 +4,8 @@ type RemoteProject = { id: number; name: string; path: string; branch: string };
 type GitChange = { path:string; code:string; previous:string|null };
 type GitStatus = { repository:false } | { repository:true; branch:string; hasHead:boolean; changes:GitChange[]; ahead:number|null; behind:number|null; hasOrigin:boolean; gitlab:string|null };
 type GitCommit = { hash:string; author:string; date:string; message:string };
+type GitBranch = {name:string;current:boolean;hash:string;upstream:string|null};
+type GitGraphCommit = GitCommit & {parents:string[];refs:string};
 type ToolStatus = { id: string; name: string; purpose: string; required: boolean; available: boolean; installed: boolean; version: string | null };
 type Bootstrap = { projects: Project[]; startupProject: Project | null; remoteProjects: {id:number;name:string;path:string}[]; kit: { path: string } | null; extensions: Extension[]; extensionErrors: string[]; platform: string; version: string };
 type ClaudePlugin = { status: 'installed' | 'missing' | 'disabled' | 'no-claude' | 'unavailable'; kit: { path: string } | null; activeKit: { path: string } | null; version?: string };
@@ -31,6 +33,9 @@ interface Window {
     gitlabProjects(query:string,page:number): Promise<{items:RemoteProject[];hasMore:boolean}>;
     gitStatus(path:string):Promise<GitStatus>;
     gitHistory(path:string):Promise<GitCommit[]>;
+    gitBranches(path:string):Promise<GitBranch[]>;
+    gitGraph(path:string):Promise<GitGraphCommit[]>;
+    gitBranchAction(path:string,action:'create'|'switch'|'delete',name:string):Promise<boolean>;
     gitDiff(path:string,name:string):Promise<string>;
     gitCommitDetail(path:string,hash:string):Promise<string>;
     gitCommit(path:string,names:string[],message:string):Promise<boolean>;

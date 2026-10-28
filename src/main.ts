@@ -99,6 +99,7 @@ let opening = Promise.resolve();
 let installedExtensions: Extension[] = [];
 const lastActive = new Map<string, string>();
 const closingProjects = new Set<string>();
+const changingBranches = new Set<string>();
 const projectServices = new Map<string, Service[]>();
 const serviceLogs = new Set<string>();
 const paneGroups = new Map<string, { ids: string[]; direction: 'right' | 'down' }>();
@@ -109,7 +110,17 @@ let workspaceView: 'terminal' | 'editor' = 'terminal';
 let focusedPane: 'terminal' | 'editor' = 'terminal';
 let browserWantedService = '', browserURL = '';
 let fileEditor: import('./editor').FileEditor | null = null;
-const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, hasUnsaved:()=>!!fileEditor?.hasUnsaved()});
+const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, hasUnsaved:()=>!!fileEditor?.hasUnsaved(), changeBranch:async(root,action,name)=>{
+  if(changingBranches.has(root))throw new Error('Aguarde a troca de branch.');
+  changingBranches.add(root);
+  try {
+    if(editorOpening)await editorOpening;
+    if(fileEditor?.hasUnsaved())throw new Error('Salve os arquivos abertos no editor antes de trocar de branch.');
+    if(fileEditor && !await fileEditor.closeProject(root))throw new Error('A troca de branch foi cancelada.');
+    await api.gitBranchAction(root,action,name);
+    if(current?.path===root)await loadRootTree();
+  } finally {changingBranches.delete(root);}
+}});
 const treeMenu = new TreeMenu({currentRoot:()=>current?.path||null,openFile:(root,name)=>openFile(root,name),notify});
 let editorOpening: Promise<import('./editor').FileEditor> | null = null;
 let usageSnapshot: UsageSnapshot | null = null, usageLoading = false;
@@ -434,7 +445,7 @@ function selectMainView(view: typeof mainView) {
   if (view === 'terminal' || view === 'editor') { focusSession(activeId, false); requestAnimationFrame(fitActive); }
 }
 async function openFile(root: string, relative: string) {
-  if (closingProjects.has(root)) return;
+  if (closingProjects.has(root) || changingBranches.has(root)) return;
   if (!editorOpening) editorOpening = import('./editor').then(({ FileEditor }) => {
     fileEditor = new FileEditor($('editor-content'), {
       read: api.readFile, save: api.saveFile, confirmClose: api.confirmCloseFile, tabsHost: $('file-tabs'),

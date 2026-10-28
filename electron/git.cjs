@@ -43,6 +43,41 @@ class Git {
     for(let i=0;i+3<parts.length;i+=4) {const hash=parts[i].trim(); if(/^[a-f0-9]{40,64}$/.test(hash))items.push({hash,author:parts[i+1],date:parts[i+2],message:parts[i+3]});}
     return items;
   }
+  async branches(root) {
+    await this.requireRoot(root);
+    const data=await this.run(root,['for-each-ref','--format=%(refname:short)%00%(HEAD)%00%(objectname)%00%(upstream:short)%00','refs/heads']);
+    const parts=data.split('\0'),items=[];
+    for(let i=0;i+3<parts.length;i+=4) {const name=parts[i].replace(/^\n/,'');if(name)items.push({name,current:parts[i+1].trim()==='*',hash:parts[i+2],upstream:parts[i+3]||null});}
+    return items;
+  }
+  async graph(root) {
+    await this.requireRoot(root);
+    const state=await this.status(root);if(!state.hasHead)return [];
+    const raw=await this.run(root,['log','--all','HEAD','--topo-order','-100','--format=%H%x00%P%x00%an%x00%aI%x00%s%x00%D%x00']);
+    const parts=raw.split('\0'),items=[];
+    for(let i=0;i+5<parts.length;i+=6){const hash=parts[i].trim();if(/^[a-f0-9]{40,64}$/.test(hash))items.push({hash,parents:parts[i+1]?parts[i+1].split(' ').filter(p=>/^[a-f0-9]{40,64}$/.test(p)):[],author:parts[i+2],date:parts[i+3],message:parts[i+4],refs:parts[i+5]});}
+    return items;
+  }
+  async branchAction(root,action,name) {
+    if(this.busy.has(root)) throw new Error('Já existe uma operação Git em andamento.');
+    if(!['create','switch','delete'].includes(action)||typeof name!=='string'||!name||name.length>255||name.startsWith('-')||/[\r\n\0]/.test(name))throw new Error('Nome ou ação de branch inválidos.');
+    this.busy.add(root);
+    try {
+      await this.requireRoot(root);
+      if((await this.run(root,['check-ref-format','--branch',name])).trim()!==name) throw new Error('Informe o nome literal de uma branch.');
+      const state=await this.status(root);
+      if(!state.hasHead)throw new Error('Salve a primeira versão antes de gerenciar branches.');
+      if(action!=='delete' && state.changes.length)throw new Error('Salve ou resolva todas as alterações locais antes de trocar de branch.');
+      if(action==='delete') {
+        if(state.branch===name)throw new Error('Troque de branch antes de excluir a branch atual.');
+        const branches=await this.branches(root);if(!branches.some(branch=>branch.name===name))throw new Error('A branch local não existe mais.');
+        try {await this.run(root,['merge-base','--is-ancestor',`refs/heads/${name}`,'HEAD']);} catch {throw new Error('Esta branch ainda não foi integrada à branch atual; ela não pode ser excluída aqui.');}
+        await this.run(root,['branch','-d','--',name]);
+      } else if(action==='create') await this.run(root,['switch','-c',name,'--']);
+      else {const branches=await this.branches(root);if(!branches.some(branch=>branch.name===name))throw new Error('Selecione uma branch local existente.');await this.run(root,['switch','--',name]);}
+      return true;
+    } finally {this.busy.delete(root);}
+  }
   async diff(root,name) {
     const state=await this.status(root); if(!state.repository) throw new Error('Esta pasta não é um repositório Git.');
     const item=state.changes.find(entry=>entry.path===name); if(!item) throw new Error('Arquivo não está mais na lista de alterações. Atualize a guia.');
