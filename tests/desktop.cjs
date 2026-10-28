@@ -30,6 +30,7 @@ async function main() {
   const page = await application.firstWindow({ timeout: 60000 });
   page.on('pageerror', error => errors.push(error.message));
   await page.locator('#startup-loading').waitFor({ state: 'detached', timeout: 30000 });
+  assert.equal(await page.locator('#version').innerText(), `v${require('../package.json').version}`);
   if (process.env.DK_TERMINAL_EXECUTABLE) {
     await application.evaluate(({ dialog }, fixture) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [fixture] }); }, fixture);
     await page.locator('#launcher-open-local').click();
@@ -255,6 +256,7 @@ async function main() {
   }
   assert.ok(preview,await page.locator('#browser-status').innerText());
   assert.equal(preview.text,'DK_PREVIEW_OK');assert.equal(preview.require,'undefined');assert.equal(preview.bridge,'undefined');assert.equal(preview.prefs.sandbox,true);
+  await page.waitForFunction(()=>document.querySelector('#browser-status')?.textContent.includes('página pode acessar a rede'));
   await page.evaluate(async root=>{try{await window.dk.openBrowser(root,'https://example.com',{x:0,y:0,width:100,height:100});throw new Error('external accepted');}catch(e){if(!e.message.includes('somente'))throw e;}},fixture);
   await page.locator('#browser-back').click();
   assert.equal(await application.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].contentView.children.length),0);

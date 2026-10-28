@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
+const { version } = require('../package.json');
 const { directory, executable } = require('./core.cjs');
 const { processSnapshot, descendants, stopRecordedProcesses } = require('./session-processes.cjs');
 
@@ -221,7 +222,7 @@ class CodexChat {
       };
       child.once('error', () => disconnected('Não foi possível iniciar a CLI oficial do Codex.'));
       child.once('close', () => disconnected('A conexão com o Codex foi encerrada antes da resposta.'));
-      await this._rpc(worker, 'initialize', { clientInfo: { name: 'dk_terminal', title: 'DK Terminal', version: '0.1.0' } });
+      await this._rpc(worker, 'initialize', { clientInfo: { name: 'dk_terminal', title: 'DK Terminal', version } });
       if (worker.canceled) throw new Error('Conversa interrompida.');
       this._write(worker, { method: 'initialized' });
       const thread = session.vendorThreadId
