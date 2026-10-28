@@ -94,6 +94,8 @@ Para criar outra extensão declarativa, adicione uma pasta em `extensions/` na f
 
 Reabra o aplicativo para carregar novas extensões. A versão 1 de extensões de terceiros aceita manifestos para comandos de terminal e não carrega JavaScript de terceiros. Browser e o painel Codex são integrações internas do aplicativo. Não há um host de extensões VS Code/VSIX. Os comandos recebem as permissões normais da conta do sistema e só são iniciados pelo usuário.
 
+O [planejamento M0–M4](docs/planejamento/README.md) descreve as evoluções propostas de plugins, agentes, edição visual e auditoria; esses marcos ainda não fazem parte da pré-release.
+
 Referências: [Codex CLI](https://learn.chatgpt.com/docs/codex/cli) e [Claude Code](https://code.claude.com/docs/en/overview).
 
 ## Gerar o aplicativo

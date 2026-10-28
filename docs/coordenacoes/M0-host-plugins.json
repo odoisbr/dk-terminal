@@ -1,0 +1,1045 @@
+{
+  "schema_version": 1,
+  "id": "COORD-PLUGINS-M0",
+  "pedido": "Fase 0 do plano: host de plugins v2 com plugin.json schema 2, raiz por projeto em .dk/plugins, permissões declaradas, recarga por fs.watch e registro de views no renderer.",
+  "objetivo": "M0: plugin v2 carregado de .dk/plugins, listado e executado após ação explícita, com teste unitário e desktop.",
+  "modo": "execucao",
+  "contexto": [
+    {
+      "arquivo": "docs/plano-plugins-projeto.md",
+      "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+    },
+    {
+      "arquivo": "docs/orquestracao-plugins-projeto.md",
+      "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+    },
+    {
+      "arquivo": "docs/planejamento/README.md",
+      "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+    },
+    {
+      "arquivo": "docs/planejamento/01-m0-m1.md",
+      "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+    }
+  ],
+  "restricoes": [
+    "Nenhum token lido ou gravado pelo DK; login continua nas CLIs oficiais.",
+    "Nenhum JavaScript de terceiros no renderer; UI de plugin declarada em JSON.",
+    "Sem --permission-mode bypassPermissions; aprovações passam pela UI.",
+    "Não encerrar automaticamente sessão ou agente ativo nem descartar trabalho não salvo; prazo gera aviso e decisão do usuário.",
+    "Arquivos do usuário permanecem limpos: bridges e prompts injetados em memória.",
+    "Nomenclatura dk em tudo (data-dk-*, dk-edit-*, DK_*, .dk/).",
+    "Resultado de packet é JSON de até 4 KiB em dados; nada de histórico nem código colado.",
+    "Critérios de texto e resultados declarados são sinais preliminares; o aceite depende de testes e revisão independente vinculados à revisão real.",
+    "Alterar somente os arquivos declarados no packet; mudança fora do escopo reprova.",
+    "Sem leitura síncrona nova no main sem limite de tamanho.",
+    "Quando houver marco anterior, não despachar implementação até verificar seu estado e evidências reais; resultado declarado pelo executor não é prova suficiente.",
+    "Packet de escrita roda só npm test unitário; npm run build e testes de desktop ficam nos packets de verificação, porque dist/ entra no retrato do changeset.",
+    "Manifestos v1 continuam aceitos sem mudança de comportamento.",
+    "Plugin de projeto só é carregado se .dk/plugins estiver dentro do projeto (realpath)."
+  ],
+  "lacunas": [
+    "Origin ainda aponta para o fork odoisbr; o projeto no GitLab design/ não existe. Commits ficam fora desta coordenação."
+  ],
+  "saida": "Código, testes e README no repositório; estado em .dk/coordenacoes/COORD-PLUGINS-M0.json.",
+  "orcamento": {
+    "max_tarefas": 12,
+    "max_chamadas": 707,
+    "max_contexto_bytes": 10643047,
+    "max_tentativas": 17
+  },
+  "perfis": {
+    "leitor": {
+      "modelo": "haiku",
+      "esforco": "low",
+      "host": "claude_code"
+    },
+    "analista": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador-critico": {
+      "modelo": "fable",
+      "esforco": "xhigh",
+      "host": "claude_code"
+    },
+    "revisor": {
+      "modelo": "opus",
+      "esforco": "medium",
+      "host": "claude_code"
+    },
+    "revisor-seguranca": {
+      "modelo": "fable",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "testador": {
+      "modelo": "sonnet",
+      "esforco": "medium",
+      "host": "claude_code"
+    }
+  },
+  "politica_modelos": {
+    "leitura": "leitor",
+    "analise": "analista",
+    "implementacao": "implementador",
+    "revisao": "revisor"
+  },
+  "tarefas": [
+    {
+      "id": "g0-decisoes",
+      "objetivo": "Ler a seção 7 do plano e o gate G0 da orquestração e declarar quais decisões já estão registradas no plano; não decidir por ninguém.",
+      "categoria": "analise",
+      "depende_de": [],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [
+        "dk:dk-entender-csd"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "As três decisões de G0 estão registradas no plano",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/decisoes/pendentes",
+          "valor": 0
+        }
+      ],
+      "limites": {
+        "chamadas": 25,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-inventario",
+      "objetivo": "Mapear com arquivo e linha: usos de selectMainView e mainView em src/main.ts, parser v1 em electron/extensions.cjs, canais handle/authorize em electron/main.cjs, padrão de watch em electron/orchestration.cjs, testes em tests/extensions.test.cjs e filtros de scripts/package-filter.mjs. Devolver dados.inventario compacto.",
+      "categoria": "leitura",
+      "depende_de": [
+        "g0-decisoes"
+      ],
+      "condicao": {
+        "dependencia": "g0-decisoes",
+        "ponteiro": "/decisoes/pendentes",
+        "igual": 0
+      },
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Inventário inclui as âncoras de selectMainView",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/inventario/completo",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 15,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-desenho-host",
+      "objetivo": "Desenhar de forma compacta plugin.json schema 2, campos, permissões, contribuições, limites e raízes de carga. Registrar resumo JSON em dados.desenho dentro do limite de 4 KiB; os desenhos de canais e views ficam em tarefas separadas. Respeitar G0.2.",
+      "categoria": "analise",
+      "depende_de": [
+        "m0-inventario"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Esquema declarado é a versão 2",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/desenho/schema",
+          "valor": 2
+        }
+      ],
+      "limites": {
+        "chamadas": 25,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-desenho-canais",
+      "objetivo": "Desenhar recarga com debounce e canais plugin:list|plugin:reload|plugin:execute|plugin:changed, autorização, ciclo de vida e execução explícita sem shell. Registrar JSON compacto em dados.canais dentro do limite de 4 KiB.",
+      "categoria": "analise",
+      "depende_de": [
+        "m0-desenho-host"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Desenho dos canais apresentado",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/canais/definidos",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 25,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-desenho-views",
+      "objetivo": "Desenhar a API do registro de views em src/views.ts preservando editor, split, terminal, browser e grafo. Registrar JSON compacto em dados.views dentro do limite de 4 KiB.",
+      "categoria": "analise",
+      "depende_de": [
+        "m0-desenho-host"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Desenho das views apresentado",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/views/definidas",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 25,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-parser-v2",
+      "objetivo": "Implementar em electron/extensions.cjs o parser de plugin.json schema 2 conforme dados.desenho, mantendo v1; raiz <projeto>/.dk/plugins com contenção por realpath; limites de tamanho e quantidade; recarga por fs.watch com debounce no padrão de Orchestration.watch; erros por pasta sem derrubar o host.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m0-desenho-host"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "electron/extensions.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Parser reconhece permissões v2",
+          "tipo": "contem",
+          "arquivo": "electron/extensions.cjs",
+          "valor": "permissions"
+        },
+        {
+          "id": "C2",
+          "descricao": "Parser reconhece contribuições v2",
+          "tipo": "contem",
+          "arquivo": "electron/extensions.cjs",
+          "valor": "contributes"
+        },
+        {
+          "id": "C3",
+          "descricao": "Raiz por projeto",
+          "tipo": "contem",
+          "arquivo": "electron/extensions.cjs",
+          "valor": ".dk"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M0-M0-PARSER-V2",
+        "objetivo": "Implementar em electron/extensions.cjs o parser de plugin.json schema 2 conforme dados.desenho, mantendo v1; raiz <projeto>/.dk/plugins com contenção por realpath; limites de tamanho e quantidade; recarga por fs.watch com debounce no padrão de Orchestration.watch; erros por pasta sem derrubar o host.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/extensions.cjs",
+            "sha256": "4fb8672b9181d94e1b69a2d4a3f02d2eca22095cd382898ac089dac56f3b8474"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Parser reconhece permissões v2",
+            "tipo": "contem",
+            "arquivo": "electron/extensions.cjs",
+            "valor": "permissions"
+          },
+          {
+            "id": "C2",
+            "descricao": "Parser reconhece contribuições v2",
+            "tipo": "contem",
+            "arquivo": "electron/extensions.cjs",
+            "valor": "contributes"
+          },
+          {
+            "id": "C3",
+            "descricao": "Raiz por projeto",
+            "tipo": "contem",
+            "arquivo": "electron/extensions.cjs",
+            "valor": ".dk"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/extensions.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-canais-ipc",
+      "objetivo": "Expor em electron/main.cjs os canais autorizados plugin:list, plugin:reload e plugin:execute e o evento plugin:changed, com raiz de projeto por project(root); executar ação v2 somente após interação explícita e permissão process:spawn, preservando as extensões v1. Incluir preload e tipos; recarregar ao trocar de projeto e encerrar watchers em project:close-sessions e will-quit.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m0-parser-v2",
+        "m0-desenho-canais"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "electron/main.cjs",
+        "electron/preload.cjs",
+        "src/api.d.ts"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Canal de listagem registrado",
+          "tipo": "contem",
+          "arquivo": "electron/main.cjs",
+          "valor": "plugin:list"
+        },
+        {
+          "id": "C2",
+          "descricao": "Preload expõe a API",
+          "tipo": "contem",
+          "arquivo": "electron/preload.cjs",
+          "valor": "plugin:list"
+        },
+        {
+          "id": "C3",
+          "descricao": "Tipos declarados",
+          "tipo": "contem",
+          "arquivo": "src/api.d.ts",
+          "valor": "listPlugins"
+        },
+        {
+          "id": "C4",
+          "descricao": "Canal de execução declarado",
+          "tipo": "contem",
+          "arquivo": "electron/main.cjs",
+          "valor": "plugin:execute"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M0-M0-CANAIS-IPC",
+        "objetivo": "Expor em electron/main.cjs os canais autorizados plugin:list, plugin:reload e plugin:execute e o evento plugin:changed, com raiz de projeto por project(root); executar ação v2 somente após interação explícita e permissão process:spawn, preservando as extensões v1. Incluir preload e tipos; recarregar ao trocar de projeto e encerrar watchers em project:close-sessions e will-quit.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/main.cjs",
+            "sha256": "304f8d46bd3accf8eb65bbc3d7e3ef64e42663738bfabd3f7574525cc8cb54b9"
+          },
+          {
+            "arquivo": "electron/preload.cjs",
+            "sha256": "4d22990dfea6433d364174095b73bcde4e6c2f0bdaf6e67e8e826df3a14509c2"
+          },
+          {
+            "arquivo": "src/api.d.ts",
+            "sha256": "bc0194b83603f728cc97b02fc1d88c10762ba1e5937152eff146c9039be8b929"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Canal de listagem registrado",
+            "tipo": "contem",
+            "arquivo": "electron/main.cjs",
+            "valor": "plugin:list"
+          },
+          {
+            "id": "C2",
+            "descricao": "Preload expõe a API",
+            "tipo": "contem",
+            "arquivo": "electron/preload.cjs",
+            "valor": "plugin:list"
+          },
+          {
+            "id": "C3",
+            "descricao": "Tipos declarados",
+            "tipo": "contem",
+            "arquivo": "src/api.d.ts",
+            "valor": "listPlugins"
+          },
+          {
+            "id": "C4",
+            "descricao": "Canal de execução declarado",
+            "tipo": "contem",
+            "arquivo": "electron/main.cjs",
+            "valor": "plugin:execute"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/main.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-renderer",
+      "objetivo": "Extrair de src/main.ts o registro de views para src/views.ts (registrar, selecionar, voltar, estado atual) sem mudar comportamento; criar src/plugins.ts com lista, permissões visíveis, ação de execução explícita e erros de manifesto; ligar plugin:changed à recarga; estilos em src/style.css.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m0-canais-ipc",
+        "m0-desenho-views"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "src/main.ts",
+        "src/views.ts",
+        "src/plugins.ts",
+        "src/style.css"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Registro de views existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "src/views.ts"
+        },
+        {
+          "id": "C2",
+          "descricao": "main.ts usa o registro",
+          "tipo": "contem",
+          "arquivo": "src/main.ts",
+          "valor": "from './views'"
+        },
+        {
+          "id": "C3",
+          "descricao": "Painel de plugins existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "src/plugins.ts"
+        },
+        {
+          "id": "C4",
+          "descricao": "Permissões mostradas ao usuário",
+          "tipo": "contem",
+          "arquivo": "src/plugins.ts",
+          "valor": "permissions"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M0-M0-RENDERER",
+        "objetivo": "Extrair de src/main.ts o registro de views para src/views.ts (registrar, selecionar, voltar, estado atual) sem mudar comportamento; criar src/plugins.ts com lista, permissões visíveis, ação de execução explícita e erros de manifesto; ligar plugin:changed à recarga; estilos em src/style.css.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "src/main.ts",
+            "sha256": "b785ca179d09c98247440acdbd89e26ad47ad867dce8eb6a7353cef2db42449b"
+          },
+          {
+            "arquivo": "src/views.ts",
+            "ausente": true
+          },
+          {
+            "arquivo": "src/plugins.ts",
+            "ausente": true
+          },
+          {
+            "arquivo": "src/style.css",
+            "sha256": "2de3fe8f45e3adbe8c5bc1e5b73eff59377db4448a1beb0f9c7b033ada5b0778"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Registro de views existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "src/views.ts"
+          },
+          {
+            "id": "C2",
+            "descricao": "main.ts usa o registro",
+            "tipo": "contem",
+            "arquivo": "src/main.ts",
+            "valor": "from './views'"
+          },
+          {
+            "id": "C3",
+            "descricao": "Painel de plugins existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "src/plugins.ts"
+          },
+          {
+            "id": "C4",
+            "descricao": "Permissões mostradas ao usuário",
+            "tipo": "contem",
+            "arquivo": "src/plugins.ts",
+            "valor": "permissions"
+          }
+        ],
+        "saida": {
+          "arquivo": "src/main.ts",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-testes",
+      "objetivo": "Atualizar tests/extensions.test.cjs (v2 válido, permissões inválidas recusadas, raiz fora do projeto recusada, recarga) e tests/package-filter.test.cjs se necessário; criar tests/plugins-desktop.cjs com projeto temporário que lista e executa ação sintética após clique e recusa execução sem process:spawn; preservar v1, editor, split, browser e sessões; registrar test:plugins e entrada em test:all.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m0-renderer"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "tests/extensions.test.cjs",
+        "tests/plugins-desktop.cjs",
+        "tests/package-filter.test.cjs",
+        "scripts/package-filter.mjs",
+        "package.json"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Teste unitário cobre schema 2",
+          "tipo": "contem",
+          "arquivo": "tests/extensions.test.cjs",
+          "valor": "schema: 2"
+        },
+        {
+          "id": "C2",
+          "descricao": "Teste de desktop existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/plugins-desktop.cjs"
+        },
+        {
+          "id": "C3",
+          "descricao": "Script registrado",
+          "tipo": "contem",
+          "arquivo": "package.json",
+          "valor": "\"test:plugins\""
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M0-M0-TESTES",
+        "objetivo": "Atualizar tests/extensions.test.cjs (v2 válido, permissões inválidas recusadas, raiz fora do projeto recusada, recarga) e tests/package-filter.test.cjs se necessário; criar tests/plugins-desktop.cjs com projeto temporário que lista e executa ação sintética após clique e recusa execução sem process:spawn; preservar v1, editor, split, browser e sessões; registrar test:plugins e entrada em test:all.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "tests/extensions.test.cjs",
+            "sha256": "1bef0e782faa5aa481a404a584d72a8c5a25da0c8718fa5309262b4e49a6432d"
+          },
+          {
+            "arquivo": "tests/plugins-desktop.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "tests/package-filter.test.cjs",
+            "sha256": "063e1bde25e1b27628b1f210fbcbec4d34cd2c7a886603cbc4c097f4a8210408"
+          },
+          {
+            "arquivo": "scripts/package-filter.mjs",
+            "sha256": "dab1452906b2c8febcd42ab6139193da3d9e59eb683be0be14550f4d96eb3005"
+          },
+          {
+            "arquivo": "package.json",
+            "sha256": "d3f6ae86c417824e993459d62b7f76110f9d6b7a576b249e1ba0023a650587a1"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Teste unitário cobre schema 2",
+            "tipo": "contem",
+            "arquivo": "tests/extensions.test.cjs",
+            "valor": "schema: 2"
+          },
+          {
+            "id": "C2",
+            "descricao": "Teste de desktop existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/plugins-desktop.cjs"
+          },
+          {
+            "id": "C3",
+            "descricao": "Script registrado",
+            "tipo": "contem",
+            "arquivo": "package.json",
+            "valor": "\"test:plugins\""
+          }
+        ],
+        "saida": {
+          "arquivo": "tests/extensions.test.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-docs",
+      "objetivo": "Documentar no README a seção \"Plugins por projeto\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m0-testes"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "README.md"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "README documenta o recurso",
+          "tipo": "contem",
+          "arquivo": "README.md",
+          "valor": "\"schema\": 2"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M0-M0-DOCS",
+        "objetivo": "Documentar no README a seção \"Plugins por projeto\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "README.md",
+            "sha256": "3ee19ddfe1ff04a52f40dd9ca225205376ceaa54cab15369753f992ec067ef81"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "README documenta o recurso",
+            "tipo": "contem",
+            "arquivo": "README.md",
+            "valor": "\"schema\": 2"
+          }
+        ],
+        "saida": {
+          "arquivo": "README.md",
+          "formato": "markdown",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-revisao",
+      "objetivo": "Revisar em contexto novo todas as alterações do marco contra o plano e a orquestração: conferir git status --short e git diff e ler explicitamente cada arquivo novo autorizado ainda não rastreado. Foco em: contenção de .dk/plugins por realpath, permissões declaradas e exibidas, ausência de JS de terceiros, watchers encerrados, compatibilidade v1. Devolver achados por arquivo e linha, classificados em bloqueante, importante e sugestão.",
+      "categoria": "revisao",
+      "depende_de": [
+        "m0-docs"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Nenhum achado bloqueante aberto",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/revisao/bloqueantes",
+          "valor": 0
+        }
+      ],
+      "limites": {
+        "chamadas": 30,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": "revisor-seguranca",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m0-verificacao",
+      "objetivo": "Executar npm run test:all e node tests/plugins-desktop.cjs em cópia isolada fora da árvore inspecionada, com perfil temporário, depois dos packets de escrita. Antes dos testes, comparar o inventário e os hashes da árvore candidata e da cópia, incluindo alterações não commitadas e arquivos novos relevantes; rejeitar cópia com arquivo ausente ou divergente. Medir cenários de recursos pertinentes ao marco em condições comparáveis, identificando CPU, RSS, processos, watchers e limitações quando aplicável; marcar como não verificado o cenário que não puder ser executado. Registrar inventários, hashes, medições, saída, contagem e falhas em evidências compactas, sem dados sensíveis, vinculadas ao resultado por caminho local e hash. Validar previamente em fixture descartável se o runtime aceita evidências em .dk/coordenacoes/evidencias sem reprovar o retrato e respeita o limite de 4 MiB por arquivo; se não, definir outro mecanismo verificável antes do despacho. Conferir testes adversariais do planejamento. Não corrigir código: falha reprova a tarefa; aceite de desempenho depende de exame independente das evidências, não de uma declaração. ",
+      "categoria": "revisao",
+      "depende_de": [
+        "m0-revisao"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Bash",
+        "Read"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Suíte completa passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/completos",
+          "valor": "passou"
+        },
+        {
+          "id": "C2",
+          "descricao": "Teste de desktop do marco passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/desktop",
+          "valor": "passou"
+        }
+      ],
+      "limites": {
+        "chamadas": 20,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    }
+  ]
+}

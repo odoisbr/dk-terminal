@@ -1,0 +1,12 @@
+{
+  "host": "claude_code",
+  "capacidades": {
+    "delegacao_nativa": true,
+    "controle_modelo": true,
+    "controle_esforco": true,
+    "observacao_modelo": false,
+    "observacao_esforco": false
+  },
+  "identidade": null,
+  "autorizacoes": []
+}
