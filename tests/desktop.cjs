@@ -78,7 +78,7 @@ async function main() {
   assert.notEqual(await page.locator('#system-cpu').innerText(), '—');
   assert.match(await page.locator('#system-memory').innerText(), /\//);
   if (process.platform === 'darwin' || process.platform === 'linux') { assert.ok(resource.system.swap); assert.match(await page.locator('#system-swap').innerText(), /\//); }
-  assert.equal(await page.locator('.inspector-rail button').first().getAttribute('aria-label'), 'Pasta');
+  assert.equal(await page.locator('.inspector-rail button').first().getAttribute('aria-label'), 'Arquivos do projeto');
   assert.match(await page.locator('#resource-indicator').getAttribute('title'),/Terminais|terminais/);
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(940,620));
   await page.waitForTimeout(150);

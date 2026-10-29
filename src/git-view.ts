@@ -1,3 +1,4 @@
+import { icon, setIconButton } from './icons';
 import { renderGitGraph } from './git-graph';
 import { GitlabPublishFlow } from './gitlab-publish';
 import './git.css';
@@ -84,7 +85,7 @@ export class GitView {
     toggle.type = 'button';
     toggle.setAttribute('aria-label', count === undefined ? title : `${title}, ${count}`);
     toggle.setAttribute('aria-controls', `git-${key}-content`);
-    const arrow = el('span', 'git-section-arrow', '›'); arrow.setAttribute('aria-hidden', 'true');
+    const arrow = el('span', 'git-section-arrow'); arrow.innerHTML = icon('chevron'); arrow.setAttribute('aria-hidden', 'true');
     const label = el('strong', '', title); toggle.append(arrow, label);
     if (count !== undefined) { const badge = el('span', 'git-section-count', count); badge.setAttribute('aria-hidden', 'true'); toggle.append(badge); }
     const body = el('div', `git-section-content git-${key}-content`); body.id = `git-${key}-content`;
@@ -106,8 +107,8 @@ export class GitView {
 
     const header = el('div', 'git-heading'), copy = el('div');
     copy.append(el('span', 'git-kicker', 'CONTROLE DE VERSÃO'), el('strong', 'git-branch', status.branch));
-    const refresh = el('button', 'git-refresh', '↻'); refresh.type = 'button';
-    refresh.title = 'Atualizar Git'; refresh.setAttribute('aria-label', 'Atualizar Git');
+    const refresh = el('button', 'git-refresh'); refresh.type = 'button';
+    setIconButton(refresh, 'refresh', 'Atualizar Git');
     refresh.onclick = () => void this.refresh(); header.append(copy, refresh); this.host.append(header);
 
     const notice = el('p', 'git-operation-status'); notice.setAttribute('role', 'status'); notice.setAttribute('aria-live', 'polite');
@@ -282,7 +283,7 @@ export class GitView {
   }
 
   private publishButton(root: string) {
-    const button = el('button', 'button primary gitlab-publish-start', 'Criar projeto no GitLab SEA'); button.type = 'button';
+    const button = el('button', 'button primary gitlab-publish-start', 'Criar projeto no GitLab SEA'); button.type = 'button'; button.insertAdjacentHTML('afterbegin', icon('cloudUp'));
     button.dataset.testid = 'gitlab-publish-start';
     button.onclick = () => {
       if (!this.current(root) || this.state(root).busy || this.publishFlows.has(root)) return;

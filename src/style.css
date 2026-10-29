@@ -722,3 +722,18 @@ body.appearance-glass {
 .debug-action { min-height: 44px; }
 .debug-status:empty,.debug-forced[hidden] { display: none; }
 .debug-location { overflow-wrap: anywhere; }
+
+/* Mapa canônico de ícones (src/icons.ts): estados e glifos convertidos em SVG */
+.tab-select.exited .icon { opacity: .5; }
+.tab-select.failed .icon { color: var(--danger, #e2877b); opacity: 1; }
+.remote-entry-button { display: flex; align-items: center; gap: 6px; width: 100%; }
+.remote-entry-button .icon { width: 13px; height: 13px; color: var(--muted); }
+.remote-entry-button .remote-chevron { width: 11px; height: 11px; transition: transform .15s; }
+.remote-entry-button[aria-expanded="true"] .remote-chevron { transform: rotate(90deg); }
+#panel-git .git-section-arrow { display: inline-flex; transition: transform .15s; }
+#panel-git .git-section-arrow .icon { width: 13px; height: 13px; }
+#panel-git .git-refresh, .plugins-refresh { display: inline-flex; align-items: center; justify-content: center; }
+#panel-git .git-refresh .icon, .plugins-refresh .icon { width: 15px; height: 15px; }
+.gitlab-publish-start .icon { width: 15px; height: 15px; }
+.launcher-header .icon-button .icon, .account-card .icon-button .icon { width: 15px; height: 15px; }
+@media (prefers-reduced-motion: reduce) { .remote-entry-button .remote-chevron, #panel-git .git-section-arrow { transition: none; } }

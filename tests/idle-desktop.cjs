@@ -33,7 +33,7 @@ async function main() {
   assert.equal(await page.locator('#idle-notice').isVisible(),false);
   assert.equal(await page.locator('.terminal-pane').count(),1);
   await refresh(); await page.waitForTimeout(300); assert.equal(await page.locator('#idle-notice').isVisible(),false);
-  await page.getByRole('button',{name:'Nova sessão',exact:true}).click();
+  await page.getByRole('button',{name:'Nova sessão de terminal',exact:true}).click();
   await page.waitForFunction(id=>document.querySelector('.tab-select[aria-selected=true]')?.id!==`tab-${id}`,first);
   const second=(await page.locator('.tab-select[aria-selected=true]').getAttribute('id')).slice(4);
   await page.locator(`#pane-${second}[data-ready=true]`).waitFor(); await page.waitForTimeout(1200);

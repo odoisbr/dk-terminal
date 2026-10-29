@@ -1,3 +1,4 @@
+import { setIconButton } from './icons';
 export interface PluginAction {
   id: string;
   title: string;
@@ -87,11 +88,10 @@ export function createPluginsPanel(host: HTMLElement, callbacks: PluginsPanelCal
   const heading = element('div', 'plugins-heading');
   const headingCopy = element('div', 'plugins-heading-copy');
   headingCopy.append(element('span', 'plugins-eyebrow', 'EXTENSÕES DO PROJETO'), element('h2', 'plugins-title', 'Plugins'));
-  const refreshButton = element('button', 'plugins-refresh', '↻');
+  const refreshButton = element('button', 'plugins-refresh');
   refreshButton.type = 'button';
   refreshButton.dataset.testid = 'plugins-reload';
-  refreshButton.title = 'Recarregar plugins';
-  refreshButton.setAttribute('aria-label', 'Recarregar plugins');
+  setIconButton(refreshButton, 'refresh', 'Recarregar plugins');
   heading.append(headingCopy, refreshButton);
   const status = element('p', 'plugins-status');
   status.dataset.testid = 'plugins-status';

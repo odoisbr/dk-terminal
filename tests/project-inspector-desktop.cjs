@@ -22,7 +22,7 @@ const env = {
   ...process.env, PATH: bin, DK_TERMINAL_TEST: '1', DK_TERMINAL_TEST_PROJECT: first, DK_TERMINAL_DATA_DIR: path.join(temp, 'profile'),
   ...(process.platform === 'win32' ? {} : { SHELL: shell }),
 };
-const controls = [['files', 'Pasta'], ['git', 'Git'], ['context', 'Contexto'], ['services', 'Serviços'], ['usage', 'Consumo']];
+const controls = [['files', 'Arquivos do projeto'], ['git', 'Git'], ['context', 'Contexto do projeto'], ['services', 'Serviços do projeto'], ['usage', 'Contas e uso']];
 let app, page;
 
 async function assertCollapsed() {
@@ -58,7 +58,7 @@ async function expectProject(directory, title) {
     assert.equal(await page.locator('#project-path').count(), 0);
     assert.equal(await page.locator('#project-type').count(), 0);
     const reveal = page.locator('#reveal-project');
-    assert.equal(await reveal.getAttribute('aria-label'), 'Abrir pasta do projeto');
+    assert.equal(await reveal.getAttribute('aria-label'), 'Abrir pasta do projeto no Finder');
     assert.match((await reveal.getAttribute('title')) || (await reveal.getAttribute('aria-description')) || '', /pasta-a/);
     await assertCollapsed();
     if (process.env.DK_PROJECT_INSPECTOR_COLLAPSED_SCREENSHOT) await page.screenshot({ path: process.env.DK_PROJECT_INSPECTOR_COLLAPSED_SCREENSHOT });
@@ -123,7 +123,7 @@ async function expectProject(directory, title) {
     const toolbar = page.locator('.terminal-controls');
     const terminalButtons = toolbar.locator('button:visible');
     const buttonLabels = await terminalButtons.evaluateAll(nodes => nodes.map(node => node.getAttribute('aria-label')));
-    assert.ok(buttonLabels.includes('Dividir terminal à direita') && buttonLabels.includes('Nova sessão'));
+    assert.ok(buttonLabels.includes('Dividir terminal à direita') && buttonLabels.includes('Nova sessão de terminal'));
     assert.ok(buttonLabels.every(Boolean), 'Cada ação visível deve ter nome acessível.');
     for (const label of buttonLabels) {
       const button = toolbar.getByRole('button', { name: label, exact: true });
