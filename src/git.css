@@ -106,3 +106,24 @@
 #panel-git .git-branches .git-actions { margin: 6px 0; }
 #panel-git .git-new-branch { gap: 6px; }
 #panel-git .git-error { margin: 4px 0; }
+
+/* Criar projeto no GitLab SEA (fluxo próprio dentro da guia Git). */
+#panel-git .gitlab-publish-callout { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; padding: 8px; border: 1px solid var(--line); border-radius: 7px; }
+#panel-git .gitlab-publish-callout .git-muted { margin: 0; }
+#panel-git .gitlab-publish-start { align-self: flex-start; min-height: 44px; height: auto; font-size: 11px; white-space: normal; }
+#panel-git .gitlab-publish { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+#panel-git .gitlab-publish-heading { display: flex; flex-direction: column; gap: 3px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+#panel-git .gitlab-publish-heading h2 { margin: 0; font-size: 13px; font-weight: 600; }
+#panel-git .gitlab-publish-form { display: flex; flex-direction: column; gap: 9px; }
+#panel-git .gitlab-publish-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+#panel-git .gitlab-publish-label { color: var(--muted); font-size: 10px; }
+#panel-git .gitlab-publish-field input, #panel-git .gitlab-publish-field select, #panel-git .gitlab-publish-field textarea { min-width: 0; width: 100%; min-height: 32px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--terminal); color: var(--text); font: inherit; font-size: 11px; }
+#panel-git .gitlab-publish-field textarea { resize: vertical; }
+#panel-git .gitlab-publish-check { display: flex; align-items: flex-start; gap: 7px; min-height: 32px; font-size: 11px; line-height: 1.4; cursor: pointer; }
+#panel-git .gitlab-publish-check input { margin-top: 2px; flex-shrink: 0; }
+#panel-git .gitlab-publish-address { margin: -3px 0 0; overflow-wrap: anywhere; }
+#panel-git .gitlab-publish-steps { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+#panel-git .gitlab-publish-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+#panel-git .gitlab-publish-actions .button { min-height: 44px; height: auto; font-size: 11px; white-space: normal; }
+#panel-git .gitlab-publish-link code { font-size: 11px; overflow-wrap: anywhere; user-select: text; }
+#panel-git .gitlab-publish .git-muted, #panel-git .gitlab-publish .git-error, #panel-git .gitlab-publish .git-feedback { margin: 0; }

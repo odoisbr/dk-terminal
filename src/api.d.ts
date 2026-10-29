@@ -2,7 +2,12 @@ type Project = { path: string; name: string; title?: string; isDk: boolean; file
 type Extension = { id: string; name: string; description: string; version: string; available: boolean; kind: 'terminal' | 'browser' };
 type RemoteProject = { id: number; name: string; path: string; branch: string };
 type GitChange = { path:string; code:string; previous:string|null };
-type GitStatus = { repository:false } | { repository:true; branch:string; hasHead:boolean; changes:GitChange[]; ahead:number|null; behind:number|null; hasOrigin:boolean; gitlab:string|null };
+type GitStatus = { repository:false } | { repository:true; branch:string; hasHead:boolean; changes:GitChange[]; ahead:number|null; behind:number|null; hasOrigin:boolean; gitlab:string|null; gitlabHost?:boolean };
+type GitlabNamespace = { id:number; fullPath:string; name:string; visibility:string };
+type GitlabPublishOptions = { name:string; path:string; namespaces:GitlabNamespace[]; defaultNamespace:number|null; visibilities:('private'|'internal')[]; local:{ repository:boolean; branch:string|null; hasHead:boolean; changes:number; origin:{ url:string; company:boolean }|null } };
+type GitlabPublishInput = { name:string; path:string; namespaceId:number; visibility:'private'|'internal'; description:string; commit:boolean; renameOrigin:boolean };
+type GitlabPublishPlan = { id:string; fullPath:string; webUrl:string; sshUrl:string; branch:string; steps:string[]; notes:string[] };
+type GitlabPublishResult = { webUrl:string; fullPath:string; branch:string; pushed:boolean; renamed:string|null; notes:string[]; error:string|null };
 type GitCommit = { hash:string; author:string; date:string; message:string };
 type GitBranch = {name:string;current:boolean;hash:string;upstream:string|null};
 type GitGraphCommit = GitCommit & {parents:string[];refs:string};
@@ -49,6 +54,9 @@ interface Window {
     gitlabLocalMatches(id:number,refresh?:boolean): Promise<{available:boolean;incomplete:boolean;paths:string[]}>;
     gitlabLocalProjects(ids:number[],refresh?:boolean): Promise<{available:boolean;incomplete:boolean;ids:number[]}>;
     gitlabOpenExisting(id:number,path:string): Promise<Project>;
+    gitlabPublishOptions(path:string): Promise<GitlabPublishOptions>;
+    gitlabPublishPlan(path:string,input:GitlabPublishInput): Promise<GitlabPublishPlan>;
+    gitlabPublish(path:string,planId:string): Promise<GitlabPublishResult>;
     readResources(): Promise<ResourceSnapshot>;
     optimizeApp(): Promise<boolean>;
     clearSystemCache(): Promise<{status:'cancelled'|'completed'}>;
