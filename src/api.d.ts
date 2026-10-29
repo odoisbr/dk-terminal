@@ -86,6 +86,11 @@ interface Window {
     onPluginsChanged(callback: (event: { path: string }) => void): () => void;
     openBrowser(path: string, url: string, bounds: PreviewBounds): Promise<{ url: string }>;
     resizeBrowser(bounds: PreviewBounds): Promise<void>;
+    setBrowserVisible(visible: boolean): Promise<void>;
+    setBrowserFullscreen(enabled: boolean): Promise<boolean>;
+    browserFullscreenNeedsRestore(): Promise<boolean>;
+    onBrowserFullscreenChanged(callback: (active: boolean) => void): () => void;
+    onBrowserFullscreenError(callback: (message: string) => void): () => void;
     closeBrowser(): Promise<void>;
     onBrowserChanged(callback: (event: { path: string; loading: boolean; url?: string; title?: string; error?: string }) => void): () => void;
     createTerminal(path: string, action?: string): Promise<SessionInfo>;

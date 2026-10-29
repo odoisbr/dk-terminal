@@ -37,6 +37,8 @@ Arquivos `.mmd` e `.mermaid`, assim como blocos Mermaid em Markdown, abrem com o
 
 O ícone **Visualizar protótipo**, na barra do terminal ao lado de Claude e Codex, fica disponível quando um serviço reconhecido como front-end está em execução. Inicie esse serviço na guia **Serviços**; a identificação usa nomes comuns como `dev`, `preview`, `web`, `frontend` e `start`. Iniciar um serviço de prévia identificado pela guia **Serviços** também abre o navegador. Serviços como API, worker e watch continuam disponíveis em segundo plano. Em `dk-terminal.services.json`, use `"role": "frontend"` ou `"role": "backend"` para identificar explicitamente serviços personalizados com nomes ambíguos. O navegador é criado sob demanda, sem acesso ao Node ou à API do aplicativo, com armazenamento temporário por projeto. Navegações principais para fora de localhost, novas janelas, downloads e permissões são bloqueados. A página ainda pode carregar recursos e realizar conexões de rede externas; a prévia não é um bloqueio de rede. Sair da prévia libera a visualização e aguarda a limpeza de sua sessão antes de reabrir o mesmo projeto; desligar o serviço é uma ação separada. A execução do projeto continua local, com as permissões da conta do sistema.
 
+Na barra do navegador, **Abrir browser em tela cheia** ocupa a tela com a prévia e seus controles. Use o mesmo botão ou `Esc` para restaurar; o serviço e o estado da página permanecem ativos. Se a janela já estava em tela cheia, ela continua assim ao sair do modo do browser. Abrir Início, GitLab ou Perfil e configurações oculta a prévia enquanto a tela está aberta e a exibe novamente ao voltar.
+
 O [estudo do browser e suas evidências](docs/rea-browser/README.md) detalham a fronteira de segurança e o ciclo de vida da prévia.
 
 O rodapé mostra CPU e RAM dos processos do DK Terminal. Passe o cursor sobre os indicadores para ver também os processos filhos detectados, incluindo terminais, agentes e serviços. O consumo de CPU é aproximado: 100% representa um núcleo e o total pode ultrapassar 100%. A RAM é uma soma de memória residente e pode incluir páginas compartilhadas. A leitura é atualizada a cada 10 segundos enquanto a janela está visível; processos que se desvinculam do aplicativo podem não ser detectados. Quando não for possível consultar os filhos, o detalhamento informa essa limitação.
@@ -140,10 +142,13 @@ npm test
 npm run test:desktop
 npm run test:editor
 npm run test:launcher
+npm run test:browser:fullscreen
 npm run test:all  # suíte completa, incluindo interface gráfica e regressões de projeto
 ```
 
 Os testes desktop abrem um Electron real com pastas temporárias e verificam o shell, os painéis, o editor visual, Markdown, Mermaid, split e a fronteira entre interface e processo principal. Com `DK_ROOT=/caminho/do/dk npm run test:desktop`, também executa auditoria e diagnóstico reais. Captura de tela e relatório ficam em `artifacts/`. A compilação é verificada pelo TypeScript.
+
+O teste de tela cheia simula, por padrão, os eventos de janela para funcionar em ambientes sem foco gráfico; a prévia, seu posicionamento e o serviço de teste são reais. Em uma sessão gráfica interativa com a janela de teste focada, use `DK_FULLSCREEN_NATIVE=1 npm run test:browser:fullscreen` para verificar também a transição nativa e o teclado dentro da página.
 
 ## Abrir com DK no Finder
 

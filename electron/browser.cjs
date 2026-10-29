@@ -7,7 +7,7 @@ function localURL(value) {
   return url.href;
 }
 class PreviewBrowser {
-  constructor(changed) { this.changed = changed; this.view = null; this.window = null; this.root = null; this.partition = null; this.partitionKey = null; this.generation = 0; this.cleaning = new Map(); this.cleanupFailures = new Set(); this.downloadGuard = (_event, item) => item.cancel(); }
+  constructor(changed, escape = () => false) { this.changed = changed; this.escape = escape; this.visible = true; this.view = null; this.window = null; this.root = null; this.partition = null; this.partitionKey = null; this.generation = 0; this.cleaning = new Map(); this.cleanupFailures = new Set(); this.downloadGuard = (_event, item) => item.cancel(); }
   async open(window, root, value, bounds) {
     const url = localURL(value);
     const generation = ++this.generation;
@@ -31,12 +31,18 @@ class PreviewBrowser {
       this.view = new WebContentsView({ webPreferences: { session: this.partition, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, webviewTag: false, backgroundThrottling: true } });
       const view = this.view, contents = view.webContents;
       const current = () => this.view === view && !contents.isDestroyed();
+      // A native child view has its own keyboard focus; the host document
+      // cannot receive Escape while the page is focused.
+      contents.on('before-input-event', (event, input) => {
+        if (current() && input.type === 'keyDown' && input.key === 'Escape' && !input.isAutoRepeat && this.escape()) event.preventDefault();
+      });
       contents.setWindowOpenHandler(() => ({ action: 'deny' }));
       const guard = (event, target) => { try { localURL(target); } catch { event.preventDefault(); } };
       contents.on('will-navigate', guard); contents.on('will-redirect', guard);
       contents.on('did-start-loading', () => { if (current()) this.changed({ path: root, loading: true }); });
       contents.on('did-finish-load', () => { if (current()) this.changed({ path: root, loading: false, url: contents.getURL(), title: contents.getTitle().slice(0, 100) }); });
       contents.on('did-fail-load', (_event, code, description, _url, mainFrame) => { if (current() && mainFrame && code !== -3) this.changed({ path: root, loading: false, error: description }); });
+      view.setVisible(this.visible);
       window.contentView.addChildView(view);
     }
     const view = this.view;
@@ -53,6 +59,11 @@ class PreviewBrowser {
     const [width, height] = this.window.getContentSize();
     const x = Math.max(0, Math.min(width - 1, Math.round(bounds.x))), y = Math.max(0, Math.min(height - 1, Math.round(bounds.y)));
     this.view.setBounds({ x, y, width: Math.max(1, Math.min(width - x, Math.round(bounds.width))), height: Math.max(1, Math.min(height - y, Math.round(bounds.height))) });
+  }
+  setVisible(visible) {
+    if (typeof visible !== 'boolean') throw new Error('Visibilidade da prévia inválida.');
+    this.visible = visible;
+    if (this.view) this.view.setVisible(visible);
   }
   close() { this.generation++; return this.retireView(); }
   retireView() {

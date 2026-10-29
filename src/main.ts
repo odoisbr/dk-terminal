@@ -75,7 +75,7 @@ app.innerHTML = `
         <footer class="terminal-footer"><span><span class="status-dot" id="session-dot"></span><span id="session-state">Nenhuma sessão aberta</span></span><span id="session-dimensions">UTF-8</span></footer>
       </section>
       <section id="graph-view" class="graph-card" aria-label="Orquestração do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('graph')}Orquestração do DK</strong><button id="refresh-graph" class="icon-button" aria-label="Atualizar grafo">${icon('refresh')}</button><button id="graph-back" class="button secondary">Voltar ao terminal</button></div><div id="graph-content"></div><footer class="auxiliary-footer">Visualização dos registros locais do DK</footer></section>
-      <section id="browser-view" class="browser-card" aria-label="Browser do projeto" hidden><div class="auxiliary-toolbar"><strong>${icon('globe')}Browser</strong><button id="browser-back" class="button secondary">Voltar ao terminal</button></div><div class="browser-runtime"><label for="browser-service">Serviço</label><select id="browser-service" aria-label="Serviço para visualizar"></select><button id="browser-start" class="button primary">Executar projeto</button><button id="browser-stop" class="icon-button" aria-label="Desligar serviço da prévia" title="Desligar serviço" disabled>${icon('stop')}</button></div><form id="browser-navigation" class="browser-navigation"><label for="browser-address" class="sr-only">Endereço local da prévia</label><input id="browser-address" type="text" placeholder="http://localhost:5173" autocomplete="off" spellcheck="false" /><button type="submit" class="icon-button" aria-label="Abrir endereço local" title="Abrir ou recarregar endereço">${icon('arrow')}</button></form><div id="browser-canvas"><div id="browser-placeholder">Selecione um serviço ou informe o endereço local do projeto.</div></div><footer class="auxiliary-footer"><span id="browser-status">Projeto local · A página pode acessar a rede</span></footer></section>
+      <section id="browser-view" class="browser-card" aria-label="Browser do projeto" hidden><div class="auxiliary-toolbar"><strong>${icon('globe')}Browser</strong><button id="browser-fullscreen" class="icon-button" aria-label="Abrir browser em tela cheia" aria-pressed="false" title="Abrir browser em tela cheia">${icon('expand')}</button><button id="browser-back" class="button secondary">Voltar ao terminal</button></div><div class="browser-runtime"><label for="browser-service">Serviço</label><select id="browser-service" aria-label="Serviço para visualizar"></select><button id="browser-start" class="button primary">Executar projeto</button><button id="browser-stop" class="icon-button" aria-label="Desligar serviço da prévia" title="Desligar serviço" disabled>${icon('stop')}</button></div><form id="browser-navigation" class="browser-navigation"><label for="browser-address" class="sr-only">Endereço local da prévia</label><input id="browser-address" type="text" placeholder="http://localhost:5173" autocomplete="off" spellcheck="false" /><button type="submit" class="icon-button" aria-label="Abrir endereço local" title="Abrir ou recarregar endereço">${icon('arrow')}</button></form><div id="browser-canvas"><div id="browser-placeholder">Selecione um serviço ou informe o endereço local do projeto.</div></div><footer class="auxiliary-footer"><span id="browser-status">Projeto local · A página pode acessar a rede</span></footer></section>
       <section id="action-view" class="action-card" aria-label="Resultado do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('scan')}Resultado do DK</strong><button id="cancel-action" class="button secondary" hidden>Interromper</button><button id="action-back" class="button secondary">Voltar ao terminal</button></div><div id="action-content" role="status" aria-live="polite"></div></section>
       <section id="chat-view" class="chat-card" aria-label="Codex" hidden></section>
       <aside class="context-panel" aria-label="Painel do projeto">
@@ -120,6 +120,7 @@ views.register('chat', [$('chat-view')]);
 views.register('action', [$('action-view')]);
 let focusedPane: 'terminal' | 'editor' = 'terminal';
 let browserWantedService = '', browserURL = '';
+let browserFullscreenActive = false, browserFullscreenDesired = false, browserFullscreenPending = false, browserFullscreenRecovery = false, browserFullscreenRequest = 0;
 let fileEditor: import('./editor').FileEditor | null = null;
 const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, hasUnsaved:()=>!!fileEditor?.hasUnsaved(), changeBranch:async(root,action,name)=>{
   if(changingBranches.has(root))throw new Error('Aguarde a troca de branch.');
@@ -476,11 +477,13 @@ function expandTerminal() {
   requestAnimationFrame(() => { fitActive(); if (focusedPane === 'terminal') active()?.terminal.focus(); });
 }
 function selectMainView(view: typeof mainView) {
+  const previousView = mainView;
   mainView = view;
+  document.body.classList.toggle('browser-active', view === 'browser');
   updateTerminalVisibility();
   if (view === 'terminal' || view === 'editor') workspaceView = view;
   views.select(view);
-  if (view !== 'browser') { api.closeBrowser().catch(() => {}); browserURL = ''; }
+  if (view !== 'browser') { leaveBrowserFullscreen(previousView === 'browser'); api.closeBrowser().catch(() => {}); browserURL = ''; }
   if (view === 'graph') run(loadGraph);
   else api.watchOrchestrations(null).catch(() => {});
   if (view === 'terminal' || view === 'editor') { focusSession(activeId, false); requestAnimationFrame(fitActive); }
@@ -554,6 +557,54 @@ async function loadUsage(refresh = false) {
 function previewBounds(): PreviewBounds {
   const rect = $('browser-canvas').getBoundingClientRect();
   return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+}
+let previewResizeFrame = 0;
+function schedulePreviewResize() {
+  cancelAnimationFrame(previewResizeFrame);
+  previewResizeFrame = requestAnimationFrame(() => {
+    if (mainView === 'browser' && browserURL) api.resizeBrowser(previewBounds()).catch(() => {});
+  });
+}
+function renderBrowserFullscreen() {
+  const active = browserFullscreenActive && browserFullscreenDesired && mainView === 'browser';
+  document.body.classList.toggle('browser-fullscreen', active);
+  const control = button('browser-fullscreen');
+  control.setAttribute('aria-pressed', String(active));
+  control.setAttribute('aria-label', active || browserFullscreenRecovery ? 'Sair da tela cheia do browser' : 'Abrir browser em tela cheia');
+  control.title = active || browserFullscreenRecovery ? 'Sair da tela cheia (Esc)' : 'Abrir browser em tela cheia';
+  control.innerHTML = icon(active || browserFullscreenRecovery ? 'restore' : 'expand');
+  schedulePreviewResize();
+}
+async function setBrowserFullscreen(enabled: boolean) {
+  const request = ++browserFullscreenRequest;
+  browserFullscreenDesired = enabled;
+  browserFullscreenPending = true;
+  button('browser-fullscreen').disabled = true;
+  renderBrowserFullscreen();
+  try {
+    const actual = await api.setBrowserFullscreen(enabled);
+    if (request !== browserFullscreenRequest) return;
+    browserFullscreenActive = actual;
+    browserFullscreenRecovery = false;
+    browserFullscreenDesired = actual && mainView === 'browser';
+    renderBrowserFullscreen();
+  } catch (error) {
+    if (request !== browserFullscreenRequest) return;
+    const recovery = await api.browserFullscreenNeedsRestore().catch(() => false);
+    if (request !== browserFullscreenRequest) return;
+    browserFullscreenRecovery = recovery;
+    browserFullscreenDesired = browserFullscreenActive && mainView === 'browser';
+    renderBrowserFullscreen();
+    throw error;
+  } finally {
+    if (request === browserFullscreenRequest) {
+      browserFullscreenPending = false;
+      button('browser-fullscreen').disabled = false;
+    }
+  }
+}
+function leaveBrowserFullscreen(force = false) {
+  if (force || browserFullscreenDesired || browserFullscreenActive || browserFullscreenPending || browserFullscreenRecovery) run(() => setBrowserFullscreen(false));
 }
 function renderBrowserServices(preferred?: string) {
   const select = $<HTMLSelectElement>('browser-service');
@@ -702,7 +753,7 @@ function renderTabs() {
 async function activate(info: Project) {
   if (closingProjects.has(info.path)) throw new Error('Aguarde o encerramento do projeto.');
   await opening;
-  if (current?.path !== info.path) { api.closeBrowser().catch(() => {}); browserURL = ''; browserWantedService = ''; $('browser-placeholder').hidden = false; $<HTMLInputElement>('browser-address').value = ''; }
+  if (current?.path !== info.path) { leaveBrowserFullscreen(mainView === 'browser'); api.closeBrowser().catch(() => {}); browserURL = ''; browserWantedService = ''; $('browser-placeholder').hidden = false; $<HTMLInputElement>('browser-address').value = ''; }
   current = info;
   if (pluginsPanel) run(() => pluginsPanel!.setProject(info.path, info.title || info.name));
   fileEditor?.setProject(info.path);
@@ -873,6 +924,14 @@ api.onBrowserChanged(event => {
   $('browser-status').textContent = event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : 'Projeto local · A página pode acessar a rede';
   if (event.url) $<HTMLInputElement>('browser-address').value = event.url;
 });
+api.onBrowserFullscreenChanged(active => {
+  browserFullscreenActive = active;
+  if (!active && !browserFullscreenPending) browserFullscreenDesired = false;
+  // Ignore a late entry after navigation has already requested an exit.
+  renderBrowserFullscreen();
+  if (active && (!browserFullscreenDesired || mainView !== 'browser') && !browserFullscreenPending) leaveBrowserFullscreen();
+});
+api.onBrowserFullscreenError(notify);
 api.onMenu(action => {
   if (action === 'open') run(openProject);
   if (action === 'new') run(() => newSession());
@@ -946,6 +1005,15 @@ button('action-back').onclick = () => selectMainView(workspaceView);
 button('cancel-action').onclick = () => { if (current) run(() => api.cancelAction(current!.path)); };
 button('refresh-usage').onclick = () => run(() => loadUsage(true));
 button('browser-back').onclick = () => selectMainView(workspaceView);
+button('browser-fullscreen').onclick = () => run(() => setBrowserFullscreen(!browserFullscreenDesired && !browserFullscreenRecovery));
+document.addEventListener('keydown', event => {
+  if (event.defaultPrevented || event.key !== 'Escape' || mainView !== 'browser' || !$('launcher').hidden) return;
+  if (browserFullscreenDesired || browserFullscreenActive || browserFullscreenPending || browserFullscreenRecovery) {
+    event.preventDefault();
+    run(() => setBrowserFullscreen(false));
+    button('browser-fullscreen').focus();
+  }
+});
 $('browser-service').onchange = () => { browserWantedService = ''; renderBrowserServices(); };
 $('browser-navigation').onsubmit = event => { event.preventDefault(); browserWantedService = ''; run(() => navigatePreview($<HTMLInputElement>('browser-address').value.trim())); };
 button('browser-start').onclick = () => run(async () => {
@@ -1133,7 +1201,20 @@ window.addEventListener('focus', updateTerminalVisibility);
 window.addEventListener('blur', updateTerminalVisibility);
 let resizeFrame = 0;
 new ResizeObserver(() => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(fitActive); }).observe($('terminal-host'));
-new ResizeObserver(() => { if (mainView === 'browser' && browserURL) api.resizeBrowser(previewBounds()).catch(() => {}); }).observe($('browser-canvas'));
+new ResizeObserver(schedulePreviewResize).observe($('browser-canvas'));
+window.addEventListener('resize', schedulePreviewResize);
+// Native child views are always drawn above the HTML document. Hide the
+// existing view while the launcher is open, retaining its page and session.
+let browserPreviewVisible = true;
+const syncBrowserVisibility = () => {
+  const visible = $('launcher').hidden === true;
+  if (visible === browserPreviewVisible) return;
+  browserPreviewVisible = visible;
+  api.setBrowserVisible(visible).catch(notify);
+  if (visible) schedulePreviewResize();
+};
+new MutationObserver(syncBrowserVisibility).observe($('launcher'), { attributes: true, attributeFilter: ['hidden'] });
+syncBrowserVisibility();
 
 run(async () => {
   try {

@@ -11,6 +11,7 @@ const { listDirectory } = require('./file-tree.cjs');
 const { treeAction } = require('./tree-actions.cjs');
 const { Orchestration } = require('./orchestration.cjs');
 const { PreviewBrowser } = require('./browser.cjs');
+const { BrowserFullscreen } = require('./browser-fullscreen.cjs');
 const { readProjectFile, saveProjectFile } = require('./files.cjs');
 const { Usage } = require('./usage.cjs');
 const { CodexChat } = require('./codex-chat.cjs');
@@ -46,7 +47,7 @@ function launchFiles(argv, cwd, skip = process.defaultApp ? 2 : 1) {
 const initialFiles = launchFiles(process.argv, process.cwd());
 const primaryInstance = app.requestSingleInstanceLock({ files: initialFiles });
 if (!primaryInstance) app.quit();
-let window, terminals, services, extensions, orchestration, preview, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
+let window, terminals, services, extensions, orchestration, preview, browserFullscreen, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false, windowClosing = false, windowCleanupDone = false;
 const selected = new Set();
 const closingProjects = new Set();
@@ -342,6 +343,13 @@ function registerHandlers() {
   });
   handle('browser:open', (root, url, bounds) => preview.open(window, project(root).path, url, bounds));
   handle('browser:resize', bounds => preview.resize(bounds));
+  handle('browser:visible', visible => preview.setVisible(visible));
+  handle('browser:fullscreen', enabled => {
+    if (typeof enabled !== 'boolean') throw new Error('Estado de tela cheia inválido.');
+    if (!browserFullscreen || !window || window.isDestroyed() || (windowClosing && enabled)) throw new Error('Janela indisponível.');
+    return browserFullscreen.set(enabled);
+  });
+  handle('browser:fullscreen-needs-restore', () => !!browserFullscreen?.needsRestore);
   handle('browser:close', () => preview.close());
   handle('project:forget', root => {
     project(root);
@@ -410,12 +418,17 @@ function createWindow() {
     trafficLightPosition: { x: 20, y: 22 }, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, spellcheck: false, webSecurity: true },
   });
+  browserFullscreen = new BrowserFullscreen(window, active => send('browser:fullscreen-changed', active));
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', event => event.preventDefault());
   window.webContents.on('will-attach-webview', event => event.preventDefault());
   window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   window.webContents.session.setPermissionCheckHandler(() => false);
-  window.webContents.on('render-process-gone', () => { extensions.close(); void terminals.closeAllAndWait().catch(() => {}); });
+  window.webContents.on('render-process-gone', () => {
+    extensions.close(); void terminals.closeAllAndWait().catch(() => {});
+    void preview.close(); preview.setVisible(true);
+    void browserFullscreen?.set(false).catch(() => {});
+  });
   window.once('ready-to-show', () => window.show());
   window.on('close', event => {
     if (dirtyFiles.length && !allowClose) {
@@ -451,7 +464,8 @@ function createWindow() {
     });
   });
   window.on('closed', () => {
-    terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.close(); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
+    browserFullscreen?.dispose(); browserFullscreen = null;
+    terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.close(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
     const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
     if(reopen){focusRequested=false;const files=pendingFiles.splice(0);if(files.length)openFiles(files);else createWindow();focusWindow();}
   });
@@ -482,7 +496,11 @@ if (primaryInstance) app.whenReady().then(async () => {
   terminals = new Terminals(send, env);
   services = new Services(event => send('service:changed', event), env);
   orchestration = new Orchestration(event => send('graph:changed', event));
-  preview = new PreviewBrowser(event => send('browser:changed', event));
+  preview = new PreviewBrowser(event => send('browser:changed', event), () => {
+    if (!browserFullscreen?.active && !browserFullscreen?.requested && !browserFullscreen?.needsRestore) return false;
+    void browserFullscreen.set(false).catch(error => send('browser:fullscreen-error', error.message || 'Não foi possível sair da tela cheia.'));
+    return true;
+  });
   usage = new Usage(env);
   actions = new Actions({ env });
   integrations = new Integrations(env);
