@@ -32,6 +32,10 @@ const shell=path.join(temp,'shell');fs.writeFileSync(shell,`#!/bin/sh\nif [ "$1"
  await app.close();app=null;for(const cmd of ['agy','gemini','dk'])fs.unlinkSync(path.join(bin,cmd));
  app=await electron.launch({executablePath:process.env.DK_TERMINAL_EXECUTABLE||undefined,args:process.env.DK_TERMINAL_EXECUTABLE?[]:[root],env:{...process.env,HOME:home,SHELL:shell,PATH:`${bin}:/usr/bin:/bin:/usr/sbin:/sbin`,DK_TERMINAL_TEST:'1',DK_TERMINAL_TEST_PROJECT:project,DK_TERMINAL_DATA_DIR:path.join(temp,'profile')}});
  const reopened=await app.firstWindow();await reopened.locator('#startup-loading').waitFor({state:'detached'});await reopened.locator('.project-select').click();
- for(const id of ['antigravity','gemini','dk'])assert.equal(await reopened.locator(`#launch-${id}`).isVisible(),false);
+ // Pastas de sistema (/opt/homebrew/bin, /usr/local/bin) também são consultadas: uma CLI
+ // instalada de verdade nelas deve continuar visível; só as simuladas somem.
+ const command={antigravity:'agy',gemini:'gemini',dk:'dk'};
+ const installed=cmd=>['/opt/homebrew/bin','/usr/local/bin'].some(dir=>{try{fs.accessSync(path.join(dir,cmd),fs.constants.X_OK);return true;}catch{return false;}});
+ for(const id of ['antigravity','gemini','dk'])assert.equal(await reopened.locator(`#launch-${id}`).isVisible(),installed(command[id]),`${id}: visibilidade depende de instalação real`);
  console.log('✓ Ícones opcionais abrem CLIs simuladas, integram split e somem quando indisponíveis');
 }finally{if(app)await app.close();fs.rmSync(temp,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1});
