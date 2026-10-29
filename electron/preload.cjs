@@ -100,4 +100,11 @@ contextBridge.exposeInMainWorld('dk', Object.freeze({
   startService: (path, id) => invoke('service:start', path, id),
   stopService: (path, id) => invoke('service:stop', path, id),
   onServiceChanged: callback => listen('service:changed', callback),
+  detectSessionServices: path => invoke('service:detect', path),
+  terminateDetectedService: (path, pid, started) => invoke('service:terminate-detected', path, pid, started),
+  debugState: () => invoke('debug:state'),
+  setDebugEnabled: enabled => invoke('debug:set', enabled),
+  reportRendererLog: (level, message) => invoke('debug:renderer', level, message),
+  exportDebugLogs: () => invoke('debug:export'),
+  openDebugFolder: () => invoke('debug:open-folder'),
 }));

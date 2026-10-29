@@ -62,7 +62,7 @@ function definitions(root) {
 }
 
 class Services {
-  constructor(changed, env) { this.changed = changed; this.env = env; this.running = new Map(); }
+  constructor(changed, env, log = () => {}) { this.changed = changed; this.env = env; this.log = log; this.running = new Map(); }
   key(root, id) { return `${root}\0${id}`; }
   snapshot(entry) {
     return { id: entry.id, name: entry.name, status: entry.status, role: entry.role || null, pid: entry.child?.pid || null, exitCode: entry.exitCode ?? null, url: entry.url || null, log: entry.log || '' };
@@ -114,8 +114,9 @@ class Services {
       if (!entry.timer) entry.timer = setTimeout(() => { entry.timer = null; this.emit(entry); }, 250);
     };
     child.stdout.on('data', output); child.stderr.on('data', output);
+    this.log('info', `Serviço iniciado: ${def.name} · ${[command, ...def.args].join(' ')} · ${root}`);
     child.once('spawn', () => { entry.status = 'running'; this.emit(entry); });
-    child.once('error', error => { entry.status = 'failed'; entry.log = error.message; this.emit(entry); });
+    child.once('error', error => { entry.status = 'failed'; entry.log = error.message; this.log('error', `Falha ao iniciar serviço ${def.name}: ${[command, ...def.args].join(' ')} · ${error.code || 'sem código'} · ${error.message}`); this.emit(entry); });
     child.once('close', (code, signal) => {
       entry.closed = true;
       entry.exitCode = code; clearTimeout(entry.timer); entry.timer = null;
@@ -129,6 +130,7 @@ class Services {
         clearTimeout(entry.killTimer); entry.killTimer = null;
         entry.status = code === 0 || entry.status === 'stopping' || signal === 'SIGTERM' ? 'stopped' : 'failed';
       }
+      this.log(entry.status === 'failed' ? 'error' : 'info', `Serviço ${def.name} terminou: ${entry.status} · código ${code}${signal ? ` · sinal ${signal}` : ''}`);
       this.emit(entry);
     });
     this.emit(entry);
@@ -138,6 +140,7 @@ class Services {
     const entry = this.running.get(this.key(root, id));
     if (!entry || !['running', 'starting'].includes(entry.status)) throw new Error('Este serviço não está rodando.');
     entry.status = 'stopping'; this.emit(entry);
+    this.log('info', `Parando serviço: ${entry.name}`);
     if (entry.static) { entry.server.close(); return this.snapshot(entry); }
     if (process.platform === 'win32') {
       spawn('taskkill', ['/PID', String(entry.child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });

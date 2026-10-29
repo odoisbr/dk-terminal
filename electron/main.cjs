@@ -29,6 +29,8 @@ const { clearMachineFileCache } = require('./machine-cache.cjs');
 const { Git } = require('./git.cjs');
 const { windowIcon } = require('./app-icon.cjs');
 const dockCli = require('./dock-cli.cjs');
+const { DebugLog, captureConsole, formatArgs } = require('./debug-log.cjs');
+const { SessionServices } = require('./session-services.cjs');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'dk-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 const testing = process.env.DK_TERMINAL_TEST === '1' && !app.isPackaged;
@@ -53,6 +55,32 @@ if (testing && process.env.DK_TERMINAL_TEST_DATA) app.setPath('userData', proces
 // the same profile cannot create independent writers for its private stores.
 fs.mkdirSync(app.getPath('userData'), { recursive: true });
 app.setPath('userData', fs.realpathSync(app.getPath('userData')));
+// Modo debug: --sea-dock-debug, SEA_DOCK_DEBUG=1 ou a preferência salva em Perfil e configurações.
+// O Electron recusa --debug na inicialização (opção antiga do Node), por isso a opção tem prefixo.
+// Toda linha passa por redação antes do disco; entrada e saída de terminais nunca são gravadas.
+const debugLog = new DebugLog({
+  directory: path.join(app.getPath('userData'), 'logs'),
+  settingsFile: path.join(app.getPath('userData'), 'debug.json'),
+  forced: process.argv.includes('--sea-dock-debug') || process.env.SEA_DOCK_DEBUG === '1',
+  homes: [os.homedir(), (() => { try { return fs.realpathSync(os.homedir()); } catch { return null; } })()],
+  secrets: () => previewBridge ? [...previewBridge.tokens.values()] : [],
+  header: () => ({ app: app.getVersion(), macOS: process.platform === 'darwin' && typeof process.getSystemVersion === 'function' ? process.getSystemVersion() : null, sistema: `${process.platform} ${os.release()}`, arch: process.arch, electron: process.versions.electron, node: process.versions.node, chrome: process.versions.chrome }),
+});
+const originalConsole = captureConsole(debugLog);
+process.on('uncaughtExceptionMonitor', error => { debugLog.error('main', `Exceção não tratada: ${formatArgs([error])}`); });
+process.on('unhandledRejection', reason => {
+  originalConsole.error('Promessa rejeitada sem tratamento:', reason);
+  debugLog.error('main', `Promessa rejeitada sem tratamento (unhandledRejection): ${formatArgs([reason])}`);
+});
+const rendererLogWindow = { start: 0, count: 0 };
+function rendererLog(level, message) {
+  if (!['error', 'warn', 'info'].includes(level) || typeof message !== 'string') throw new Error('Registro de diagnóstico inválido.');
+  if (!debugLog.enabled) return false;
+  const now = Date.now();
+  if (now - rendererLogWindow.start > 60000) { rendererLogWindow.start = now; rendererLogWindow.count = 0; }
+  if (++rendererLogWindow.count > 120) return false;
+  return debugLog.write(level, 'renderer', message.slice(0, 16 * 1024));
+}
 function launchFiles(argv, cwd, skip = process.defaultApp ? 2 : 1) {
   return argv.slice(skip).filter(value => typeof value === 'string' && value && value.length <= 8192 && !value.startsWith('-') && !value.includes('\0'))
     .slice(0, 32).flatMap(value => {
@@ -64,6 +92,7 @@ const initialFiles = launchFiles(process.argv, process.cwd());
 const primaryInstance = app.requestSingleInstanceLock({ files: initialFiles });
 if (!primaryInstance) app.quit();
 let filePreviews;
+let sessionServices;
 let window, terminals, services, extensions, orchestration, preview, previewBridge, browserFullscreen, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false, windowClosing = false, windowCleanupDone = false;
 const selected = new Set();
@@ -125,7 +154,10 @@ function handle(channel, handler) {
       if(windowClosing && ['terminal:create','terminal:split','terminal:start','chat:send','service:start','action:run','plugin:execute'].includes(channel)) throw new Error('O aplicativo está encerrando as sessões.');
       return { ok: true, value: await handler(...args) };
     }
-    catch (error) { return { ok: false, error: error.message || 'Não foi possível concluir a ação.' }; }
+    catch (error) {
+      debugLog.write('warn', 'ipc', `${channel} falhou: ${error?.message || error}`);
+      return { ok: false, error: error.message || 'Não foi possível concluir a ação.' };
+    }
   });
 }
 function project(root) {
@@ -165,6 +197,7 @@ function remember(root) {
   closedPluginProjects.delete(info.path);
   if (!config.projects.includes(info.path)) config.projects = [...config.projects, info.path].slice(-12);
   save();
+  debugLog.event('projeto', `Projeto aberto: ${info.path}`);
   return info;
 }
 let bundledTools = null, environmentRefreshAt = 0, environmentRefreshing = false;
@@ -452,6 +485,7 @@ function registerHandlers() {
       previewBridge.revoke(info.path);
       closedPluginProjects.add(info.path);
       extensions.closeProject(info.path);
+      debugLog.event('projeto', `Projeto fechado: ${info.path} · ${result.closed} sessões${result.partial || browserResult.partial ? ' · limpeza parcial' : ''}`);
       return { ...result, partial: result.partial || browserResult.partial, chats };
     } finally { closingProjects.delete(info.path); }
   });
@@ -524,6 +558,40 @@ function registerHandlers() {
   handle('service:list', root => services.list(project(root).path));
   handle('service:start', (root, id) => services.start(project(root).path, id));
   handle('service:stop', (root, id) => services.stop(project(root).path, id));
+  handle('service:detect', root => sessionServices.detect(project(root).path));
+  handle('service:terminate-detected', async (root, pid, started) => {
+    const info = project(root), owner = window;
+    if (!Number.isSafeInteger(pid) || pid <= 1 || typeof started !== 'string' || started.length > 64) throw new Error('Processo inválido.');
+    if (!owner || owner.isDestroyed() || windowClosing) throw new Error('A janela está sendo encerrada.');
+    const detected = (await sessionServices.detect(info.path)).items.find(item => item.pid === pid && item.started === started);
+    if (!detected) throw new Error('O processo já foi encerrado ou não pertence às sessões deste projeto.');
+    const answer = await dialog.showMessageBox(owner, {
+      type: 'warning', message: 'Encerrar processo iniciado na sessão?',
+      detail: `Comando: ${detected.command}\nPID: ${pid}\nPorta${detected.ports.length > 1 ? 's' : ''}: ${detected.ports.join(', ')}\nSessão: ${detected.sessionLabel}\n\nVocê iniciou este processo num terminal do SEA Dock. Ele e os processos do mesmo grupo recebem um pedido de encerramento (SIGTERM). Trabalho não salvo nele pode ser perdido.`,
+      buttons: ['Cancelar', 'Encerrar processo'], defaultId: 0, cancelId: 0, noLink: true,
+    });
+    if (answer.response !== 1) return { status: 'cancelled' };
+    const result = await sessionServices.terminate(info.path, pid, started);
+    debugLog.event('serviço', `Processo detectado encerrado: PID ${pid}${result.group ? ` · grupo ${result.group}` : ''} · ${detected.command}`);
+    return { status: 'terminated', pid, group: result.group };
+  });
+  handle('debug:state', () => debugLog.state());
+  handle('debug:set', enabled => debugLog.setEnabled(enabled));
+  handle('debug:renderer', (level, message) => rendererLog(level, message));
+  handle('debug:export', async () => {
+    const destination = testing ? path.join(app.getPath('userData'), 'exports') : app.getPath('downloads');
+    const target = await debugLog.exportTo(destination);
+    debugLog.event('debug', `Logs exportados: ${target}`);
+    if (!testing) shell.showItemInFolder(target);
+    return { file: debugLog.redact(target) };
+  });
+  handle('debug:open-folder', async () => {
+    fs.mkdirSync(debugLog.directory, { recursive: true, mode: 0o700 });
+    if (testing) return true;
+    const error = await shell.openPath(debugLog.directory);
+    if (error) throw new Error(error);
+    return true;
+  });
 }
 function createWindow() {
   allowClose = false; dirtyFiles = []; windowClosing = false; windowCleanupDone = false;
@@ -545,6 +613,7 @@ function createWindow() {
     void preview.closeAll(); preview.setVisible(true);
     void browserFullscreen?.set(false).catch(() => {});
   });
+  window.webContents.on('render-process-gone', (_event, details) => { debugLog.error('renderer', `Processo da interface encerrado: ${details?.reason} · código ${details?.exitCode}`); });
   window.once('ready-to-show', () => window.show());
   window.on('focus', () => { void refreshEnvironment(); });
   window.on('close', event => {
@@ -625,6 +694,8 @@ function menu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 if (primaryInstance) app.whenReady().then(async () => {
+  debugLog.event('app', `SEA Dock iniciado${debugLog.forced ? ' com modo debug pela linha de comando' : ''}.`);
+  app.on('child-process-gone', (_event, details) => { debugLog.error('app', `Processo auxiliar encerrado: ${details?.type} · ${details?.reason} · código ${details?.exitCode}`); });
   if (process.platform === 'darwin' && !app.isPackaged) app.dock.setIcon(windowIcon(app.getAppPath()));
   const dist = path.resolve(__dirname, '..', 'dist');
   protocol.handle('dk-app', request => {
@@ -641,8 +712,9 @@ if (primaryInstance) app.whenReady().then(async () => {
   filePreviews = new FilePreviews();
   previewBridge = new PreviewBridge(request => { if (!window || window.isDestroyed() || !selected.has(request.root)) throw new Error('Projeto indisponível.'); send('browser:request', request); }, { resolvePath: (root, target) => { if (!selected.has(root)) throw Object.assign(new Error('O projeto desta sessão não está aberto no SEA Dock. Abra o projeto e repita.'), { status: 409 }); return filePreviews.url(root, target); } });
   try { await previewBridge.start(); } catch (error) { console.error("Prévia integrada indisponível:", error.message); }
-  terminals = new Terminals(send, env, root => previewBridge.environment(root));
-  services = new Services(event => send('service:changed', event), env);
+  terminals = new Terminals(send, env, root => previewBridge.environment(root), (level, message) => debugLog.write(level, 'sessão', message));
+  services = new Services(event => send('service:changed', event), env, (level, message) => debugLog.write(level, 'serviço', message));
+  sessionServices = new SessionServices({ roots: root => terminals.projectRoots(root) });
   orchestration = new Orchestration(event => send('graph:changed', event));
   preview = new PreviewBrowser(event => send('browser:changed', event), () => {
     if (!browserFullscreen?.active && !browserFullscreen?.requested && !browserFullscreen?.needsRestore) return false;
@@ -672,4 +744,5 @@ if (primaryInstance) app.whenReady().then(async () => {
 }).catch(error => { dialog.showErrorBox('SEA Dock', error.message); app.quit(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
+app.on('will-quit', () => { debugLog.event('app', 'SEA Dock encerrando.'); });
 app.on('will-quit', () => { filePreviews?.closeAll(); previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });

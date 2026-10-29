@@ -695,3 +695,30 @@ body.appearance-glass {
 .machine-popover-title { color: var(--muted); font-size: 9px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
 .machine-popover .system-resource:first-of-type { margin-top: 8px; }
 
+
+
+/* Serviços detectados nas sessões e botão Atualizar da guia Serviços */
+.services-toolbar { display: flex; justify-content: flex-end; padding: 2px 0 8px; }
+.services-refresh { min-height: 44px; height: 44px; font-size: 11px; color: var(--text); }
+.services-refresh .icon { width: 14px; height: 14px; }
+.services-refresh.loading .icon { animation: services-refresh-spin 1s linear infinite; }
+@keyframes services-refresh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .services-refresh.loading .icon { animation: none; } }
+.detected-services { margin-top: 12px; }
+.detected-services>.section-label { padding-left: 0; padding-right: 0; }
+.detected-status { font-size: 10px; margin: 0 0 8px; }
+.detected-row .service-heading strong { font-family: 'SFMono-Regular', Menlo, monospace; font-size: 10px; }
+.detected-actions { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
+.detected-actions .button { min-height: 44px; height: 44px; font-size: 11px; }
+.detected-preview { flex: 1; color: var(--text); }
+.detected-stop { margin-left: auto; color: #ddaaa1; border-color: #5a3d39; }
+.detected-stop:not(:disabled):hover { border-color: #ddaaa1; }
+
+/* Modo debug: indicador no rodapé e seção em Perfil e configurações */
+.debug-indicator { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 8px; border: 1px solid #5a4b2c; border-radius: 5px; background: transparent; color: #e7c77a; font-size: 9px; letter-spacing: .08em; cursor: pointer; }
+.debug-indicator:hover { border-color: #e7c77a; }
+.debug-indicator-dot { width: 6px; height: 6px; border-radius: 50%; background: #e7c77a; }
+.debug-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.debug-action { min-height: 44px; }
+.debug-status:empty,.debug-forced[hidden] { display: none; }
+.debug-location { overflow-wrap: anywhere; }
