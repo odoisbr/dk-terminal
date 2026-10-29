@@ -38,10 +38,15 @@ let app;
   assert.equal(codex[0], '-c'); assert.equal(JSON.parse(codex[1].slice('developer_instructions='.length)), guide);
 
   // dock-agents numa sessão comum imprime o guia.
+  // A sessão nova é identificada pela aba que surgiu: depois do split com o Codex,
+  // a aba selecionada nem sempre é a recém-criada.
+  const tabsBefore = new Set(await page.locator('.tab-select').evaluateAll(items => items.map(item => item.id)));
   await page.locator('#new-session').click();
-  await page.locator('.terminal-pane[data-ready="true"]:visible').last().waitFor();
+  await page.waitForFunction(before => [...document.querySelectorAll('.tab-select')].some(item => !before.includes(item.id)), [...tabsBefore]);
+  const newTab = await page.locator('.tab-select').evaluateAll((items, before) => items.map(item => item.id).find(id => !before.includes(id)), [...tabsBefore]);
+  await page.locator(`#pane-${newTab.slice(4)}[data-ready="true"]`).waitFor({ state: 'attached' });
   await page.evaluate(() => { window.__output = ''; window.dk.onTerminalData(e => { window.__output += e.data; }); });
-  const id = (await page.locator('.tab-select[aria-selected="true"]').getAttribute('id')).slice(4);
+  const id = newTab.slice(4);
   // Digitar antes do primeiro prompt faz o zsh descartar a entrada às vezes; espere o shell responder.
   await page.evaluate(id => window.dk.writeTerminal(id, 'echo pronto-$((40+2))\r'), id);
   await page.waitForFunction(() => /pronto-42/.test(window.__output), null, { timeout: 20000 });
