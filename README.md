@@ -98,7 +98,7 @@ Para criar outra extensão declarativa, adicione uma pasta em `extensions/` na f
 }
 ```
 
-Reabra o aplicativo para carregar novas extensões. A versão 1 de extensões de terceiros aceita manifestos para comandos de terminal e não carrega JavaScript de terceiros. Browser e o painel Codex são integrações internas do aplicativo. Não há um host de extensões VS Code/VSIX. Os comandos recebem as permissões normais da conta do sistema e só são iniciados pelo usuário.
+Reabra o aplicativo para carregar novas extensões. A disponibilidade de cada comando (`claude`, `codex`, `gemini`, `agy`…) é verificada procurando um executável com esse nome no `PATH` do shell de login do usuário e, em seguida, nas pastas conhecidas de instalação (`~/.local/bin`, `~/.claude/local`, `~/.codex/bin`, npm global, Volta, Bun, asdf, nvm, `/opt/homebrew/bin`, `/usr/local/bin`), que só são usadas quando existem e sempre depois do `PATH` do usuário. Alias e função de shell não contam como instalação. Uma ferramenta instalada com o aplicativo aberto passa a ser reconhecida ao voltar para a janela, sem reiniciar. A versão 1 de extensões de terceiros aceita manifestos para comandos de terminal e não carrega JavaScript de terceiros. Browser e o painel Codex são integrações internas do aplicativo. Não há um host de extensões VS Code/VSIX. Os comandos recebem as permissões normais da conta do sistema e só são iniciados pelo usuário.
 
 ### Plugins por projeto
 

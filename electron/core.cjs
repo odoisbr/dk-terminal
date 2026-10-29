@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { parse: parseYaml } = require('yaml');
@@ -89,6 +90,35 @@ function shellSpec(env = process.env) {
   return { file, args: ['-l'] };
 }
 
+// Pastas onde instaladores conhecidos colocam CLIs (Claude Code, Codex, Gemini,
+// Antigravity, npm global, gerenciadores de Node). Muitos instaladores só
+// acrescentam a pasta ao ~/.zshrc, que o shell de login não interativo não lê;
+// por isso elas entram depois do PATH do usuário, só quando existem.
+function knownToolDirectories(home = os.homedir(), platform = process.platform) {
+  if (platform === 'win32') return [];
+  const nvm = path.join(home, '.nvm', 'versions', 'node');
+  let nvmBins = [];
+  try {
+    nvmBins = fs.readdirSync(nvm).filter(name => /^v\d+\.\d+\.\d+$/.test(name))
+      .sort((a, b) => { const [x, y] = [a, b].map(v => v.slice(1).split('.').map(Number)); return (y[0] - x[0]) || (y[1] - x[1]) || (y[2] - x[2]); })
+      .map(name => path.join(nvm, name, 'bin'));
+  } catch {}
+  const candidates = [
+    path.join(home, '.local', 'bin'), path.join(home, '.claude', 'local'), path.join(home, '.claude', 'local', 'node_modules', '.bin'),
+    path.join(home, '.codex', 'bin'), path.join(home, '.npm-global', 'bin'), path.join(home, '.volta', 'bin'), path.join(home, '.bun', 'bin'),
+    path.join(home, '.asdf', 'shims'), ...nvmBins, '/opt/homebrew/bin', '/usr/local/bin',
+  ];
+  return candidates.filter(dir => { try { return fs.statSync(dir).isDirectory(); } catch { return false; } });
+}
+
+// Acrescenta pastas ao fim do PATH sem repetir; o PATH do usuário tem prioridade.
+function extendPath(env, dirs) {
+  const entries = (env.PATH || '').split(path.delimiter).filter(Boolean);
+  const extra = dirs.filter(dir => !entries.includes(dir));
+  if (!extra.length) return env;
+  return { ...env, PATH: [...entries, ...extra].join(path.delimiter) };
+}
+
 // Finder starts apps with a minimal PATH; read only PATH from the user's login shell.
 function loginEnvironment() {
   const env = { ...process.env };
@@ -144,4 +174,4 @@ function writeState(file, state) {
   fs.renameSync(temp, file);
 }
 
-module.exports = { ACTIONS, actionSpec, dimensions, directory, projectInfo, kitInfo, executable, shellSpec, loginEnvironment, folderForFile, readState, writeState };
+module.exports = { ACTIONS, actionSpec, dimensions, directory, projectInfo, kitInfo, executable, shellSpec, loginEnvironment, knownToolDirectories, extendPath, folderForFile, readState, writeState };

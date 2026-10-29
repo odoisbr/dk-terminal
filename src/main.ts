@@ -1062,6 +1062,7 @@ api.onChatEvent(event => { if (idleId === event.sessionId) { idleSnapshot = null
 api.onProjectOpened(info => run(async () => { const intent = beginProjectIntent(), snapshot = launcher.captureState(); if (await activate(info, intent)) launcher.completeOpen(snapshot, intent === projectIntent); }));
 api.onOrchestrationChanged(({ path }) => { if (current?.path === path && mainView === 'graph') run(loadGraph); });
 api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.reload()); });
+api.onExtensionsChanged(list => { installedExtensions = list; renderExtensions(); });
 api.onBrowserRequest(event => {
   void (async () => {
     let ok = false;

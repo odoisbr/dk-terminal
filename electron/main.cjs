@@ -3,7 +3,7 @@ const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
-const { readState, writeState, projectInfo, kitInfo, loginEnvironment, actionSpec, folderForFile, directory, executable } = require('./core.cjs');
+const { readState, writeState, projectInfo, kitInfo, loginEnvironment, knownToolDirectories, extendPath, actionSpec, folderForFile, directory, executable } = require('./core.cjs');
 const { bundledToolsPath, withBundledTools } = require('./bundled-tools.cjs');
 const { dependencyPlan, detectPackageManager } = require('./dependency-cache.cjs');
 const { Terminals } = require('./terminals.cjs');
@@ -162,6 +162,25 @@ function remember(root) {
   if (!config.projects.includes(info.path)) config.projects = [...config.projects, info.path].slice(-12);
   save();
   return info;
+}
+let bundledTools = null, environmentRefreshAt = 0, environmentRefreshing = false;
+function detectedEnvironment(base) { return withBundledTools(extendPath(base, knownToolDirectories()), bundledTools); }
+function applyEnvironment(next) {
+  env = next;
+  for (const owner of [integrations, localRepositories, terminals, services, extensions, usage, codexChat, actions]) if (owner) owner.env = env;
+}
+// Ferramentas instaladas com o aplicativo aberto passam a ser reconhecidas ao
+// voltar para a janela, sem reiniciar. Uma leitura do shell a cada 15 s no máximo.
+async function refreshEnvironment() {
+  if (environmentRefreshing || Date.now() - environmentRefreshAt < 15000) return;
+  environmentRefreshing = true;
+  try {
+    const before = JSON.stringify(extensions.list());
+    applyEnvironment(detectedEnvironment(await loginEnvironment()));
+    environmentRefreshAt = Date.now();
+    const after = extensions.list();
+    if (JSON.stringify(after) !== before) send('extensions:changed', after);
+  } catch {} finally { environmentRefreshing = false; }
 }
 function bootstrap() {
   const projects = config.projects.flatMap(root => { try { const info = projectInfo(root); selected.add(info.path); if (!pluginProjectIdentities.has(info.path)) rememberPluginIdentity(info.path); return [info]; } catch { return []; } });
@@ -520,6 +539,7 @@ function createWindow() {
     void browserFullscreen?.set(false).catch(() => {});
   });
   window.once('ready-to-show', () => window.show());
+  window.on('focus', () => { void refreshEnvironment(); });
   window.on('close', event => {
     if (dirtyFiles.length && !allowClose) {
       event.preventDefault();
@@ -608,8 +628,8 @@ if (primaryInstance) app.whenReady().then(async () => {
   });
   stateFile = path.join(app.getPath('userData'), 'settings.json');
   config = readState(stateFile);
-  const bundledTools = bundledToolsPath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
-  env = withBundledTools({ ...process.env }, bundledTools);
+  bundledTools = bundledToolsPath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
+  env = detectedEnvironment({ ...process.env });
   previewBridge = new PreviewBridge(request => { if (!window || window.isDestroyed() || !selected.has(request.root)) throw new Error('Projeto indisponível.'); send('browser:request', request); });
   try { await previewBridge.start(); } catch (error) { console.error("Prévia integrada indisponível:", error.message); }
   terminals = new Terminals(send, env, root => previewBridge.environment(root));
@@ -629,8 +649,8 @@ if (primaryInstance) app.whenReady().then(async () => {
   extensions = new Extensions([path.join(app.getAppPath(), 'extensions'), path.join(app.getPath('userData'), 'extensions')], env, event => send('plugin:changed', event));
   registerHandlers(); menu(); createWindow();
   app.on('activate', () => { if (!window) createWindow(); });
-  env = withBundledTools(await loginEnvironment(), bundledTools);
-  integrations.env = env; localRepositories.env = env; terminals.env = env; services.env = env; extensions.env = env; usage.env = env; codexChat.env = env; actions.env = env;
+  applyEnvironment(detectedEnvironment(await loginEnvironment()));
+  environmentRefreshAt = Date.now();
   for (const candidate of [config.kitRoot, env.DK_ROOT, path.resolve(__dirname, '..', '..', 'dk')]) {
     if (!candidate) continue;
     try { kit = kitInfo(candidate); break; } catch {}
