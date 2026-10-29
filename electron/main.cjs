@@ -4,7 +4,9 @@ const os = require('node:os');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const { readState, writeState, projectInfo, kitInfo, loginEnvironment, knownToolDirectories, extendPath, actionSpec, folderForFile, directory, executable } = require('./core.cjs');
-const { bundledToolsPath, withBundledTools } = require('./bundled-tools.cjs');
+const { bundledToolsPath, bundledDockToolsPath, withBundledTools } = require('./bundled-tools.cjs');
+const { FilePreviews } = require('./file-preview.cjs');
+const { PREVIEW_INSTRUCTIONS } = require('./preview-instructions.cjs');
 const { dependencyPlan, detectPackageManager } = require('./dependency-cache.cjs');
 const { Terminals } = require('./terminals.cjs');
 const { Services } = require('./services.cjs');
@@ -61,6 +63,7 @@ function launchFiles(argv, cwd, skip = process.defaultApp ? 2 : 1) {
 const initialFiles = launchFiles(process.argv, process.cwd());
 const primaryInstance = app.requestSingleInstanceLock({ files: initialFiles });
 if (!primaryInstance) app.quit();
+let filePreviews;
 let window, terminals, services, extensions, orchestration, preview, previewBridge, browserFullscreen, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false, windowClosing = false, windowCleanupDone = false;
 const selected = new Set();
@@ -135,6 +138,7 @@ function browserProject(root) {
   return info;
 }
 function closeProjectBrowser(root) {
+  filePreviews?.close(root);
   return preview.closeProject(root);
 }
 function hasDirtyFilesInProject(root) {
@@ -164,7 +168,8 @@ function remember(root) {
   return info;
 }
 let bundledTools = null, environmentRefreshAt = 0, environmentRefreshing = false;
-function detectedEnvironment(base) { return withBundledTools(extendPath(base, knownToolDirectories()), bundledTools); }
+let dockTools = null;
+function detectedEnvironment(base) { return withBundledTools(withBundledTools(extendPath(base, knownToolDirectories()), bundledTools), dockTools); }
 function applyEnvironment(next) {
   env = next;
   for (const owner of [integrations, localRepositories, terminals, services, extensions, usage, codexChat, actions]) if (owner) owner.env = env;
@@ -410,6 +415,7 @@ function registerHandlers() {
     return approved ? terminals.create(approved.info, approved.spec) : null;
   });
   handle('browser:request-result', (id, ok) => previewBridge.finish(id, ok));
+  handle('preview:copy-instructions', () => { clipboard.writeText(PREVIEW_INSTRUCTIONS); return true; });
   handle('browser:create', root => preview.create(browserProject(root).path));
   handle('browser:open', (root, url, bounds, id) => preview.open(window, browserProject(root).path, url, bounds, id));
   handle('browser:select', (root, id) => preview.select(root === null ? null : browserProject(root).path, id));
@@ -576,7 +582,7 @@ function createWindow() {
   });
   window.on('closed', () => {
     browserFullscreen?.dispose(); browserFullscreen = null;
-    previewBridge.revokeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
+    previewBridge.revokeAll(); filePreviews.closeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
     const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
     if(reopen){focusRequested=false;const files=pendingFiles.splice(0);if(files.length)openFiles(files);else createWindow();focusWindow();}
   });
@@ -629,8 +635,10 @@ if (primaryInstance) app.whenReady().then(async () => {
   stateFile = path.join(app.getPath('userData'), 'settings.json');
   config = readState(stateFile);
   bundledTools = bundledToolsPath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
+  dockTools = bundledDockToolsPath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
   env = detectedEnvironment({ ...process.env });
-  previewBridge = new PreviewBridge(request => { if (!window || window.isDestroyed() || !selected.has(request.root)) throw new Error('Projeto indisponível.'); send('browser:request', request); });
+  filePreviews = new FilePreviews();
+  previewBridge = new PreviewBridge(request => { if (!window || window.isDestroyed() || !selected.has(request.root)) throw new Error('Projeto indisponível.'); send('browser:request', request); }, { resolvePath: (root, target) => { if (!selected.has(root)) throw Object.assign(new Error('O projeto desta sessão não está aberto no SEA Dock. Abra o projeto e repita.'), { status: 409 }); return filePreviews.url(root, target); } });
   try { await previewBridge.start(); } catch (error) { console.error("Prévia integrada indisponível:", error.message); }
   terminals = new Terminals(send, env, root => previewBridge.environment(root));
   services = new Services(event => send('service:changed', event), env);
@@ -663,4 +671,4 @@ if (primaryInstance) app.whenReady().then(async () => {
 }).catch(error => { dialog.showErrorBox('SEA Dock', error.message); app.quit(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
-app.on('will-quit', () => { previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });
+app.on('will-quit', () => { filePreviews?.closeAll(); previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });

@@ -31,3 +31,16 @@ test('a pasta embutida entra no fim do PATH, sem repetir e sem alterar o ambient
   assert.equal(withBundledTools(env, null), env);
   assert.equal(withBundledTools({}, '/x/bin').PATH, '/x/bin');
 });
+
+test('o dock-preview embutido fica em Resources/dock-tools no pacote e em dock-tools/ no desenvolvimento', () => {
+  const { bundledDockToolsPath } = require('../electron/bundled-tools.cjs');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dk-dock-tools-'));
+  const packaged = path.join(root, 'Resources', 'dock-tools', 'bin'), dev = path.join(root, 'app', 'dock-tools', 'bin');
+  for (const dir of [packaged, dev]) { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, 'dock-preview'), '#!/bin/sh\n'); }
+  assert.equal(bundledDockToolsPath({ isPackaged: true, resourcesPath: path.join(root, 'Resources'), appPath: '/nao-usado' }), packaged);
+  assert.equal(bundledDockToolsPath({ isPackaged: false, resourcesPath: '/nao-usado', appPath: path.join(root, 'app') }), dev);
+  assert.equal(bundledDockToolsPath({ isPackaged: true, resourcesPath: path.join(root, 'vazio'), appPath: root }), null);
+  // O repositório traz o comando de verdade.
+  assert.equal(bundledDockToolsPath({ isPackaged: false, resourcesPath: '/nao-usado', appPath: path.join(__dirname, '..') }), path.join(__dirname, '..', 'dock-tools', 'bin'));
+  fs.rmSync(root, { recursive: true, force: true });
+});

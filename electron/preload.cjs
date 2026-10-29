@@ -73,6 +73,7 @@ contextBridge.exposeInMainWorld('dk', Object.freeze({
   selectBrowser: (path, id) => invoke('browser:select', path, id),
   onBrowserRequest: callback => listen('browser:request', callback),
   finishBrowserRequest: (id, ok) => invoke('browser:request-result', id, ok),
+  copyPreviewInstructions: () => invoke('preview:copy-instructions'),
   resizeBrowser: bounds => invoke('browser:resize', bounds),
   setBrowserVisible: visible => invoke('browser:visible', visible),
   setBrowserFullscreen: enabled => invoke('browser:fullscreen', enabled),

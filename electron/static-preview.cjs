@@ -56,4 +56,4 @@ function createStaticServer(root, events) {
   });
   return { close() { stopping = true; server.close(); for (const socket of sockets) socket.destroy(); } };
 }
-module.exports = { staticEntry, createStaticServer };
+module.exports = { staticEntry, createStaticServer, TYPES };

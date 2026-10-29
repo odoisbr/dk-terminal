@@ -79,7 +79,7 @@ app.innerHTML = `
         <div class="terminal-content"><div id="welcome"><div class="welcome-symbol">${icon('terminal')}</div><span class="eyebrow">MENOS DISTÂNCIA ENTRE IDEIA E ENTREGA</span><h2>O projeto é o ponto de partida.</h2><p>Seu terminal, suas ferramentas e os comandos do DK.<br>Tudo no mesmo espaço, direto no seu computador.</p><button id="welcome-open" class="button primary">${icon('folder')}Abrir um projeto${icon('arrow')}</button><span class="welcome-hint">Selecione uma pasta para começar</span></div><div id="terminal-empty" hidden><span class="welcome-symbol small">${icon('terminal')}</span><h2>Espaço pronto.</h2><p>Abra um terminal quando precisar.</p><button id="empty-new" class="button primary">${icon('plus')}Nova sessão</button></div><div id="terminal-host"><section id="editor-view" class="editor-card" aria-label="Editor de arquivos" hidden><div id="editor-content"></div></section></div></div>
         <footer class="terminal-footer"><span><span class="status-dot" id="session-dot"></span><span id="session-state" role="status" aria-live="polite">Nenhuma sessão aberta</span></span><span id="session-dimensions">UTF-8</span></footer>
         </div>
-        <section id="browser-view" class="browser-card" role="tabpanel" aria-labelledby="browser-tab" aria-label="Browser do projeto" hidden><div class="auxiliary-toolbar"><strong>${icon('globe')}Browser</strong><button id="browser-fullscreen" class="icon-button" aria-label="Abrir browser em tela cheia" aria-pressed="false" title="Abrir browser em tela cheia">${icon('expand')}</button><button id="browser-back" class="button secondary">Voltar ao terminal</button></div><div class="browser-runtime"><label for="browser-service">Serviço</label><select id="browser-service" aria-label="Serviço para visualizar"></select><button id="browser-start" class="button primary">Executar projeto</button><button id="browser-stop" class="icon-button" aria-label="Desligar serviço da prévia" title="Desligar serviço" disabled>${icon('stop')}</button></div><form id="browser-navigation" class="browser-navigation"><label for="browser-address" class="sr-only">Endereço local da prévia</label><input id="browser-address" type="text" placeholder="http://localhost:5173" autocomplete="off" spellcheck="false" /><button type="submit" class="icon-button" aria-label="Abrir endereço local" title="Abrir ou recarregar endereço">${icon('arrow')}</button></form><div id="browser-canvas"><div id="browser-placeholder">Selecione um serviço ou informe o endereço local do projeto.</div></div><footer class="auxiliary-footer"><span id="browser-status">Projeto local · A página pode acessar a rede</span></footer></section>
+        <section id="browser-view" class="browser-card" role="tabpanel" aria-labelledby="browser-tab" aria-label="Browser do projeto" hidden><div class="auxiliary-toolbar"><strong>${icon('globe')}Browser</strong><button id="browser-fullscreen" class="icon-button" aria-label="Abrir browser em tela cheia" aria-pressed="false" title="Abrir browser em tela cheia">${icon('expand')}</button><button id="browser-copy-ai" class="button secondary" title="Copia o texto que ensina qualquer IA a usar dock-preview">Copiar instrução para IA</button><button id="browser-back" class="button secondary">Voltar ao terminal</button></div><div class="browser-runtime"><label for="browser-service">Serviço</label><select id="browser-service" aria-label="Serviço para visualizar"></select><button id="browser-start" class="button primary">Executar projeto</button><button id="browser-stop" class="icon-button" aria-label="Desligar serviço da prévia" title="Desligar serviço" disabled>${icon('stop')}</button></div><form id="browser-navigation" class="browser-navigation"><label for="browser-address" class="sr-only">Endereço local da prévia</label><input id="browser-address" type="text" placeholder="http://localhost:5173" autocomplete="off" spellcheck="false" /><button type="submit" class="icon-button" aria-label="Abrir endereço local" title="Abrir ou recarregar endereço">${icon('arrow')}</button></form><div id="browser-canvas"><div id="browser-placeholder">Selecione um serviço ou informe o endereço local do projeto.</div></div><footer class="auxiliary-footer"><span id="browser-status">Projeto local · A página pode acessar a rede</span></footer></section>
       </section>
       <section id="graph-view" class="graph-card" aria-label="Orquestração do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('graph')}Orquestração do DK</strong><button id="refresh-graph" class="icon-button" aria-label="Atualizar grafo">${icon('refresh')}</button><button id="graph-back" class="button secondary">Voltar ao terminal</button></div><div id="graph-content"></div><footer class="auxiliary-footer">Visualização dos registros locais do DK</footer></section>
       <section id="action-view" class="action-card" aria-label="Resultado do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('scan')}Resultado do DK</strong><button id="cancel-action" class="button secondary" hidden>Interromper</button><button id="action-back" class="button secondary">Voltar ao terminal</button></div><div id="action-content" role="status" aria-live="polite"></div></section>
@@ -88,7 +88,7 @@ app.innerHTML = `
         <aside id="project-inspector-panel" class="context-panel" aria-label="Painel do projeto" hidden>
           <section id="panel-git" class="inspector-panel" aria-labelledby="tab-git" tabindex="0" hidden></section>
           <section id="panel-context" class="inspector-panel" aria-labelledby="tab-context" tabindex="0" hidden><div class="context-heading">${icon('code')}<h2>Contexto do projeto</h2></div><div id="context-empty"><p>Ao abrir uma pasta, você verá aqui a estrutura reconhecida pelo DK.</p><div class="context-illustration"><span>projeto.yml</span><span>.dk/projeto.json</span><span>.git/</span></div></div><div id="context-details" hidden><div class="context-label">PASTA ATIVA</div><strong id="context-name"></strong><span class="project-tag" id="context-kind"></span><div class="context-label files-label">ESTRUTURA RECONHECIDA</div><ul id="project-files"></ul><p class="context-note" id="context-note"></p></div><div class="context-tip"><span class="tip-number">01 / ESPAÇO LOCAL</span><p>Cada sessão fica na pasta em que foi aberta. Troque de projeto sem misturar seus terminais.</p></div></section>
-          <section id="panel-services" class="inspector-panel" aria-labelledby="tab-services" tabindex="0" hidden><p id="services-placeholder" class="context-note">Abra um projeto para acompanhar seus serviços.</p><div id="services-section" class="services-section" hidden><div class="section-label"><span>SERVIÇOS DO PROJETO</span><span id="service-count">0</span></div><div id="service-list"></div></div></section>
+          <section id="panel-services" class="inspector-panel" aria-labelledby="tab-services" tabindex="0" hidden><p id="services-placeholder" class="context-note">Abra um projeto para acompanhar seus serviços.</p><div id="services-section" class="services-section" hidden><div class="section-label"><span>SERVIÇOS DO PROJETO</span><span id="service-count">0</span></div><div id="service-list"></div></div><div id="preview-ai" class="preview-ai" hidden><div class="section-label"><span>APRESENTAR COM IA</span></div><p class="context-note">Agentes abertos pelo SEA Dock mostram protótipos, telas e documentos no navegador do app com <code>dock-preview &lt;alvo&gt;</code>. Copie a instrução e cole no chat da IA ou no AGENTS.md, CLAUDE.md ou GEMINI.md do projeto.</p><button id="preview-ai-copy" class="button secondary preview-ai-copy">Copiar instrução para IA</button></div></section>
           <section id="panel-files" class="inspector-panel" aria-labelledby="tab-files" tabindex="0" hidden><div class="tree-toolbar tree-project-heading"><span class="tree-project-symbol">${icon('folder')}</span><div class="tree-project-copy"><span>ARQUIVOS DO PROJETO</span><strong id="tree-project-name">Pasta do projeto</strong></div><button id="refresh-tree" class="icon-button" aria-label="Atualizar árvore de pastas" title="Atualizar árvore">${icon('refresh')}</button></div><p id="tree-placeholder" class="context-note">Abra um projeto para visualizar suas pastas e arquivos.</p><div id="folder-tree" aria-label="Pastas e arquivos do projeto"></div></section>
           <section id="panel-usage" class="inspector-panel" aria-labelledby="tab-usage" tabindex="0" hidden><div class="tree-toolbar"><strong>Contas e uso</strong><button id="refresh-usage" class="icon-button" aria-label="Atualizar consumo" title="Consultar ferramentas oficiais">${icon('refresh')}</button></div><p id="usage-status" class="context-note"></p><div id="usage-content"></div></section>
         </aside>
@@ -141,7 +141,7 @@ views.register('browser', [$('terminal-view'), $('browser-view')]);
 views.register('chat', [$('chat-view')]);
 views.register('action', [$('action-view')]);
 let focusedPane: 'terminal' | 'editor' = 'terminal';
-type BrowserTab = { id: string | null; ready: Promise<string | null> | null; url: string; wantedService: string; selectedService: string; waitingForService: boolean; status: string };
+type BrowserTab = { id: string | null; ready: Promise<string | null> | null; url: string; wantedService: string; selectedService: string; waitingForService: boolean; status: string; caption?: string };
 const browserTabs = new Map<string, BrowserTab>();
 let browserFullscreenActive = false, browserFullscreenDesired = false, browserFullscreenPending = false, browserFullscreenRecovery = false, browserFullscreenRequest = 0;
 let fileEditor: import('./editor').FileEditor | null = null;
@@ -363,6 +363,7 @@ function isPreviewService(service: Service) {
 function renderServices() {
   $('services-section').hidden = !current;
   $('services-placeholder').hidden = !!current;
+  $('preview-ai').hidden = !current;
   const list = $('service-list'); list.replaceChildren();
   const items = current ? projectServices.get(current.path) || [] : [];
   $('service-count').textContent = String(items.filter(s => ['running', 'starting', 'stopping'].includes(s.status)).length);
@@ -756,7 +757,7 @@ async function openBrowserView(requestedService?: string) {
 }
 async function startBrowserService(root: string, service: Service, tab = browserTabs.get(root)) {
   if (!tab || browserTabs.get(root) !== tab) return;
-  tab.wantedService = service.id; tab.selectedService = service.id;
+  tab.wantedService = service.id; tab.selectedService = service.id; tab.caption = undefined;
   tab.waitingForService = service.status !== 'running' || !service.url;
   if (service.status === 'running' && service.url) { if (tab.url !== service.url) await navigatePreview(root, service.url, tab); return; }
   if (service.status === 'running' || service.status === 'starting') {
@@ -1084,6 +1085,7 @@ api.onBrowserRequest(event => {
       }
       if (browserTabs.get(root) !== expected || current?.path !== root) throw new Error('Abra o projeto correspondente antes de visualizar o protótipo.');
       expected.wantedService = ''; expected.selectedService = ''; expected.waitingForService = false;
+      expected.caption = event.title || undefined;
       if (mainView === 'browser') renderBrowserServices('');
       await navigatePreview(root, event.url, expected);
       ok = current?.path === root && mainView === 'browser' && browserTabs.get(root) === expected && expected.url === event.url;
@@ -1093,7 +1095,7 @@ api.onBrowserRequest(event => {
 });
 api.onBrowserChanged(event => {
   const tab = browserTabs.get(event.path); if (!tab || tab.id !== event.id) return;
-  setBrowserStatus(event.path, tab, event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : 'Projeto local · A página pode acessar a rede');
+  setBrowserStatus(event.path, tab, event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : `${tab.caption ? `${tab.caption} · ` : ''}Projeto local · A página pode acessar a rede`);
   if (event.url) {
     tab.url = event.url;
     if (current?.path === event.path && mainView === 'browser') $<HTMLInputElement>('browser-address').value = event.url;
@@ -1181,6 +1183,12 @@ button('action-back').onclick = () => selectMainView(workspaceView);
 button('cancel-action').onclick = () => { if (current) run(() => api.cancelAction(current!.path)); };
 button('refresh-usage').onclick = () => run(() => loadUsage(true));
 button('browser-back').onclick = () => selectMainView(workspaceView);
+async function copyPreviewInstructions() {
+  await api.copyPreviewInstructions();
+  notify('Instrução copiada. Cole no chat da IA ou no AGENTS.md, CLAUDE.md ou GEMINI.md do projeto.');
+}
+button('browser-copy-ai').onclick = () => run(copyPreviewInstructions);
+button('preview-ai-copy').onclick = () => run(copyPreviewInstructions);
 button('browser-fullscreen').onclick = () => run(() => setBrowserFullscreen(!browserFullscreenDesired && !browserFullscreenRecovery));
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented || event.key !== 'Escape' || mainView !== 'browser' || !$('launcher').hidden) return;
@@ -1197,7 +1205,7 @@ $('browser-service').onchange = () => {
 $('browser-navigation').onsubmit = event => {
   event.preventDefault(); if (!current) return;
   const root = current.path, tab = browserTabs.get(root); if (!tab) return;
-  tab.wantedService = ''; tab.waitingForService = false; run(() => navigatePreview(root, $<HTMLInputElement>('browser-address').value.trim(), tab));
+  tab.wantedService = ''; tab.waitingForService = false; tab.caption = undefined; run(() => navigatePreview(root, $<HTMLInputElement>('browser-address').value.trim(), tab));
 };
 button('browser-start').onclick = () => run(async () => {
   if (!current) return;

@@ -89,8 +89,9 @@ interface Window {
     createBrowserTab(path: string): Promise<string>;
     openBrowser(path: string, url: string, bounds: PreviewBounds, id: string): Promise<{ url: string; cancelled?: boolean }>;
     selectBrowser(path: string | null, id?: string): Promise<boolean>;
-    onBrowserRequest(callback: (event: { id: string; root: string; url: string }) => void): () => void;
+    onBrowserRequest(callback: (event: { id: string; root: string; url: string; title?: string }) => void): () => void;
     finishBrowserRequest(id: string, ok: boolean): Promise<void>;
+    copyPreviewInstructions(): Promise<boolean>;
     resizeBrowser(bounds: PreviewBounds): Promise<void>;
     setBrowserVisible(visible: boolean): Promise<void>;
     setBrowserFullscreen(enabled: boolean): Promise<boolean>;
