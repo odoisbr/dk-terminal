@@ -42,6 +42,9 @@ let app;
   await page.locator('.terminal-pane[data-ready="true"]:visible').last().waitFor();
   await page.evaluate(() => { window.__output = ''; window.dk.onTerminalData(e => { window.__output += e.data; }); });
   const id = (await page.locator('.tab-select[aria-selected="true"]').getAttribute('id')).slice(4);
+  // Digitar antes do primeiro prompt faz o zsh descartar a entrada às vezes; espere o shell responder.
+  await page.evaluate(id => window.dk.writeTerminal(id, 'echo pronto-$((40+2))\r'), id);
+  await page.waitForFunction(() => /pronto-42/.test(window.__output), null, { timeout: 20000 });
   await page.evaluate(({ id, command }) => window.dk.writeTerminal(id, command + '\r'), { id, command: `dock-agents > '${record}/dock-agents.txt'; echo "saida=$?"` });
   await page.waitForFunction(() => /saida=0/.test(window.__output), null, { timeout: 20000 });
   assert.equal(fs.readFileSync(path.join(record, 'dock-agents.txt'), 'utf8'), guide);
