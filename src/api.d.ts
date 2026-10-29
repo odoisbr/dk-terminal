@@ -85,6 +85,7 @@ interface Window {
     stopWatchingPlugins(): Promise<void>;
     executePlugin(path: string, pluginId: string, actionId: string, revision: string): Promise<SessionInfo | null>;
     onPluginsChanged(callback: (event: { path: string }) => void): () => void;
+    onExtensionsChanged(callback: (extensions: Extension[]) => void): () => void;
     createBrowserTab(path: string): Promise<string>;
     openBrowser(path: string, url: string, bounds: PreviewBounds, id: string): Promise<{ url: string; cancelled?: boolean }>;
     selectBrowser(path: string | null, id?: string): Promise<boolean>;

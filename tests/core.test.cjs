@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { actionSpec, dimensions, projectInfo, kitInfo, folderForFile, readState, writeState } = require('../electron/core.cjs');
+const { actionSpec, dimensions, projectInfo, kitInfo, folderForFile, readState, writeState, knownToolDirectories, extendPath } = require('../electron/core.cjs');
 
 test('ações DK preservam caminhos com espaços e metacaracteres como argumentos', () => {
   const project = { path: "/tmp/Projeto O'Connor; $(touch arquivo)", isDk: true };
@@ -61,4 +61,26 @@ test('tooltip usa o nome declarado no YAML e recorre ao nome da pasta em manifes
   assert.equal(projectInfo(root).title,'Nome do projeto atualizado');
   fs.writeFileSync(file,'projeto: [inválido');
   assert.equal(projectInfo(root).title,path.basename(root));
+});
+
+test('pastas conhecidas de CLIs entram só quando existem, com o nvm mais novo primeiro', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'dk-home-'));
+  for (const dir of ['.local/bin', '.claude/local', '.nvm/versions/node/v20.11.0/bin', '.nvm/versions/node/v22.3.1/bin', '.nvm/versions/node/lixo']) fs.mkdirSync(path.join(home, dir), { recursive: true });
+  fs.writeFileSync(path.join(home, '.volta'), 'arquivo, não pasta');
+  const dirs = knownToolDirectories(home, 'darwin');
+  assert.deepEqual(dirs.filter(dir => dir.startsWith(home)), [
+    path.join(home, '.local', 'bin'), path.join(home, '.claude', 'local'),
+    path.join(home, '.nvm', 'versions', 'node', 'v22.3.1', 'bin'), path.join(home, '.nvm', 'versions', 'node', 'v20.11.0', 'bin'),
+  ]);
+  assert.ok(dirs.every(dir => fs.statSync(dir).isDirectory()));
+  assert.deepEqual(knownToolDirectories(home, 'win32'), []);
+});
+
+test('o PATH do usuário fica na frente e as pastas extras não se repetem', () => {
+  const env = { PATH: '/usr/bin:/opt/homebrew/bin', HOME: '/Users/x' };
+  const result = extendPath(env, ['/opt/homebrew/bin', '/Users/x/.local/bin']);
+  assert.equal(result.PATH, '/usr/bin:/opt/homebrew/bin:/Users/x/.local/bin');
+  assert.equal(env.PATH, '/usr/bin:/opt/homebrew/bin');
+  assert.equal(extendPath(env, ['/opt/homebrew/bin']), env);
+  assert.equal(extendPath({}, ['/a']).PATH, '/a');
 });

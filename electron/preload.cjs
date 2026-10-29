@@ -67,6 +67,7 @@ contextBridge.exposeInMainWorld('dk', Object.freeze({
   stopWatchingPlugins: () => invoke('plugin:stop-watching'),
   executePlugin: (path, pluginId, actionId, revision) => invoke('plugin:execute', path, pluginId, actionId, revision),
   onPluginsChanged: callback => listen('plugin:changed', callback),
+  onExtensionsChanged: callback => listen('extensions:changed', callback),
   createBrowserTab: path => invoke('browser:create', path),
   openBrowser: (path, url, bounds, id) => invoke('browser:open', path, url, bounds, id),
   selectBrowser: (path, id) => invoke('browser:select', path, id),
