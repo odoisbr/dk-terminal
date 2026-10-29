@@ -2,7 +2,7 @@ const { execFile } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { executable } = require('./core.cjs');
-const HOST = 'gitlab.seatecnologia.com.br';
+const { HOST, gitFailure, gitMessage } = require('./gitlab-errors.cjs');
 const GROUP = 'design';
 function allowedProject(p) {
   if (!p || !Number.isSafeInteger(p.id) || p.id <= 0 || typeof p.name !== 'string' || typeof p.path_with_namespace !== 'string' || p.path_with_namespace.length > 500 || typeof p.default_branch !== 'string' || !p.default_branch || p.default_branch.length > 255) return null;
@@ -24,8 +24,13 @@ function run(file, args, env, options = {}) {
   const safeEnv = { ...env, GIT_TERMINAL_PROMPT:'0', NO_COLOR:'1' };
   delete safeEnv.GLAB_DEBUG_HTTP;
   delete safeEnv.DEBUG; delete safeEnv.GIT_TRACE; delete safeEnv.GIT_CURL_VERBOSE;
-  return new Promise((resolve,reject)=>execFile(file,args,{env:safeEnv,timeout:options.timeout||12000,maxBuffer:options.maxBuffer||2*1024*1024,encoding:options.encoding||'utf8',cwd:options.cwd},(error,stdout)=>{
-    if(error) return reject(new Error(options.message || 'Não foi possível consultar a ferramenta. Verifique a conexão e a autenticação.'));
+  return new Promise((resolve,reject)=>execFile(file,args,{env:safeEnv,timeout:options.timeout||12000,maxBuffer:options.maxBuffer||2*1024*1024,encoding:options.encoding||'utf8',cwd:options.cwd,windowsHide:true},(error,stdout,stderr)=>{
+    if(error) {
+      // Keep the tool output for translation; callers never show it raw.
+      const failure=new Error(options.message || 'Não foi possível consultar a ferramenta. Verifique a conexão e a autenticação.');
+      Object.assign(failure,{code:error.code,killed:!!error.killed,signal:error.signal||null,stderr:String(stderr||'').slice(-8192),stdout:Buffer.isBuffer(stdout)?'':String(stdout||'').slice(-8192)});
+      return reject(failure);
+    }
     resolve(stdout);
   }));
 }
@@ -84,13 +89,42 @@ class Integrations {
       this.projects.delete(id); throw error;
     }
   }
+  // Clone with Git itself. `glab repo clone <url>` resolves its API host from
+  // the working directory, so outside a repository (an app opened from the
+  // Finder runs in "/") it queried gitlab.com and failed with 401.
   async materialize(id, base) {
     this.project(id);
-    const project=await this.getProject(id), destination=path.join(base,project.path.split('/').at(-1));
-    if(fs.existsSync(destination)) throw new Error('Já existe uma pasta com esse nome no destino escolhido.');
-    const file=executable('glab',this.env); if(!file) throw new Error('Instale o GitLab CLI para preparar a cópia.');
-    await this.execute(file,['repo','clone',`https://${HOST}/${project.path}.git`,destination],this.env,{timeout:300000,maxBuffer:1024*1024,message:'Não foi possível preparar a cópia. Confira o acesso ao GitLab e a pasta de destino.'});
-    return destination;
+    const project=await this.getProject(id), name=project.path.split('/').at(-1), destination=path.join(base,name);
+    if(fs.existsSync(destination)) throw new Error(`Já existe uma pasta “${name}” no destino escolhido. Escolha outra pasta ou abra a cópia existente.`);
+    const git=executable('git',this.env); if(!git) throw new Error('Instale o Git para preparar a cópia local.');
+    const env=await this.cloneEnvironment(git);
+    // SSH is the company default; HTTPS covers machines with stored Git credentials.
+    const urls=[`git@${HOST}:${project.path}.git`,`https://${HOST}/${project.path}.git`];
+    const failures=[];
+    for(const url of urls) {
+      try {
+        await this.execute(git,['clone','--',url,destination],env,{cwd:base,timeout:900000,maxBuffer:4*1024*1024,message:'Não foi possível preparar a cópia.'});
+        return destination;
+      } catch(error) {
+        const kind=gitFailure(error); failures.push({kind,error});
+        // Only a credential or connection problem may differ between SSH and HTTPS.
+        if(fs.existsSync(destination) || !['ssh','https','network'].includes(kind)) break;
+      }
+    }
+    const kinds=failures.map(item=>item.kind);
+    const kind=kinds.find(item=>!['ssh','https','network','other'].includes(item)) || (kinds.some(item=>item==='ssh'||item==='https') ? 'https' : kinds.every(item=>item==='network') ? 'network' : 'other');
+    throw new Error(gitMessage(kind,(failures.find(item=>item.kind==='other')||failures.at(-1)).error,'Não foi possível preparar a cópia local.'));
+  }
+  async cloneEnvironment(git) {
+    const env={...this.env};
+    for(const key of Object.keys(env)) if(/^GIT_(DIR|WORK_TREE|INDEX_FILE|TRACE|CURL_VERBOSE|ASKPASS)/.test(key)) delete env[key];
+    if(env.GIT_SSH_COMMAND || env.GIT_SSH) return env;
+    // Never wait for an SSH passphrase or host-key prompt, but keep a
+    // configured core.sshCommand (it would be overridden by GIT_SSH_COMMAND).
+    let configured='';
+    try { configured=String(await this.execute(git,['config','--get','core.sshCommand'],env,{cwd:path.parse(process.cwd()).root,timeout:5000,maxBuffer:16*1024})).trim(); } catch {}
+    if(!configured) env.GIT_SSH_COMMAND='ssh -o BatchMode=yes -o ConnectTimeout=20';
+    return env;
   }
   project(id) {
     const cached=this.projects.get(id);
@@ -121,4 +155,4 @@ class Integrations {
     try { return {name,kind:'text',content:new TextDecoder('utf-8',{fatal:true}).decode(bytes),readOnly:true}; } catch { throw new Error('Este arquivo não é texto UTF-8.'); }
   }
 }
-module.exports={Integrations,TOOLS,HOST};
+module.exports={Integrations,TOOLS,HOST,run};
