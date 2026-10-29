@@ -34,7 +34,7 @@ type AgentCapabilities = {
   claude: { disponivel: boolean; versao: string | null; binario: string | null; motivo: string; aprovacao_host_provada: false };
   codex: { disponivel: false; motivo: string };
 };
-type AgentRunState = 'na_fila' | 'iniciando' | 'executando' | 'aguardando_aprovacao' | 'prazo_vencido' | 'interrompendo' | 'concluido' | 'interrompido' | 'falhou';
+type AgentRunState = 'na_fila' | 'iniciando' | 'executando' | 'aguardando_aprovacao' | 'prazo_vencido' | 'interrompendo' | 'concluido' | 'interrompido' | 'falhou' | 'expirada';
 type AgentUsage = { input_tokens?: number; output_tokens?: number; cache_read?: number; total_cost_usd?: number };
 type AgentRun = {
   runId: string; root: string; provider: 'claude'; estado: AgentRunState; sessionId: string; title: string;

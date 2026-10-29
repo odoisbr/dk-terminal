@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const vm = require('node:vm');
 const { EventEmitter } = require('node:events');
+const { stripTypeScriptTypes } = require('node:module');
 const { projectInfo, kitInfo } = require('../electron/core.cjs');
 const { Extensions } = require('../electron/extensions.cjs');
 const { Catalogs } = require('../electron/catalogs.cjs');
@@ -25,7 +26,8 @@ function deferred() {
 }
 
 // Real IPC wrappers, createWindow, M1 sources and runner composition in a VM.
-// Probes and draining are replaced: no Electron, child process or official CLI.
+// Probes and draining are replaced unless a test installs an isolated fake CLI.
+// No Electron or official CLI is used.
 async function mainHandlers(t) {
   const source = fs.readFileSync(path.join(__dirname, '../electron/main.cjs'), 'utf8');
   const base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dk-m2-ipc-')));
@@ -86,7 +88,7 @@ async function mainHandlers(t) {
   Object.assign(app, { getAppPath: () => path.join(base, 'app'), getPath: () => path.join(base, 'user'), getVersion: () => 'test', getAppMetrics: () => [] });
   const state = source.slice(source.indexOf('const selected ='), source.indexOf('let kit ='));
   const names = ['send', 'authorize', 'handle', 'project', 'advancePluginGeneration', 'rememberPluginIdentity', 'remember', 'knownProject', 'pluginProject', 'bootstrap', 'applyEnvironment', 'refreshEnvironment', 'registerHandlers', 'createWindow'];
-  const constructors = source.slice(source.indexOf('  resources = new ResourceMonitor('), source.indexOf('  registerHandlers(); menu(); createWindow();'));
+  const constructors = source.slice(source.indexOf('  agentRun = new AgentRun('), source.indexOf('  registerHandlers(); menu(); createWindow();'));
   const quitCleanup = source.match(/^app.on\('will-quit', \(\) => \{ filePreviews.*$/m);
   assert.ok(quitCleanup);
   vm.runInContext(`${state}\n${names.map(name => sourceFunction(source, name)).join('\n')}\n${constructors}\nregisterHandlers(); createWindow();\n${quitCleanup[0]}`, context);
@@ -149,7 +151,7 @@ test('M2 recusa raiz canônica transformada em symlink até para o mesmo inode',
   assert.equal(f.hosts.agentRun.capabilities.mock.callCount(), 0);
 });
 
-test('createWindow conecta stores privados, env, guia, fontes M1 e agent:event', async t => {
+test('inicialização e createWindow conectam stores privados, env, guia, fontes M1 e agent:event', async t => {
   const f = await mainHandlers(t), runner = f.hosts.agentRun;
   assert.equal(runner.storeFile, path.join(f.base, 'user', 'agent-runs.json'));
   assert.equal(runner.runsDir, path.join(f.base, 'user', 'agent-runs'));
@@ -171,9 +173,29 @@ test('createWindow conecta stores privados, env, guia, fontes M1 e agent:event',
   assert.equal((await f.call('agent:list', f.root)).value[0].runId, runId);
   assert.equal((await f.call('agent:read', f.root, runId)).value.run.root, f.root);
   assert.equal((await f.call('agent:capabilities', f.root)).value.codex.motivo, 'Use o painel Codex');
+  assert.equal(runner.capabilities.mock.calls.at(-1).arguments[0], f.root);
   await f.context.refreshEnvironment();
   assert.equal(runner.env, f.hosts.codexChat.env);
   assert.equal(runner.env.PATH, '/refreshed');
+});
+
+for (const symlink of [false, true]) test(`agent:capabilities recusa CLI do projeto sem executar (${symlink ? 'symlink externo' : 'PATH absoluto'})`, { skip: process.platform === 'win32' }, async t => {
+  const f = await mainHandlers(t), runner = f.hosts.agentRun;
+  const fixtures = path.join(__dirname, 'fixtures', 'agent-run'), binary = path.join(f.root, 'claude');
+  const logFile = path.join(f.base, 'cli.jsonl');
+  fs.writeFileSync(logFile, '');
+  fs.writeFileSync(binary, `#!${process.execPath}\n${fs.readFileSync(path.join(fixtures, 'fake-claude.cjs'), 'utf8')}`, { mode: 0o755 });
+  fs.copyFileSync(path.join(fixtures, 'claude-help.txt'), path.join(f.root, 'claude-help.txt'));
+  let bin = f.root;
+  if (symlink) { bin = path.join(f.base, 'bin'); fs.mkdirSync(bin); fs.symlinkSync(binary, path.join(bin, 'claude')); }
+  runner.env = { PATH: bin, DK_TEST_LOG: logFile };
+  runner.capabilities.mock.restore();
+  f.context.remember(f.root);
+  const result = await f.call('agent:capabilities', f.root);
+  assert.equal(result.ok, true, result.error);
+  assert.equal(result.value.claude.disponivel, false);
+  assert.match(result.value.claude.motivo, /Binário.*dentro do projeto recusado/);
+  assert.equal(fs.readFileSync(logFile, 'utf8'), '', 'nem --version/--help podem executar código do projeto');
 });
 
 test('agent:approve confere run.root no main e preserva pedido ao trocar de projeto', async t => {
@@ -276,16 +298,55 @@ test('render-process-gone chama cancelAll sem closeAll e permite outra execuçã
   await start(f);
 });
 
-for (const event of ['closed', 'will-quit']) test(`${event} chama closeAll nos dois runners`, async t => {
+for (const event of ['closed', 'will-quit']) test(`${event} ${event === 'closed' ? 'cancela' : 'fecha'} runner e fecha chat`, async t => {
   const f = await mainHandlers(t), closes = [f.hosts.agentRun, f.hosts.codexChat].map(host => t.mock.method(host, 'closeAll'));
+  const cancels = t.mock.method(f.hosts.agentRun, 'cancelAll');
   (event === 'closed' ? f.owner : f.context.app).emit(event);
-  for (const spy of closes) { assert.equal(spy.mock.callCount(), 1); await spy.mock.calls[0].result; }
-  assert.equal(f.hosts.agentRun.closed, true); assert.equal(f.hosts.codexChat.closed, true);
+  assert.equal(closes[0].mock.callCount(), event === 'closed' ? 0 : 1);
+  assert.equal(closes[1].mock.callCount(), 1);
+  for (const spy of closes) await spy.mock.calls[0]?.result;
+  assert.equal(cancels.mock.callCount(), 1); await cancels.mock.calls[0].result;
+  assert.equal(f.hosts.agentRun.closed, event === 'will-quit'); assert.equal(f.hosts.codexChat.closed, true);
+});
+
+test('reabrir janela durante cancelAll reutiliza runner e aguarda a limpeza sem perder histórico', async t => {
+  const f = await mainHandlers(t), runner = f.hosts.agentRun, id = await start(f);
+  const compose = runner.preview, oldEmit = runner.emit, gate = deferred();
+  const original = runner.cancel.bind(runner);
+  const cancel = t.mock.method(runner, 'cancel', async (...args) => { await gate.promise; return original(...args); });
+  const cancels = t.mock.method(runner, 'cancelAll'), closes = t.mock.method(runner, 'closeAll');
+  let event, duplicateCleanup;
+  try {
+    f.owner.close();
+    assert.equal(runner.canceling, true);
+    f.context.env = { PATH: '/new-fake-bin' };
+    f.context.createWindow();
+    assert.equal(vm.runInContext('agentRun', f.context), runner);
+    assert.equal(runner.preview, compose, 'não empilha wrappers de composição');
+    assert.equal(runner.env, f.context.env);
+    const count = f.events.length;
+    oldEmit({ type: 'status' });
+    assert.equal(f.events.length, count, 'emissor da janela antiga não publica na nova');
+    const owner = f.context.window;
+    event = { sender: owner.webContents, senderFrame: owner.webContents.mainFrame };
+    assert.match((await f.invoke(event, 'agent:start', f.root, options)).error, /encerrado/);
+    duplicateCleanup = runner.cancelAll();
+    assert.equal(cancel.mock.callCount(), 1, 'limpezas simultâneas compartilham a mesma operação');
+  } finally { gate.resolve(); await cancels.mock.calls[0]?.result; await duplicateCleanup; }
+  assert.equal(closes.mock.callCount(), 0);
+  assert.equal(runner.closed, false); assert.equal(runner.canceling, false);
+  const next = await f.invoke(event, 'agent:start', f.root, options);
+  assert.equal(next.ok, true, next.error);
+  assert.equal(runner.read(f.root, id).run.estado, 'interrompido');
+  assert.equal(runner.read(f.root, next.value.runId).run.estado, 'na_fila');
+  assert.ok(f.events.some(e => e.channel === 'agent:event' && e.payload.runId === next.value.runId));
+  const saved = JSON.parse(fs.readFileSync(runner.storeFile, 'utf8')).runs;
+  assert.deepEqual(saved.map(run => run.runId), [id, next.value.runId]);
 });
 
 for (const rejection of [false, true]) test(`window close aguarda runner e avisa limpeza parcial (${rejection ? 'rejeição' : 'partial'})`, async t => {
   const f = await mainHandlers(t), gate = deferred(), entered = deferred();
-  t.mock.method(f.hosts.agentRun, 'closeAll', async () => { entered.resolve(); await gate.promise; if (rejection) throw new Error('cleanup'); return { partial: true }; });
+  t.mock.method(f.hosts.agentRun, 'cancelAll', async () => { entered.resolve(); await gate.promise; if (rejection) throw new Error('cleanup'); return { partial: true }; });
   let prevented = false;
   f.owner.emit('close', { preventDefault() { prevented = true; } });
   await entered.promise;
@@ -294,7 +355,7 @@ for (const rejection of [false, true]) test(`window close aguarda runner e avisa
   gate.resolve(); await f.windowClosed.promise;
   assert.equal(f.warnings.length, 1); assert.equal(f.warnings[0].type, 'warning');
   // Restore before fixture cleanup, which awaits the real runner.
-  f.hosts.agentRun.closeAll.mock.restore();
+  f.hosts.agentRun.cancelAll.mock.restore();
 });
 
 test('ResourceMonitor recebe resourceRoots e IPC conserva kind claude-run sem aviso de ociosidade', async t => {
@@ -311,6 +372,63 @@ test('ResourceMonitor recebe resourceRoots e IPC conserva kind claude-run sem av
     sessions: new Map(), idleSnoozed: new Map(), idleWarningMs: () => 0, $: () => notice });
   vm.runInContext(`${sourceFunction(ui, 'renderIdleNotice')}\nrenderIdleNotice();`, uiContext);
   assert.equal(notice.hidden, true);
+});
+
+for (const action of ['start', 'cancel', 'approve']) test(`AgentRunView.open na mesma raiz preserva ${action} em voo`, async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/agent-run.ts'), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  const View = vm.runInNewContext(`${stripTypeScriptTypes(source)}\nAgentRunView;`);
+  const gate = deferred(), capabilities = { claude: { disponivel: true } };
+  const run = { root: '/project', runId: 'run', estado: 'executando' };
+  let calls = 0;
+  const view = Object.assign(Object.create(View.prototype), {
+    root: '/project', request: 0, capRequest: 0, contextRequest: 0, previewRequest: 0, treeRequest: 0,
+    starting: false, canceling: false, opening: false, destroyed: false, approving: new Set(),
+    earlyEvents: new Map(), selectedRunByRoot: new Map(), rows: new Map(), dirty: new Set(), selectedFiles: [],
+    capabilities, currentRun: action === 'start' ? null : run,
+    input: { value: 'Pedido' }, stageInput: { value: '' }, skillSelect: { value: '' }, designSelect: { value: '' },
+    resumeToggleBtn: { setAttribute() {} },
+    api: { capabilities: async () => capabilities, list: async () => action === 'start' ? [] : [run],
+      [action]: async () => { calls++; await gate.promise; return { runId: run.runId }; } },
+    async loadContext() {}, async select() { this.currentRun = run; },
+    saveDraft() {}, restoreDraft() {}, controls() {}, resetRows() {}, setPreviewOpen() {}, setFilesOpen() {},
+    renderHeader() {}, renderPicker() {}, renderBanner() {}, renderMessages() {}, renderCatalogSelectors() {},
+    fail(error) { throw error; },
+  });
+  const invoke = () => action === 'approve' ? view.approve('item', 'request', 'allow') : view[action]();
+  const pending = invoke();
+  let duplicate;
+  try {
+    assert.equal(calls, 1);
+    await view.open('/project');
+    if (action === 'approve') assert.equal(view.approving.has('request'), true);
+    else assert.equal(view[action === 'start' ? 'starting' : 'canceling'], true);
+    duplicate = invoke();
+    assert.equal(calls, 1, 'reabrir não permite IPC duplicado');
+  } finally { gate.resolve(); await pending; await duplicate; }
+  assert.equal(view.starting, false); assert.equal(view.canceling, false); assert.equal(view.approving.size, 0);
+  view.starting = true; view.canceling = true; view.approving.add('request');
+  await view.open('/other');
+  assert.equal(view.starting, false); assert.equal(view.canceling, false); assert.equal(view.approving.size, 0);
+});
+
+test('activate só reabre AgentRunView quando muda o projeto ou o agente está ativo', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/main.ts'), 'utf8');
+  for (const [previous, mainView, expected] of [['/project', 'terminal', 0], ['/project', 'agent', 1], ['/other', 'terminal', 1]]) {
+    const calls = [], info = { path: '/project', name: 'Project', isDk: false };
+    const context = vm.createContext({
+      api: { activateProject: async () => info, async setActiveProject() {} },
+      current: { ...info, path: previous }, appliedProjectIntent: 0, activationGeneration: 0, opening: Promise.resolve(),
+      closingProjects: new Set(), openedProjects: new Set(), projects: [], pluginsPanel: null, fileEditor: null,
+      projectWorkspaceViews: new Map(), lastActive: new Map(), sessions: new Map(), activeId: null,
+      mainView, workspaceView: 'terminal', selectedPanel: null,
+      agentView: { async open(root) { calls.push(root); } }, chatView: null,
+      rememberRecent() {}, syncTreeSelection() {}, renderProject() {}, selectMainView() {}, focusSession() {},
+      async loadServices() {}, async refreshClaudePlugin() {}, notify(error) { throw error; },
+    });
+    vm.runInContext(stripTypeScriptTypes(sourceFunction(source, 'activate')), context);
+    assert.equal(await context.activate(info, 1), true);
+    assert.deepEqual(calls, expected ? [info.path] : []);
+  }
 });
 
 test('preload expõe canais M2, erros e listeners independentes com unsubscribe', async () => {

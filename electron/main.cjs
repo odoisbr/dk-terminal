@@ -534,7 +534,8 @@ function registerHandlers() {
   };
   handle('stages:read', readStages);
   agentSources = { catalogs: { read: readCatalog }, stages: { read: readStages } };
-  handle('agent:capabilities', root => readProjectData(root, agentRun, async (_info, current) => { await current(); return agentRun.capabilities(); }));
+  if (agentRun) Object.assign(agentRun.sources, agentSources);
+  handle('agent:capabilities', root => readProjectData(root, agentRun, async (info, current) => { await current(); return agentRun.capabilities(info.path); }));
   handle('agent:list', root => readProjectData(root, agentRun, async (info, current) => { await current(); return agentRun.list(info.path); }));
   handle('agent:read', (root, runId) => readProjectData(root, agentRun, async (info, current) => { await current(); return agentRun.read(info.path, runId); }));
   handle('agent:start', (root, options) => readProjectData(root, agentRun, async (info, current) => {
@@ -742,21 +743,17 @@ function createWindow() {
   activeProjectRoot = null;
   allowClose = false; dirtyFiles = []; windowClosing = false; windowCleanupDone = false;
   codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event), previewEnvironment: root => ({ ...previewBridge.environment(root), ...agentGuideEnvironment(agentGuide) }), developerInstructions: base => codexConfigHasInstructions(base) ? '' : readGuide(agentGuide) });
-  agentRun = new AgentRun({ env, storeFile: path.join(app.getPath('userData'), 'agent-runs.json'), runsDir: path.join(app.getPath('userData'), 'agent-runs'), emit: event => send('agent:event', event), previewEnvironment: root => ({ ...previewBridge.environment(root), ...agentGuideEnvironment(agentGuide) }), sources: { guide: agentGuide, ...agentSources } });
-  const composeAgentPrompt = agentRun.preview.bind(agentRun);
-  agentRun.preview = async (root, options = {}) => {
-    const current = agentPromptChecks.get(options);
-    if (current) await current();
-    const result = await composeAgentPrompt(root, options);
-    if (current) await current(); // Before start() can enqueue or launch a process.
-    return result;
-  };
   window = new BrowserWindow({
     width: 1440, height: 920, minWidth: 940, minHeight: 620, backgroundColor: '#101214',
     title: 'SEA Dock', icon: windowIcon(app.getAppPath()), titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 20, y: 22 }, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, spellcheck: false, webSecurity: true },
   });
+  const agentWindow = window;
+  agentRun.env = env;
+  agentRun.emit = event => {
+    if (!agentRun.closed && window === agentWindow && !agentWindow.isDestroyed() && !windowClosing) agentWindow.webContents.send('agent:event', event);
+  };
   browserFullscreen = new BrowserFullscreen(window, active => send('browser:fullscreen-changed', active));
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', event => event.preventDefault());
@@ -790,7 +787,7 @@ function createWindow() {
     // Prevent new edits while the explicit close drains known child processes.
     try { closingWindow.setEnabled(false); } catch {}
     try { services.closeAll(); } catch {}
-    void Promise.allSettled([terminals.closeAllAndWait(),actions.closeAllAndWait(),codexChat.closeAll(),preview.closeAll(),agentRun.closeAll()]).then(async results=>{
+    void Promise.allSettled([terminals.closeAllAndWait(),actions.closeAllAndWait(),codexChat.closeAll(),preview.closeAll(),agentRun.cancelAll()]).then(async results=>{
       const terminalResult=results[0];
       const actionResult=results[1];
       const chatResult=results[2];
@@ -810,7 +807,7 @@ function createWindow() {
   });
   window.on('closed', () => {
     browserFullscreen?.dispose(); browserFullscreen = null;
-    previewBridge.revokeAll(); filePreviews.closeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); catalogs.close(); stages.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); agentRun?.closeAll().catch(() => {}); window = null; dirtyFiles = [];
+    previewBridge.revokeAll(); filePreviews.closeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); catalogs.close(); stages.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); agentRun?.cancelAll().catch(() => {}); window = null; dirtyFiles = [];
     const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
     if(reopen){focusRequested=false;const files=pendingFiles.splice(0);if(files.length)openFiles(files);else createWindow();focusWindow();}
   });
@@ -887,6 +884,17 @@ if (primaryInstance) app.whenReady().then(async () => {
   // Reads the current environment on each call and shares the Git busy guard.
   gitlabPublisher = new GitlabPublisher(() => env, undefined, git.busy);
   localRepositories = new LocalRepositories('/Volumes/SEA', env);
+  // One owner of the private history/prompts for the entire app lifetime.
+  // Closing a window cancels its work; only quitting permanently closes the runner.
+  agentRun = new AgentRun({ env, storeFile: path.join(app.getPath('userData'), 'agent-runs.json'), runsDir: path.join(app.getPath('userData'), 'agent-runs'), previewEnvironment: root => ({ ...previewBridge.environment(root), ...agentGuideEnvironment(agentGuide) }), sources: { guide: agentGuide } });
+  const composeAgentPrompt = agentRun.preview.bind(agentRun);
+  agentRun.preview = async (root, options = {}) => {
+    const current = agentPromptChecks.get(options);
+    if (current) await current();
+    const result = await composeAgentPrompt(root, options);
+    if (current) await current(); // Before start() can enqueue or launch a process.
+    return result;
+  };
   resources = new ResourceMonitor(() => app.getAppMetrics(), { getTerminals: () => [...terminals.resourceRoots(), ...(codexChat?.resourceRoots() || []), ...(agentRun?.resourceRoots() || [])] });
   catalogs = new Catalogs(event => send('catalog:changed', event));
   stages = new Stages(event => send('stages:changed', event));

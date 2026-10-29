@@ -616,12 +616,12 @@ export class AgentRunView {
     this.readingRunId = null;
     this.bufferedEvents = [];
     this.earlyEvents.clear();
-    this.approving.clear();
-    this.starting = false;
-    this.canceling = false;
     this.statusDetail = '';
 
     if (rootChanged) {
+      this.approving.clear();
+      this.starting = false;
+      this.canceling = false;
       this.capabilities = null;
       this.runs = [];
       this.currentRun = null;

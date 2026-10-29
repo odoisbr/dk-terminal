@@ -209,7 +209,7 @@ class AgentRun {
       run.eventos.splice(index < 0 ? 0 : index, 1);
     }
     run.updatedAt = Date.now();
-    if (publish) { try { this.emit(copy(event)); } catch { /* Renderer teardown cannot break cleanup. */ } }
+    if (publish && !this.closed) { try { this.emit(copy(event)); } catch { /* Renderer teardown cannot break cleanup. */ } }
   }
   _status(run, estado, fields = {}) { run.estado = estado; this._event(run, 'status', { estado, ...fields }); this._saveSoon(); }
   _runFor(root, id) {
@@ -221,6 +221,8 @@ class AgentRun {
   read(root, id) { const run = this._runFor(root, id); return { run: this._metadata(run), eventos: copy(run.eventos) }; }
 
   async capabilities(root) {
+    if (!root) throw new Error('Informe a raiz do projeto para verificar a CLI.');
+    root = directory(root);
     const searchEnv = { ...this.env, PATH: (this.env.PATH || '').split(path.delimiter).filter(entry => path.isAbsolute(entry)).join(path.delimiter) };
     let binario = executable('claude', searchEnv), key = null;
     const base = { disponivel: false, versao: null, binario, motivo: 'Instale a CLI oficial do Claude. Abrir no terminal oficial.', aprovacao_host_provada: false };
@@ -229,7 +231,7 @@ class AgentRun {
       try {
         binario = await fs.promises.realpath(binario);
         // Check before probing: even --version/--help executes project code.
-        if (root && inside(root, binario)) {
+        if (inside(root, binario)) {
           this.capabilityKey = null;
           return { claude: { ...base, binario, motivo: 'Binário do Claude dentro do projeto recusado. Abrir no terminal oficial.' }, codex: { disponivel: false, motivo: 'Use o painel Codex' } };
         }
@@ -634,7 +636,7 @@ class AgentRun {
       this._status(w.run, estado, { ...(w.result || {}), sessionId: w.run.sessionId, parcial: w.run.parcial, cleanupPartial: w.run.cleanupPartial, ...(w.failure || w.cleanupReason ? { motivo: w.failure || w.cleanupReason } : {}) });
       this._save();
       // snapshot is not retained recursively in the event ring.
-      try { this.emit({ runId: w.run.runId, root: w.run.root, seq: ++w.run.seq, at: Date.now(), type: 'snapshot', ...this.read(w.run.root, w.run.runId) }); } catch {}
+      if (!this.closed) { try { this.emit({ runId: w.run.runId, root: w.run.root, seq: ++w.run.seq, at: Date.now(), type: 'snapshot', ...this.read(w.run.root, w.run.runId) }); } catch {} }
       w.resolve(); this._drain();
     }
   }
@@ -649,12 +651,16 @@ class AgentRun {
     } finally { this.closingProjects.delete(root); this._drain(); }
   }
   async cancelAll() {
+    if (this.cancelAllPromise) return this.cancelAllPromise;
     this.generation++; this.canceling = true;
     const workers = [...this.active.values(), ...this.queue];
-    try {
-      const results = await Promise.allSettled([...workers.map(w => this.cancel(w.run.root, w.run.runId)), ...[...this.preparing].map(p => p.done)]);
-      this._save(); return { partial: results.some(r => r.status === 'rejected') || workers.some(w => w.run.cleanupPartial) };
-    } finally { this.canceling = false; }
+    this.cancelAllPromise = (async () => {
+      try {
+        const results = await Promise.allSettled([...workers.map(w => this.cancel(w.run.root, w.run.runId)), ...[...this.preparing].map(p => p.done)]);
+        this._save(); return { partial: results.some(r => r.status === 'rejected') || workers.some(w => w.run.cleanupPartial) };
+      } finally { this.canceling = false; this.cancelAllPromise = null; }
+    })();
+    return this.cancelAllPromise;
   }
   async closeAll() { this.closed = true; await this.ready.catch(() => {}); return this.cancelAll(); }
 }

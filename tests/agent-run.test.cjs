@@ -45,7 +45,7 @@ test('contrato exato do argv, prompt privado composto, eventos e histórico', pl
   const f = fixture(t, 'approval');
   const guide = path.join(f.temp, 'guide.md'); fs.writeFileSync(guide, 'GUIA_UNICO'); f.runner.sources.guide = guide;
   fs.writeFileSync(path.join(f.root, 'AGENTS.md'), 'Instruções deste projeto.');
-  const cap = await f.runner.capabilities();
+  const cap = await f.runner.capabilities(f.root);
   assert.equal(cap.claude.binario, f.binary); assert.equal(cap.claude.versao, '2.1.312');
   assert.equal(cap.claude.disponivel, true); assert.equal(cap.claude.aprovacao_host_provada, false);
   assert.match(cap.claude.motivo, /não confirmado/); assert.deepEqual(cap.codex, { disponivel: false, motivo: 'Use o painel Codex' });
@@ -188,7 +188,7 @@ for (const mode of ['invalid-json', 'bypass-init', 'wrong-session', 'exit-early'
   assert.equal(fs.existsSync(path.join(f.runsDir, runId)), false);
   if (mode === 'invalid-json') assert.equal(result.run.invalidLines, 3);
   else {
-    assert.equal((await f.runner.capabilities()).claude.disponivel, false);
+    assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, false);
     await assert.rejects(f.start(), /init|permissionMode|opção|encerrou|sessão/);
     if (mode === 'exit-early') assert.match(result.eventos.find(e => e.type === 'status' && e.estado === 'falhou').motivo, /unknown option/);
   }
@@ -204,7 +204,7 @@ for (const mode of ['hang-init', 'exit-early-transient']) test(`${mode} preserva
   assert.match(reason, /…\[truncado\]$/); assert.ok(!reason.includes('�'));
   assert.ok(Buffer.byteLength(reason) <= 66 * 1024);
   assert.equal(f.runner.dynamicFailures.size, 0);
-  assert.equal((await f.runner.capabilities()).claude.disponivel, true);
+  assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, true);
   f.env.DK_FAKE_CLAUDE_MODE = 'ok';
   const next = await f.start(); assert.equal((await f.done(next.runId)).run.estado, 'concluido');
 });
@@ -226,7 +226,7 @@ for (const diagnostic of ["argument 'host' is invalid", 'Allowed choices are: te
   assert.equal(result.run.estado, 'falhou');
   const reason = result.eventos.find(e => e.type === 'status' && e.estado === 'falhou').motivo;
   assert.match(reason, /CLI recusou uma opção do protocolo/); assert.ok(reason.includes(diagnostic));
-  assert.equal((await f.runner.capabilities()).claude.disponivel, false);
+  assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, false);
   await assert.rejects(f.start(), /CLI recusou uma opção do protocolo/);
 });
 
@@ -269,7 +269,7 @@ for (const [mode, signal] of [['result-hang', 'SIGTERM'], ['result-resistant', '
 for (const mode of ['auto', 'dontAsk', 'acceptEdits', 'plan', '']) test(`init só aceita manual, rejeita ${mode || 'ausente'}`, platform, async t => {
   const f = fixture(t, 'slow', { env: { DK_FAKE_INIT_MODE: mode || 'undefined' } }), { runId } = await f.start();
   assert.equal((await f.done(runId)).run.estado, 'falhou');
-  assert.equal((await f.runner.capabilities()).claude.disponivel, false);
+  assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, false);
 });
 
 for (const subtype of ['hook_callback', 'mcp_message', 'request_user_dialog', 'elicitation']) test(`controle não suportado: ${subtype}`, platform, async t => {
@@ -296,32 +296,45 @@ test('fora de ordem: tool_result antes do início; eventos após result são ign
   assert.ok(!JSON.stringify(f.events).match(/AFTER_RESULT|late-approval/));
 });
 
+test('capabilities sem raiz recusa sem sondar, inclusive com cache ou runner fechado', platform, async t => {
+  const f = fixture(t);
+  for (const root of [undefined, null, '']) await assert.rejects(f.runner.capabilities(root), /raiz/);
+  await assert.rejects(f.runner.capabilities(path.join(f.temp, 'ausente')), { code: 'ENOENT' });
+  assert.deepEqual(f.log(), []);
+  await f.runner.capabilities(f.root);
+  const probes = f.log();
+  await assert.rejects(f.runner.capabilities(), /raiz/);
+  await f.runner.closeAll();
+  await assert.rejects(f.runner.capabilities(), /raiz/);
+  assert.deepEqual(f.log(), probes);
+});
+
 test('capacidade estática usa cache por binário+mtime e exige versão/flags/manual', platform, async t => {
   const f = fixture(t);
-  await f.runner.capabilities(); await f.runner.capabilities();
+  await f.runner.capabilities(f.root); await f.runner.capabilities(f.root);
   assert.equal(f.log().filter(e => e.spawn?.includes('--version')).length, 1);
   let tick = Date.now();
   const invalidate = () => { tick += 1000; fs.utimesSync(f.binary, new Date(tick), new Date(tick)); };
   f.env.DK_FAKE_VERSION = '2.1.311 (Claude Code)'; invalidate();
-  assert.equal((await f.runner.capabilities()).claude.disponivel, false);
+  assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, false);
   await assert.rejects(f.start(), /capacidade/);
   f.env.DK_FAKE_VERSION = '2.1.312 (Claude Code)';
   for (const flag of ['--permission-prompts', '--permission-prompt-tool', '--input-format', 'stream-json', '--include-partial-messages', '"manual"']) {
     f.env.DK_FAKE_MISSING_FLAG = flag; invalidate();
-    assert.equal((await f.runner.capabilities()).claude.disponivel, false, flag);
+    assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, false, flag);
   }
   delete f.env.DK_FAKE_MISSING_FLAG; invalidate();
-  assert.equal((await f.runner.capabilities()).claude.disponivel, true);
+  assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, true);
   assert.ok(!f.log().some(e => e.spawn?.includes('-p')));
-  f.env.PATH = path.join(f.temp, 'absent'); assert.equal((await f.runner.capabilities()).claude.disponivel, false);
+  f.env.PATH = path.join(f.temp, 'absent'); assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, false);
 });
 
 test('probe lenta expira em 10 s, sai do cache e permite probe rápida sem mudar binário', { ...platform, timeout: 30000 }, async t => {
   const f = fixture(t, 'ok', { env: { DK_FAKE_SLOW_PROBE_ONCE: '1' } });
   const before = fs.statSync(f.binary), started = Date.now();
-  assert.equal((await f.runner.capabilities()).claude.disponivel, false);
+  assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, false);
   assert.ok(Date.now() - started >= 9900); assert.equal(f.runner.capCache.size, 0);
-  assert.equal((await f.runner.capabilities()).claude.disponivel, true);
+  assert.equal((await f.runner.capabilities(f.root)).claude.disponivel, true);
   assert.equal(fs.statSync(f.binary).mtimeMs, before.mtimeMs);
   assert.equal(f.log().filter(e => e.spawn?.includes('--version')).length, 2);
   assert.equal(f.log().filter(e => e.spawn?.includes('--help')).length, 1);
@@ -337,20 +350,34 @@ test('PATH=.:<bin> ignora claude no projeto e resolve somente entrada absoluta',
     process.chdir(f.root);
     for (const relative of ['.', 'relative-bin', '']) {
       f.env.PATH = relative + path.delimiter + f.bin;
-      assert.equal((await f.runner.capabilities()).claude.binario, f.binary);
+      assert.equal((await f.runner.capabilities(f.root)).claude.binario, f.binary);
       const { runId } = await f.start(); assert.equal((await f.done(runId)).run.estado, 'concluido');
     }
     assert.ok(f.log().filter(e => e.spawn).every(e => e.executable === f.binary));
   } finally { process.chdir(cwd); }
 });
 
-for (const symlink of [false, true]) test(`start recusa binário do projeto antes de probe (${symlink ? 'symlink externo' : 'PATH absoluto'})`, platform, async t => {
+for (const symlink of [false, true]) test(`capabilities e start recusam binário do projeto antes de probe (${symlink ? 'symlink externo' : 'PATH absoluto'})`, platform, async t => {
   const f = fixture(t), projectBinary = path.join(f.root, 'claude');
   fs.copyFileSync(f.binary, projectBinary);
   if (symlink) { fs.unlinkSync(f.binary); fs.symlinkSync(projectBinary, f.binary); }
   else f.env.PATH = f.root + path.delimiter + f.bin;
+  const capability = (await f.runner.capabilities(f.root)).claude;
+  assert.equal(capability.disponivel, false);
+  assert.match(capability.motivo, /Binário.*dentro do projeto recusado/);
   await assert.rejects(f.start(), /Binário.*dentro do projeto recusado/);
   assert.equal(f.log().length, 0); assert.equal(f.runner.runs.size, 0);
+});
+
+test('closeAll suprime eventos tardios e preserva o resultado da limpeza no histórico', platform, async t => {
+  const f = fixture(t, 'slow'), { runId } = await f.start();
+  await until(() => f.read(runId).run.estado === 'executando');
+  const count = f.events.length;
+  await f.runner.closeAll();
+  assert.equal(f.events.length, count);
+  assert.equal(f.read(runId).run.estado, 'interrompido');
+  assert.equal(JSON.parse(fs.readFileSync(f.storeFile, 'utf8')).runs[0].estado, 'interrompido');
+  await assert.rejects(f.start(), /encerrado/);
 });
 
 test('retomada exige --resume, mesma raiz e mesmo prompt congelado', platform, async t => {
@@ -481,7 +508,7 @@ test('aprovação pendente permanece recuperável após 600 eventos e expira no 
   const id = pending(f, runId).requestId;
   await f.runner.closeAll();
   assert.ok(!pending(f, runId));
-  assert.ok(f.events.some(e => e.requestId === id && e.status === 'expired'));
+  assert.ok(f.read(runId).eventos.some(e => e.requestId === id && e.status === 'expired'));
   await assert.rejects(f.runner.approve(f.root, runId, id, 'allow'), /encerrada/);
 });
 

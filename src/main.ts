@@ -988,7 +988,7 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   // Attach the rejection handler now so a slow chat cannot leave it unhandled.
   const treeLoading = selectedPanel === 'files' && treeProject !== info.path ? loadRootTree().then(() => null, (error: unknown) => ({ error })) : null;
   if (mainView === 'chat' && chatView) { await chatView.open(info.path); if (!valid()) return false; }
-  if (typeof agentView !== 'undefined' && agentView) { if (mainView === 'agent') { await agentView.open(info.path); if (!valid()) return false; } else void agentView.open(info.path); }
+  if (typeof agentView !== 'undefined' && agentView && (projectChanged || mainView === 'agent')) { if (mainView === 'agent') { await agentView.open(info.path); if (!valid()) return false; } else void agentView.open(info.path); }
   if (treeLoading) { const result = await treeLoading; if (!valid()) return false; if (result) throw result.error; }
   await loadServices(info.path, valid); if (!valid()) return false;
   if (mainView === 'graph') { await loadGraph(valid); if (!valid()) return false; }
