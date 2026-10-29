@@ -96,8 +96,10 @@ test('servidor de arquivos serve o projeto atrás do prefixo secreto e revalida 
 test('markdown é apresentado como HTML sem executar conteúdo do autor', async t => {
   const { project } = fixture(t);
   const body = renderMarkdown('# Título <img src=x onerror=alert(1)>\n\n[a](javascript:alert(1)) [b](docs/a.md)\n\n```\n<script>x</script>\n```');
-  assert.doesNotMatch(body, /<img src=x/);
-  assert.doesNotMatch(body, /<script>/);
+  // Nenhuma tag do autor chega crua: qualquer grafia, com ou sem atributos.
+  assert.doesNotMatch(body, /<img\b/i);
+  assert.doesNotMatch(body, /<script\b/i);
+  assert.match(body, /&lt;script&gt;x&lt;\/script&gt;/);
   assert.match(body, /<a href="#">a<\/a>/);
   assert.match(body, /<a href="docs\/a\.md">b<\/a>/);
   const previews = new FilePreviews(); t.after(() => previews.closeAll());
