@@ -1,14 +1,20 @@
 import { packager } from '@electron/packager';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { packageIgnores } from './package-filter.mjs';
 import icon from '../electron/app-icon.cjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// O sea CLI embutido (scripts/vendor-sea-cli.sh) entra em Resources/sea-cli quando existir.
+const seaCli = path.join(root, 'vendor', 'sea-cli');
+const extraResource = fs.existsSync(path.join(seaCli, 'bin', 'sea')) ? [seaCli] : [];
+if (!extraResource.length) console.warn('[package] vendor/sea-cli ausente: o pacote sai sem o sea CLI (rode scripts/vendor-sea-cli.sh).');
 const outputs = await packager({
   dir: root, name: 'SEA Dock', out: path.join(root, 'release'), overwrite: true,
   asar: { unpackDir: 'node_modules/node-pty' },
   // The renderer is bundled in dist/. Only these dependencies are loaded by the main process at runtime.
   ignore: packageIgnores,
+  extraResource,
   icon: icon.packageIcon(root),
   // Re-seal the renamed Electron bundle after packaging. This local ad-hoc
   // signature provides integrity but is not a Developer ID signature.
