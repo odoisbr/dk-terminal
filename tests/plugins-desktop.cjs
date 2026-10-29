@@ -1,3 +1,5 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
+const { openProjectPanel } = require('./helpers/project-inspector.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -76,7 +78,7 @@ let app;
       await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] }); }, first);
       await page.locator('#launcher-open-local').click();
     } else await page.locator('#launcher-recents .launcher-recent').first().click();
-    await page.locator('.terminal-pane[data-ready=true]').waitFor();
+    await startProjectTerminal(page);
     await app.evaluate(({ dialog }, dir) => {
       global.__pluginDialogs = []; global.__pluginResponse = 0; global.__holdPluginDialog = false; global.__resumePluginDialog = null;
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
@@ -95,14 +97,14 @@ let app;
     });
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(940, 620));
     await page.waitForFunction(() => window.innerWidth === 940);
-    const tabs = await page.locator('.inspector-tabs').evaluate(container => {
+    const tabs = await page.locator('.inspector-rail').evaluate(container => {
       return [...container.querySelectorAll('button')].map(button => {
         const rect = button.getBoundingClientRect();
-        return { label: button.textContent.trim(), left: rect.left, right: rect.right, top: rect.top };
+        return { label: button.getAttribute('aria-label'), left: rect.left, top: rect.top, bottom: rect.bottom };
       });
     });
     assert.deepEqual(tabs.map(tab => tab.label), ['Pasta', 'Git', 'Contexto', 'Serviços', 'Consumo']);
-    assert.ok(tabs.every((tab, index) => Math.abs(tab.top - tabs[0].top) < 2 && (index === 0 || tab.left >= tabs[index - 1].right - 1)), 'As cinco guias devem permanecer em uma linha horizontal.');
+    assert.ok(tabs.every((tab, index) => Math.abs(tab.left - tabs[0].left) < 2 && (index === 0 || tab.top >= tabs[index - 1].bottom - 1)), 'Os cinco ícones devem permanecer em uma coluna vertical.');
     await page.locator('#tab-files').focus();
     await page.keyboard.press('ArrowRight');
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'tab-git');
@@ -221,7 +223,7 @@ let app;
     assert.equal(fs.existsSync(markerA), false, 'Cancelar o split não pode executar a ação novamente.');
     assert.equal(await page.locator('#tabs .tab').count(), tabsBeforeSplit);
     // O perfil fechado não impede a divisão da sessão de plugin.
-    await page.locator('#tab-files').click();
+    await openProjectPanel(page, 'files');
     await page.locator('#panel-files').waitFor();
     await delay(300);
     await app.evaluate(() => { global.__pluginResponse = 1; });
@@ -325,7 +327,7 @@ let app;
 
     const secondSession = (await page.locator('#tabs .tab-select[aria-selected="true"]').getAttribute('id')).slice(4);
     await page.locator(`#pane-${secondSession}[data-ready="true"]`).waitFor();
-    await page.locator('#tab-files').click();
+    await openProjectPanel(page, 'files');
     await delay(300);
     fs.unlinkSync(markerB);
     const revision = secondInfo.plugins.find(item => item.id === 'isolado').revision;

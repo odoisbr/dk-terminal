@@ -5,7 +5,7 @@
 	<key>CFBundleIdentifier</key>
 	<string>br.com.sea.dk.open</string>
 	<key>CFBundleName</key>
-	<string>Abrir com DK</string>
+	<string>Abrir com SEA Dock</string>
 	<key>DKManagedIntegration</key>
 	<true/>
 	<key>NSServices</key>
@@ -18,7 +18,7 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Abrir com DK</string>
+				<string>Abrir com SEA Dock</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>runWorkflowAsService</string>

@@ -1,3 +1,4 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
 const { _electron: electron }=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
@@ -61,7 +62,7 @@ async function main(){
  await page.getByRole('button',{name:/imagem.png/}).click();await page.locator('.remote-image').waitFor();assert.equal(await page.locator('.remote-image').evaluate(el=>el.complete && el.naturalWidth>0),true);assert.equal(await app.evaluate(()=>global.__localCopies),0);
  if(process.env.DK_TERMINAL_EXECUTABLE){await app.evaluate(({dialog},project)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[project]});},project);await page.getByRole('button',{name:'Início',exact:true}).click();await page.locator('#launcher-open-local').click();}
  else {await page.getByRole('button',{name:'Preparar cópia local'}).click();}
- await page.locator('.terminal-pane[data-ready=true]').waitFor();assert.equal(await page.locator('#launcher').isVisible(),false);
+ await startProjectTerminal(page);assert.equal(await page.locator('#launcher').isVisible(),false);
  if(!process.env.DK_TERMINAL_EXECUTABLE)assert.equal(await app.evaluate(()=>global.__localCopies),1);
  await page.getByRole('button',{name:'Recolher sidebar'}).click();const width=(await page.locator('.sidebar').boundingBox()).width;if(process.platform==='darwin')assert.ok(width>=84);
  await page.getByRole('button',{name:'Tema SEA'}).click();assert.equal(await page.locator('.brand-logo').isVisible(),false);assert.equal(await page.locator('.sea-logo-compact').isVisible(),true);assert.ok((await page.locator('.sea-logo-compact').boundingBox()).width >= 40);assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).getPropertyValue('--sidebar').trim()),'#112b36');

@@ -1,3 +1,5 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
+const { openProjectPanel } = require('./helpers/project-inspector.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -34,7 +36,7 @@ async function main() {
     await app.evaluate(({dialog},project)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[project]});}, project);
     await page.locator('#launcher-open-local').click();
   } else { await page.locator('#launcher-recents .launcher-recent').first().click(); }
-  await page.locator('.terminal-pane[data-ready="true"]').waitFor();
+  await startProjectTerminal(page);
   if (process.env.DK_TERMINAL_EXECUTABLE) {
     const headless = await app.evaluate(({app})=>{
       const createRequire=process.getBuiltinModule('module').createRequire;
@@ -43,6 +45,7 @@ async function main() {
     });
     assert.equal(headless,true);
   }
+  await openProjectPanel(page, 'files');
   await page.locator('.tree-file').filter({hasText:'codigo.ts'}).click();
   await page.locator('.cm-content').waitFor();
   assert.equal(await page.locator('#terminal-view').isVisible(),true);
@@ -68,13 +71,21 @@ async function main() {
   assert.equal(await page.locator('#editor-view').isVisible(),true);
   const hostBounds=await page.locator('#terminal-host').boundingBox(), lastBounds=await page.locator(`#pane-${splitId}`).boundingBox();
   assert.ok(Math.abs(hostBounds.width-lastBounds.width)<3, 'O terceiro painel ocupa toda a largura');
+  await app.evaluate(({ipcMain})=>{
+    const original=ipcMain._invokeHandlers?.get('terminal:split');if(!original)throw new Error('Handler de divisão indisponível.');
+    global.__editorOriginalSplit=original;ipcMain.removeHandler('terminal:split');
+    ipcMain.handle('terminal:split',async(...args)=>{await new Promise(resolve=>{global.__editorResumeSplit=resolve;});return original(...args);});
+  });
   await page.getByRole('button',{name:'Dividir com agente'}).click();
   await page.getByRole('menuitem',{name:'Agente de teste à direita'}).click();
-  await page.locator('.agent-startup').waitFor({state:'visible',timeout:3000});
+  await page.waitForFunction(()=>/Abrindo Agente de teste/.test(document.querySelector('#session-state')?.textContent||''));
+  assert.equal(await page.locator('#session-state[role=status]').isVisible(),true);
+  await app.evaluate(()=>{if(typeof global.__editorResumeSplit!=='function')throw new Error('Divisão não foi suspensa.');global.__editorResumeSplit();global.__editorResumeSplit=null;});
   await page.waitForFunction(id=>{const active=document.querySelector('.tab-select[aria-selected=true]');return active && active.id !== `tab-${id}`;},splitId);
   const agentSplitId=(await page.locator('.tab-select[aria-selected=true]').getAttribute('id')).slice(4);
   await page.waitForFunction(id=>(window.__splitOutput[id]||'').includes('FAKE_AGENT_READY'),agentSplitId);
-  await page.locator('.agent-startup').waitFor({state:'detached'});
+  await page.waitForFunction(()=>!/Abrindo Agente de teste/.test(document.querySelector('#session-state')?.textContent||''));
+  await app.evaluate(({ipcMain})=>{ipcMain.removeHandler('terminal:split');ipcMain.handle('terminal:split',global.__editorOriginalSplit);global.__editorOriginalSplit=null;});
   await page.locator('.tab.active .tab-close').click();
   await page.locator('.tab.active .tab-close').click();
   console.log('✓ Split preserva a pasta atual, cria sessão independente e mantém editor e terminal visíveis');
@@ -240,4 +251,4 @@ async function main() {
   assert.deepEqual(errors,[]);
   await page.screenshot({path:path.join(root,'artifacts','dk-editor-visual.png')});
 }
-main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(app) { await app.evaluate(({dialog})=>{dialog.showMessageBox=async()=>({response:1});}).catch(()=>{}); await app.close(); } fs.rmSync(temp,{recursive:true,force:true});});
+main().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(app) { await app.evaluate(({dialog,ipcMain})=>{dialog.showMessageBox=async()=>({response:1});if(typeof global.__editorResumeSplit==='function')global.__editorResumeSplit();if(global.__editorOriginalSplit){ipcMain.removeHandler('terminal:split');ipcMain.handle('terminal:split',global.__editorOriginalSplit);}}).catch(()=>{}); await app.close(); } fs.rmSync(temp,{recursive:true,force:true});});

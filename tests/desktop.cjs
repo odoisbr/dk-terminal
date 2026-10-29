@@ -1,3 +1,5 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
+const { openProjectPanel } = require('./helpers/project-inspector.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -37,7 +39,7 @@ async function main() {
   } else { await page.locator('#launcher-recents .launcher-recent').first().click(); }
   await page.locator('#project-title').getByText('Teste do terminal', { exact: true }).waitFor();
   assert.equal(await page.locator('#breadcrumb-project').innerText(), 'Teste do terminal');
-  await page.locator('.terminal-pane[data-ready="true"]').waitFor();
+  await startProjectTerminal(page);
   assert.equal(await page.locator('#open-browser').isDisabled(),true);
   assert.equal(await page.getByRole('button',{name:'Configurar kit'}).count(),0);
   await page.getByRole('button',{name:'Tema SEA'}).click();
@@ -62,7 +64,7 @@ async function main() {
   assert.notEqual(await page.locator('#system-cpu').innerText(), '—');
   assert.match(await page.locator('#system-memory').innerText(), /\//);
   if (process.platform === 'darwin' || process.platform === 'linux') { assert.ok(resource.system.swap); assert.match(await page.locator('#system-swap').innerText(), /\//); }
-  assert.equal(await page.locator('.inspector-tabs button').first().innerText(), 'Pasta');
+  assert.equal(await page.locator('.inspector-rail button').first().getAttribute('aria-label'), 'Pasta');
   assert.match(await page.locator('#resource-indicator').getAttribute('title'),/Terminais|terminais/);
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(940,620));
   await page.waitForTimeout(150);
@@ -91,7 +93,7 @@ async function main() {
   await page.waitForFunction(id=>(window.__output[id]||'').includes('DK_PERSIST=unset:1\r\n'),id);
   checkpoint('PTY remove marcador herdado e habilita persistência de histórico do Claude');
   await page.getByRole('button',{name:'Otimizar recursos'}).click();
-  await page.getByRole('status').filter({hasText:'Caches temporários do DK limpos.'}).waitFor();
+  await page.getByRole('status').filter({hasText:'Caches temporários do SEA Dock limpos.'}).waitFor();
   assert.equal(await page.locator('.terminal-pane[data-ready="true"]').count(),1);
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(940,620));
   await page.waitForTimeout(150);
@@ -117,7 +119,7 @@ async function main() {
   assert.equal(await page.getByRole('button', { name: 'Visualizar protótipo', exact: true }).innerText(), '');
   assert.equal(await page.locator('#launch-claude').innerText(), '');
   assert.equal(await page.locator('#launch-codex').innerText(), '');
-  assert.equal(await page.locator('#tab-files').getAttribute('aria-selected'), 'true');
+  assert.equal(await page.locator('#tab-files').getAttribute('aria-expanded'), 'false');
   assert.equal(await page.locator('.project-select[aria-current="page"]').getAttribute('title'), 'Teste do terminal');
   assert.ok(await page.getByRole('button', { name: /Claude Code/ }).count());
   assert.ok(await page.getByRole('button', { name: /Codex/ }).count());
@@ -130,10 +132,12 @@ async function main() {
   checkpoint('Múltiplas abas e redimensionamento');
   await page.locator('#expand-terminal').click();
   assert.equal(await page.locator('.sidebar').isVisible(), true);
-  assert.equal(await page.locator('.context-panel').isVisible(), false);
+  assert.equal(await page.locator('.inspector-rail').isVisible(), true);
+  assert.equal(await page.locator('#project-inspector-panel').isVisible(), false);
   assert.equal(await page.locator('#resource-indicator').isVisible(), true);
   await page.getByRole('button', { name: 'Restaurar visualização do terminal', exact: true }).click();
-  assert.equal(await page.locator('.context-panel').isVisible(), true);
+  assert.equal(await page.locator('.inspector-rail').isVisible(), true);
+  assert.equal(await page.locator('#project-inspector-panel').isVisible(), false);
   checkpoint('Terminal expande e restaura sem encerrar a sessão');
   await page.locator('#search-toggle').click();
   await page.locator('#terminal-search').fill('teste');
@@ -167,8 +171,9 @@ async function main() {
   await page.locator('#open-project').click();
   await page.waitForFunction(() => document.querySelector('#project-title').textContent === 'Outro projeto');
   assert.equal(await page.locator('#breadcrumb-project').innerText(), 'Outro projeto');
-  await page.locator('.project-select').filter({ hasText: path.basename(fixture) }).click();
-  await page.waitForFunction(fixture => document.querySelector('#project-path').textContent === fixture, fixture);
+  await startProjectTerminal(page);
+  await page.locator('.project-select').filter({ hasText: 'Teste do terminal' }).click();
+  await page.waitForFunction(fixture => document.querySelector('#breadcrumb-project')?.dataset.projectPath === fixture, fixture);
   assert.equal(await page.locator('.tab').count(), 1);
   assert.equal(await page.locator('#session-count').innerText(), '2 sessões');
   checkpoint('Troca de projetos preserva as sessões em suas pastas');
@@ -176,15 +181,15 @@ async function main() {
   await page.waitForFunction(() => document.querySelector('#project-title').textContent === 'Outro projeto');
   await application.evaluate(({ app }, file) => app.emit('open-file', { preventDefault() {} }, file), path.join(fixture, 'src', 'app.ts'));
   await page.waitForFunction(() => document.querySelector('#project-title').textContent === 'src');
-  await page.locator('.project-select').filter({ hasText: path.basename(fixture) }).click();
-  await page.waitForFunction(fixture => document.querySelector('#project-path').textContent === fixture, fixture);
+  await page.locator('.project-select').filter({ hasText: 'Teste do terminal' }).click();
+  await page.waitForFunction(fixture => document.querySelector('#breadcrumb-project')?.dataset.projectPath === fixture, fixture);
   checkpoint('Abrir com DK recebe pastas e arquivos pelo evento nativo do macOS');
-  await page.getByRole('tab', { name: 'Pasta', exact: true }).click();
+  await openProjectPanel(page, 'files');
   assert.equal(await page.locator('#tree-project-name').innerText(), 'Teste do terminal');
   await page.locator('.tree-folder').filter({ hasText: 'src' }).click();
   await page.locator('.tree-file').filter({ hasText: 'app.ts' }).waitFor();
   assert.equal(await page.locator('#panel-context').isVisible(), false);
-  checkpoint('Aba Pasta abre por padrão e navega na árvore com carregamento por diretório');
+  checkpoint('Painel Pasta navega na árvore com carregamento por diretório');
   await page.locator('.tree-file').filter({ hasText: 'app.ts' }).click();
   await page.locator('.cm-content').waitFor();
   assert.equal(await page.locator('.tree-file').filter({hasText:'app.ts'}).getAttribute('aria-current'), 'true');
@@ -226,11 +231,11 @@ async function main() {
     ipcMain.removeHandler('usage:read');
     ipcMain.handle('usage:read',()=>({ok:true,value:{checkedAt:Date.now(),providers:[{id:'codex',name:'Codex (teste)',windows:[{id:'session',label:'Sessão · 5 horas',usedPercent:18,resetsAt:null}],message:'Dados sintéticos para teste da interface',checkedAt:Date.now()}]}}));
   });
-  await page.locator('#tab-usage').click();
+  await openProjectPanel(page, 'usage');
   await page.getByRole('progressbar').waitFor();
   assert.equal(await page.getByRole('progressbar').getAttribute('aria-valuenow'),'18');
   checkpoint('Guia Consumo apresenta quota informada e distingue dados indisponíveis');
-  await page.getByRole('tab', { name: 'Serviços', exact: true }).click();
+  await openProjectPanel(page, 'services');
   const startService = page.getByRole('button', { name: 'Iniciar serviço web', exact: true });
   await startService.click();
   await page.getByRole('button', { name: 'Desligar serviço web', exact: true }).waitFor();
@@ -239,7 +244,7 @@ async function main() {
   const serviceUrl = await page.locator('.service-address').textContent();
   assert.equal(await (await fetch(serviceUrl)).text(), 'DK_PREVIEW_OK');
   await page.getByRole('button',{name:'Otimizar recursos'}).click();
-  await page.getByRole('status').filter({hasText:'Caches temporários do DK limpos.'}).waitFor();
+  await page.getByRole('status').filter({hasText:'Caches temporários do SEA Dock limpos.'}).waitFor();
   assert.equal(await (await fetch(serviceUrl)).text(), 'DK_PREVIEW_OK');
   assert.equal(await page.locator('#browser-view').isVisible(), true);
   await page.waitForFunction(()=>document.querySelector('#browser-address').value.startsWith('http://127.0.0.1:'));
@@ -279,8 +284,8 @@ async function main() {
   await assert.rejects(fetch(restartedUrl));
   checkpoint('Ícone do protótipo só funciona com front-end em execução');
   await page.locator('.project-select').filter({hasText:'Outro projeto'}).click();
-  await page.waitForFunction(other=>document.querySelector('#project-path').textContent===other,other);
-  await page.getByRole('tab', { name: 'Serviços', exact: true }).click();
+  await page.waitForFunction(other=>document.querySelector('#breadcrumb-project')?.dataset.projectPath===other,other);
+  await openProjectPanel(page, 'services');
   assert.equal(await page.locator('#open-browser').isDisabled(),true);
   await page.getByRole('button',{name:'Iniciar serviço api',exact:true}).click();
   await page.getByRole('button',{name:'Desligar serviço api',exact:true}).waitFor();
@@ -297,10 +302,10 @@ async function main() {
   await page.getByRole('button',{name:'Desligar serviço da prévia',exact:true}).click();
   await page.getByRole('button',{name:'Desligar serviço api',exact:true}).click();
   await page.getByRole('button',{name:'Desligar serviço start',exact:true}).click();
-  await page.locator('.project-select').filter({hasText:path.basename(fixture)}).click();
-  await page.waitForFunction(fixture=>document.querySelector('#project-path').textContent===fixture,fixture);
+  await page.locator('.project-select').filter({hasText:'Teste do terminal'}).click();
+  await page.waitForFunction(fixture=>document.querySelector('#breadcrumb-project')?.dataset.projectPath===fixture,fixture);
   checkpoint('Um serviço de API sozinho não habilita a prévia de front-end');
-  await page.getByRole('tab', { name: 'Serviços', exact: true }).click();
+  await openProjectPanel(page, 'services');
   await page.locator('#toggle-sidebar').click();
   assert.equal(await page.locator('#toggle-sidebar').getAttribute('aria-expanded'), 'false');
   assert.equal(await page.locator('#panel-services').isVisible(), true);

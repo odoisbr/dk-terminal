@@ -1,8 +1,10 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { openProjectPanel } = require('./helpers/project-inspector.cjs');
 
 // Projeto, perfil, shell e serviço HTTP pertencem somente à fixture temporária.
 const root = path.resolve(__dirname, '..');
@@ -20,7 +22,7 @@ http.createServer((request, response) => {
 })
   .listen(0, '127.0.0.1', function () { console.log('http://127.0.0.1:' + this.address().port); });
 `);
-fs.writeFileSync(path.join(first, 'dk-terminal.services.json'), JSON.stringify({ services: [
+for (const project of [first, second]) fs.writeFileSync(path.join(project, 'dk-terminal.services.json'), JSON.stringify({ services: [
   { name: 'web', role: 'frontend', command: process.execPath, args: [server] },
 ] }));
 
@@ -251,11 +253,22 @@ async function nativeProbe(focus) {
       ipcMain.removeHandler('gitlab:projects');
       ipcMain.handle('gitlab:projects', async () => ({ ok: true, value: { items: [], hasMore: false } }));
     });
+    // A fixture conta somente terminais; serviços HTTP são processos legítimos.
+    await app.evaluate(({ ipcMain }) => {
+      global.__browserTerminalCounts = { create: 0, start: 0 }; global.__browserTerminalHandlers = {};
+      for (const [channel, key] of [['terminal:create', 'create'], ['terminal:start', 'start']]) {
+        const original = ipcMain._invokeHandlers?.get(channel);
+        if (!original) throw new Error(`Handler ${channel} indisponível.`);
+        global.__browserTerminalHandlers[channel] = original;
+        ipcMain.removeHandler(channel);
+        ipcMain.handle(channel, async (...args) => { global.__browserTerminalCounts[key]++; return original(...args); });
+      }
+    });
     if (executablePath) {
       await app.evaluate(({ dialog }, directory) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] }); }, first);
       await page.locator('#launcher-open-local').click();
     } else await page.locator('#launcher-recents .launcher-recent').first().click();
-    await page.locator('.terminal-pane[data-ready=true]').waitFor();
+    await startProjectTerminal(page);
     const terminalId = (await page.locator('.tab-select[aria-selected=true]').getAttribute('id')).slice(4);
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1120, 720));
     await page.waitForFunction(() => innerWidth === 1120 && innerHeight === 720);
@@ -275,6 +288,43 @@ async function nativeProbe(focus) {
     let originalView = (await windowState()).view;
     let originalURL = originalView.url;
     await expectMode(false, false);
+
+    // A prévia é uma view nativa, acima do HTML: abrir/fechar a árvore deve
+    // ajustar seus limites e manter ícones, painel e menu fora dessa view.
+    await openProjectPanel(page, 'files');
+    const { actual: previewBounds } = await expectBounds();
+    const buttons = await page.locator('.inspector-rail button:visible, #project-inspector-panel button:visible').evaluateAll(nodes => nodes.map(node => {
+      const rect = node.getBoundingClientRect();
+      return { label: node.getAttribute('aria-label') || node.textContent, x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }));
+    assert.ok(buttons.length >= 5);
+    const overlaps = rect => rect.x < previewBounds.x + previewBounds.width && rect.x + rect.width > previewBounds.x && rect.y < previewBounds.y + previewBounds.height && rect.y + rect.height > previewBounds.y;
+    for (const rect of buttons) assert.equal(overlaps(rect), false, `A prévia encobriu um controle do projeto: ${JSON.stringify(rect)}`);
+    const file = page.locator('.tree-file[data-relative="dk-terminal.services.json"]');
+    await file.waitFor();
+    const menu = page.getByRole('menu', { name: 'Ações do item' });
+    for (const method of ['mouse', 'keyboard']) {
+      if (method === 'mouse') await file.click({ button: 'right' });
+      else { await file.focus(); await page.keyboard.press('Shift+F10'); }
+      await menu.waitFor();
+      const menuRect = await menu.boundingBox();
+      const panelRect = await page.locator('#project-inspector-panel').boundingBox();
+      assert.ok(menuRect && panelRect);
+      assert.equal(overlaps(menuRect), false, `O menu da árvore foi encoberto pela prévia (${method}).`);
+      assert.ok(menuRect.x >= panelRect.x && menuRect.y >= panelRect.y && menuRect.x + menuRect.width <= panelRect.x + panelRect.width + 1 && menuRect.y + menuRect.height <= panelRect.y + panelRect.height + 1, `O menu ultrapassou os limites do painel (${method}).`);
+      await menu.getByRole('menuitem', { name: 'Copiar nome' }).waitFor();
+      await page.keyboard.press('Escape'); await menu.waitFor({ state: 'hidden' });
+      assert.equal(await file.evaluate(node => document.activeElement === node), true, 'Escape deve devolver o foco ao arquivo.');
+    }
+    await file.click({ button: 'right' }); await menu.waitFor();
+    await page.locator('#reveal-project').focus();
+    await menu.waitFor({ state: 'hidden' });
+    await page.locator('#tab-files').click();
+    await page.locator('#project-inspector-panel').waitFor({ state: 'hidden' });
+    await expectBounds();
+    await expectSamePreview(originalView.id, originalURL);
+    await expectService(pid, url);
+    console.log('✓ Árvore e menu permanecem acessíveis ao lado da prévia nativa');
 
     // O launcher precisa ficar acima da prévia, sem destruí-la ou interromper o serviço.
     await page.locator('#profile-show').click();
@@ -371,7 +421,7 @@ async function nativeProbe(focus) {
     const control = page.locator('#browser-fullscreen');
 
     if (nativeFullscreen && process.env.DK_FULLSCREEN_WAIT_FOCUS === '1') {
-      console.log('Aguardando foco na janela temporária do DK Terminal.');
+      console.log('Aguardando foco na janela temporária do SEA Dock.');
       await until(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isFocused()), 'A janela de teste não recebeu foco.', 90000);
     }
     await control.click();
@@ -445,22 +495,48 @@ async function nativeProbe(focus) {
     const oldView = (await windowState()).view.id;
     await app.evaluate(({ dialog }, directory) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] }); }, second);
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send('app:menu', 'open'));
-    await page.waitForFunction(directory => document.querySelector('#project-path')?.textContent === directory, second, { timeout: 20000 });
+    await page.waitForFunction(directory => document.querySelector('#breadcrumb-project')?.dataset.projectPath === directory, second, { timeout: 20000 });
     await until(async () => !(await windowState()).fullscreen && !(await windowState()).view, 'A troca de projeto não retirou a prévia anterior.', 30000);
     assert.equal(await page.evaluate(() => document.body.classList.contains('browser-fullscreen')), false);
     assert.equal(await app.evaluate(({ webContents }, id) => !!webContents.fromId(id), oldView), false);
     assert.equal(await page.locator(`#pane-${terminalId}`).count(), 1, 'A sessão do primeiro projeto não deve ser encerrada.');
     assert.equal(await page.locator('.project-select[title="Primeiro projeto"]').count(), 1);
+    await page.locator('#terminal-view').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#browser-view').isVisible(), false, 'O projeto sem sessão não deve permanecer no placeholder da prévia anterior.');
+    await page.locator('#terminal-empty').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#tabs .tab').count(), 0, 'A troca de projeto não deve iniciar um terminal.');
+    assert.equal(await page.locator(`#pane-${terminalId}`).isVisible(), false);
     await expectService(pid, url);
-    console.log('✓ Trocar de projeto sai da prévia sem encerrar o serviço ou a sessão anterior');
+    assert.deepEqual(await app.evaluate(() => global.__browserTerminalCounts), { create: 1, start: 1 });
+    // O segundo projeto não tem sessão: iniciar e desligar sua própria prévia
+    // não pode criar PTY, nem interromper o serviço do primeiro projeto.
+    await openProjectPanel(page, 'services');
+    await page.getByRole('button', { name: 'Iniciar serviço web', exact: true }).click();
+    let secondService;
+    await until(async () => {
+      secondService = (await page.evaluate(directory => window.dk.listServices(directory), second)).find(item => item.id === 'custom:web');
+      return secondService?.status === 'running' && secondService.pid && secondService.url;
+    }, 'O serviço do segundo projeto não iniciou.');
+    await page.locator('#browser-view').waitFor({ state: 'visible' });
+    await until(async () => { const view = (await windowState()).view; return view && !view.loading && (view.url === secondService.url || view.url === secondService.url + '/'); }, 'A prévia do segundo projeto não abriu.');
+    assert.equal(await preview("document.body.textContent.includes('DK_FULLSCREEN_FIXTURE')"), true);
+    assert.deepEqual(await app.evaluate(() => global.__browserTerminalCounts), { create: 1, start: 1 });
+    await page.locator('#browser-stop').click();
+    await until(async () => {
+      const service = (await page.evaluate(directory => window.dk.listServices(directory), second)).find(item => item.id === 'custom:web');
+      return service && service.status !== 'running' && service.status !== 'starting' && service.status !== 'stopping';
+    }, 'O serviço do segundo projeto não foi encerrado.');
+    assert.deepEqual(await app.evaluate(() => global.__browserTerminalCounts), { create: 1, start: 1 });
+    await expectService(pid, url);
+    console.log('✓ Trocar projeto e iniciar/desligar prévia não criam terminal nem encerram serviço anterior');
   } finally {
     if (app) {
       if (page) {
         // Encerramento explícito apenas das sessões e do serviço da fixture.
-        try { await page.evaluate(async directory => { const service = (await window.dk.listServices(directory)).find(item => item.id === 'custom:web'); if (service && ['running', 'starting'].includes(service.status)) await window.dk.stopService(directory, service.id); }, first); } catch {}
+        for (const directory of [first, second]) try { await page.evaluate(async root => { const service = (await window.dk.listServices(root)).find(item => item.id === 'custom:web'); if (service && ['running', 'starting'].includes(service.status)) await window.dk.stopService(root, service.id); }, directory); } catch {}
         for (const directory of [first, second]) try { await page.evaluate(root => window.dk.closeProjectSessions(root), directory); } catch {}
       }
-      try { await app.evaluate(({ ipcMain }) => { if (global.__fullscreenGitlabHandler) { ipcMain.removeHandler('gitlab:projects'); ipcMain.handle('gitlab:projects', global.__fullscreenGitlabHandler); } }); } catch {}
+      try { await app.evaluate(({ ipcMain }) => { if (global.__fullscreenGitlabHandler) { ipcMain.removeHandler('gitlab:projects'); ipcMain.handle('gitlab:projects', global.__fullscreenGitlabHandler); } for (const [channel, handler] of Object.entries(global.__browserTerminalHandlers || {})) { ipcMain.removeHandler(channel); ipcMain.handle(channel, handler); } }); } catch {}
       try { await app.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; if (window?.isFullScreen()) window.setFullScreen(false); }); } catch {}
       try { await app.evaluate(({ BrowserWindow }) => {
         const window = BrowserWindow.getAllWindows()[0];

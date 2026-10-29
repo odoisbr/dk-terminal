@@ -76,7 +76,7 @@ function readCodex(env, root, register) {
         if (value.id === 3) return finish(null, codexSnapshot(account, value.result));
       }
     });
-    write({ id: 1, method: 'initialize', params: { clientInfo: { name: 'dk_terminal', title: 'DK Terminal', version } } });
+    write({ id: 1, method: 'initialize', params: { clientInfo: { name: 'dk_terminal', title: 'SEA Dock', version } } });
   });
 }
 function readClaude(env, root, register) {

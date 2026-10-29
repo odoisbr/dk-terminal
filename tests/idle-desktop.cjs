@@ -1,3 +1,4 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -13,7 +14,7 @@ async function main() {
   await page.locator('#startup-loading').waitFor({state:'detached'});
   if(process.env.DK_TERMINAL_EXECUTABLE) { await app.evaluate(({dialog},root)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[root]});},project); await page.locator('#launcher-open-local').click(); }
   else await page.locator('#launcher-recents .launcher-recent').first().click();
-  await page.locator('.terminal-pane[data-ready=true]').waitFor();
+  await startProjectTerminal(page);
   await page.waitForFunction(()=>document.querySelector('#system-cpu')?.textContent!=='—',null,{timeout:20000});
   const first=(await page.locator('.tab-select[aria-selected=true]').getAttribute('id')).slice(4);
   await app.evaluate(({ipcMain},id)=>{

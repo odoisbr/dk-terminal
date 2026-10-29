@@ -1,3 +1,4 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -58,7 +59,7 @@ async function launch() {
     await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] }); }, project);
     await page.locator('#launcher-open-local').click();
   } else await page.locator('#launcher-recents .launcher-recent').first().click();
-  await page.locator('.terminal-pane[data-ready=true]').waitFor();
+  await startProjectTerminal(page);
   const id = (await page.locator('.tab-select[aria-selected=true]').getAttribute('id')).slice(4);
   activePage = page; activeId = id;
   await page.evaluate(() => {

@@ -1,3 +1,4 @@
+const { openProjectPanel } = require('./helpers/project-inspector.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -60,6 +61,7 @@ let app, page;
     }
 
     // Open a real editor and change its buffer without saving it to disk.
+    await openProjectPanel(page, 'files');
     await page.locator('.tree-file[data-relative="nota.txt"]').click();
     await page.locator('.cm-content').click();
     await page.keyboard.insertText(' edição não salva');

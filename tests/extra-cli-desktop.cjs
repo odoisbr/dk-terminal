@@ -1,3 +1,4 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
 const { _electron: electron }=require('playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),temp=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'dk-cli-icons-'))),project=path.join(temp,'Projeto'),bin=path.join(temp,'bin');fs.mkdirSync(project);fs.mkdirSync(bin);
@@ -7,7 +8,7 @@ const shell=path.join(temp,'shell');fs.writeFileSync(shell,`#!/bin/sh\nif [ "$1"
  app=await electron.launch({executablePath:process.env.DK_TERMINAL_EXECUTABLE||undefined,args:process.env.DK_TERMINAL_EXECUTABLE?[]:[root],env:{...process.env,SHELL:shell,PATH:`${bin}:/usr/bin:/bin:/usr/sbin:/sbin`,DK_TERMINAL_TEST:'1',DK_TERMINAL_TEST_PROJECT:project,DK_TERMINAL_DATA_DIR:path.join(temp,'profile')}});
  const page=await app.firstWindow();await page.locator('#startup-loading').waitFor({state:'detached'});
  if(process.env.DK_TERMINAL_EXECUTABLE){await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});},project);await page.locator('#launcher-open-local').click();}else await page.locator('.project-select').click();
- await page.locator('.terminal-pane[data-ready=true]').waitFor();
+ await startProjectTerminal(page);
  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(940,620));
  for(const id of ['antigravity','gemini','dk']){const bounds=await page.locator(`#launch-${id}`).boundingBox();assert.ok(bounds&&bounds.x+bounds.width<=940,`${id} está fora da janela`);}
  await page.locator('#split-agent').click();for(const name of ['Antigravity à direita','Gemini CLI à direita','DK CLI à direita'])assert.equal(await page.getByRole('menuitem',{name}).isEnabled(),true);await page.keyboard.press('Escape');

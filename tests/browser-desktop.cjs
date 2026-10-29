@@ -1,3 +1,4 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
 // Testes isolados: ambos os hosts respondem no mesmo servidor de loopback.
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
@@ -57,7 +58,7 @@ async function preview(script) {
       await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] }); }, first);
       await page.locator('#launcher-open-local').click();
     } else await page.locator('#launcher-recents .launcher-recent').first().click();
-    await page.locator('.terminal-pane[data-ready=true]').waitFor();
+    await startProjectTerminal(page);
     await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] }); }, second);
     await page.evaluate(() => window.dk.selectProject());
     const open = (project, url) => page.evaluate(({ project, url, bounds }) => window.dk.openBrowser(project, url, bounds), { project, url, bounds });

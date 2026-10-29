@@ -222,7 +222,7 @@ class CodexChat {
       };
       child.once('error', () => disconnected('Não foi possível iniciar a CLI oficial do Codex.'));
       child.once('close', () => disconnected('A conexão com o Codex foi encerrada antes da resposta.'));
-      await this._rpc(worker, 'initialize', { clientInfo: { name: 'dk_terminal', title: 'DK Terminal', version } });
+      await this._rpc(worker, 'initialize', { clientInfo: { name: 'dk_terminal', title: 'SEA Dock', version } });
       if (worker.canceled) throw new Error('Conversa interrompida.');
       this._write(worker, { method: 'initialized' });
       const thread = session.vendorThreadId
@@ -353,7 +353,7 @@ class CodexChat {
     const correctThread = !session.vendorThreadId || params.threadId === session.vendorThreadId;
     const correctTurn = !worker.turnId || params.turnId === worker.turnId;
     if (!supported || !correctThread || !correctTurn || worker.canceled) {
-      this._write(worker, { id: request.id, error: { code: -32601, message: 'Esta interação ainda não é suportada pelo DK Terminal.' } });
+      this._write(worker, { id: request.id, error: { code: -32601, message: 'Esta interação ainda não é suportada pelo SEA Dock.' } });
       const text = `O Codex solicitou uma interação que este painel não suporta (${bounded(request.method, 200)}). Use a CLI oficial para continuar esse fluxo.`;
       this._append(session, { kind: 'system', text, status: 'failed' });
       this._event(session, 'error', { message: text });

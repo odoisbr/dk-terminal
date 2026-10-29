@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
+const { openProjectPanel } = require('./helpers/project-inspector.cjs');
 // Reproducible, isolated Electron workload. No GC, purge or user projects.
 const { _electron: electron } = require('playwright');
 const { execFileSync } = require('node:child_process');
@@ -14,7 +16,7 @@ async function snapshot(label,page){await pause(1000);const samples=[];for(let n
 async function addSession(page,count){await page.locator('#new-session').click();await page.waitForFunction(count=>document.querySelectorAll('.terminal-pane[data-ready="true"]').length===count,count,{timeout:30000});}
 async function main(){
  app=await electron.launch({args:[root],env:{...process.env,SHELL:'/bin/sh',DK_TERMINAL_TEST:'1',DK_TERMINAL_TEST_PROJECT:project,DK_TERMINAL_DATA_DIR:path.join(temp,'config')}});const page=await app.firstWindow();cdp=await page.context().newCDPSession(page).catch(()=>null);page.on('pageerror',e=>console.error('renderer:',e.message));await page.locator('#startup-loading').waitFor({state:'detached'});await snapshot('idle_no_project',page);
- await page.locator('#launcher-recents .launcher-recent').first().click();await page.locator('.terminal-pane[data-ready=true]').waitFor();await snapshot('one_terminal',page);
+ await page.locator('#launcher-recents .launcher-recent').first().click();await startProjectTerminal(page);await snapshot('one_terminal',page);
  for(let n=2;n<=4;n++)await addSession(page,n);await snapshot('four_terminals',page);
  for(let n=5;n<=8;n++)await addSession(page,n);await snapshot('eight_terminals',page);
  const ids=await page.locator('.terminal-pane').evaluateAll(nodes=>nodes.map(n=>n.id.slice(5)));
@@ -25,7 +27,7 @@ async function main(){
  while(await page.locator('.tab-close').count()>1){const n=await page.locator('.tab-close').count();await page.locator('.tab-close').last().click();await page.waitForFunction(count=>document.querySelectorAll('.tab-close').length===count-1,n);}await snapshot('one_after_close',page);
  await page.locator('.tab-close').last().click();await page.waitForFunction(()=>document.querySelectorAll('.terminal-pane').length===0);await snapshot('zero_after_close',page);
  for(let cycle=0;cycle<4;cycle++){for(let n=1;n<=2;n++)await addSession(page,n);while(await page.locator('.tab-close').count()){const n=await page.locator('.tab-close').count();await page.locator('.tab-close').last().click();await page.waitForFunction(count=>document.querySelectorAll('.tab-close').length===count-1,n);}}await snapshot('zero_after_cycles',page);
- await page.locator('.tree-file').filter({hasText:'grande.txt'}).click();await page.locator('.cm-content').waitFor();await snapshot('large_editor_open',page);await page.locator('.dk-editor-tab-close').click();await snapshot('large_editor_closed',page);
+ await openProjectPanel(page,'files');await page.locator('.tree-file').filter({hasText:'grande.txt'}).click();await page.locator('.cm-content').waitFor();await snapshot('large_editor_open',page);await page.locator('.dk-editor-tab-close').click();await snapshot('large_editor_closed',page);
  await pause(4000);await snapshot('rest_after_work',page);
  try {results.systemAvailabilityQuery=execFileSync('/usr/bin/memory_pressure',['-Q'],{encoding:'utf8',timeout:3000}).trim();}catch{results.systemAvailabilityQuery=null;}
  results.checks.fileBytes=fs.statSync(path.join(project,'grande.txt')).size;results.checks.remainingTerminalPanes=await page.locator('.terminal-pane').count();

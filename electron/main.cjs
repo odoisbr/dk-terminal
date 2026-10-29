@@ -24,8 +24,17 @@ const { clearMachineFileCache } = require('./machine-cache.cjs');
 const { Git } = require('./git.cjs');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'dk-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
-app.setName('DK Terminal');
 const testing = process.env.DK_TERMINAL_TEST === '1' && !app.isPackaged;
+if (!process.env.DK_TERMINAL_DATA_DIR && !(testing && process.env.DK_TERMINAL_TEST_DATA)) {
+  // Resolve the former default exactly as the previous version did, including
+  // any path Electron derives from its command line. Keep that profile while
+  // changing the visible application name, before the single-instance lock.
+  app.setName('DK Terminal');
+  const legacyUserData = app.getPath('userData');
+  fs.mkdirSync(legacyUserData, { recursive: true });
+  app.setPath('userData', legacyUserData);
+}
+app.setName('SEA Dock');
 if (process.env.DK_TERMINAL_DATA_DIR) {
   const dataDir = process.env.DK_TERMINAL_DATA_DIR;
   if (!path.isAbsolute(dataDir)) throw new Error('DK_TERMINAL_DATA_DIR precisa ser um caminho absoluto.');
@@ -77,7 +86,7 @@ function openFiles(files) {
       if (!window) { startupProject = info; createWindow(); }
       else if (window.webContents.isLoadingMainFrame()) window.webContents.once('did-finish-load', () => send('project:opened', info));
       else send('project:opened', info);
-    } catch (error) { dialog.showErrorBox('Abrir com DK', error.message); }
+    } catch (error) { dialog.showErrorBox('Abrir com SEA Dock', error.message); }
   }
 }
 
@@ -428,7 +437,7 @@ function createWindow() {
   codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event) });
   window = new BrowserWindow({
     width: 1440, height: 920, minWidth: 940, minHeight: 620, backgroundColor: '#101214',
-    title: 'DK Terminal', icon: path.join(app.getAppPath(), 'assets', 'dk-terminal.png'), titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    title: 'SEA Dock', icon: path.join(app.getAppPath(), 'assets', 'dk-terminal.png'), titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 20, y: 22 }, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, spellcheck: false, webSecurity: true },
   });
@@ -488,7 +497,7 @@ function createWindow() {
 function menu() {
   const item = (label, accelerator, action) => ({ label, accelerator, click: () => send('app:menu', action) });
   const template = [
-    ...(process.platform === 'darwin' ? [{ label: 'DK Terminal', submenu: [{ role: 'about', label: 'Sobre o DK Terminal' }, { type: 'separator' }, { role: 'hide', label: 'Ocultar DK Terminal' }, { role: 'unhide', label: 'Mostrar tudo' }, { type: 'separator' }, { role: 'quit', label: 'Sair' }] }] : []),
+    ...(process.platform === 'darwin' ? [{ label: 'SEA Dock', submenu: [{ role: 'about', label: 'Sobre o SEA Dock' }, { type: 'separator' }, { role: 'hide', label: 'Ocultar SEA Dock' }, { role: 'unhide', label: 'Mostrar tudo' }, { type: 'separator' }, { role: 'quit', label: 'Sair' }] }] : []),
     { label: 'Arquivo', submenu: [item('Abrir projeto…', 'CmdOrCtrl+O', 'open'), item('Salvar arquivo', 'CmdOrCtrl+S', 'save'), item('Nova sessão', 'CmdOrCtrl+T', 'new'), item('Dividir à direita', 'CmdOrCtrl+D', 'split-right'), item('Dividir abaixo', 'CmdOrCtrl+Shift+D', 'split-down'), item('Fechar aba', 'CmdOrCtrl+W', 'close'), { type: 'separator' }, { role: 'quit', label: 'Sair' }] },
     { label: 'Editar', submenu: [{ role: 'copy', label: 'Copiar' }, { role: 'paste', label: 'Colar' }, { role: 'selectAll', label: 'Selecionar tudo' }, { type: 'separator' }, item('Buscar no terminal', 'CmdOrCtrl+F', 'search')] },
     { label: 'Visualizar', submenu: [item('Expandir ou restaurar terminal', 'CmdOrCtrl+Shift+E', 'expand'), item('Limpar terminal', 'CmdOrCtrl+K', 'clear'), { role: 'togglefullscreen', label: 'Tela cheia' }, ...(!app.isPackaged ? [{ role: 'toggleDevTools', label: 'Ferramentas de desenvolvimento' }] : [])] },
@@ -535,7 +544,7 @@ if (primaryInstance) app.whenReady().then(async () => {
   for (const file of pendingFiles.splice(0)) { try { startupProject = remember(folderForFile(file)); } catch {} }
   prepared = true; finishBoot();
   if (focusRequested) { focusRequested=false; focusWindow(); }
-}).catch(error => { dialog.showErrorBox('DK Terminal', error.message); app.quit(); });
+}).catch(error => { dialog.showErrorBox('SEA Dock', error.message); app.quit(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
 app.on('will-quit', () => { terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.close(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });
