@@ -106,8 +106,10 @@ async function main() {
   await page.evaluate(async id=>window.dk.writeTerminal(id, 'printf "\\nDK_PERSIST=%s:%s\\n" "${CLAUDE_CODE_CHILD_SESSION-unset}" "$CLAUDE_CODE_FORCE_SESSION_PERSISTENCE"\r'),id);
   await page.waitForFunction(id=>(window.__output[id]||'').includes('DK_PERSIST=unset:1\r\n'),id);
   checkpoint('PTY remove marcador herdado e habilita persistência de histórico do Claude');
+  await page.locator('#system-resources-toggle').click();
   await page.getByRole('button',{name:'Otimizar recursos'}).click();
   await page.getByRole('status').filter({hasText:'Caches temporários do SEA Dock limpos.'}).waitFor();
+  await page.keyboard.press('Escape');
   assert.equal(await page.locator('.terminal-pane[data-ready="true"]').count(),1);
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(940,620));
   await page.waitForTimeout(150);
@@ -263,8 +265,10 @@ async function main() {
   await page.waitForFunction(() => document.querySelector('.service-address')?.textContent.startsWith('http://127.0.0.1:'));
   const serviceUrl = await page.locator('.service-address').textContent();
   assert.equal(await (await fetch(serviceUrl)).text(), 'DK_PREVIEW_OK');
+  await page.locator('#system-resources-toggle').click();
   await page.getByRole('button',{name:'Otimizar recursos'}).click();
   await page.getByRole('status').filter({hasText:'Caches temporários do SEA Dock limpos.'}).waitFor();
+  await page.keyboard.press('Escape');
   assert.equal(await (await fetch(serviceUrl)).text(), 'DK_PREVIEW_OK');
   assert.equal(await page.locator('#browser-view').isVisible(), true);
   await page.waitForFunction(()=>document.querySelector('#browser-address').value.startsWith('http://127.0.0.1:'));

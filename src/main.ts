@@ -64,9 +64,10 @@ app.innerHTML = `
     <div class="brand"><img class="brand-logo" src="${logoUrl}" alt="" /><div><strong>SEA Dock</strong><span>Seu espaço de trabalho</span></div><span class="beta">ALPHA</span></div>
     <div class="sea-signature" hidden><img class="sea-logo-wide" src="${seaLogo}" alt="SEA Tecnologia" /><img class="sea-logo-compact" src="${seaLogoCompact}" alt="SEA Tecnologia" /></div>
     <button id="open-project" class="button open-button" title="Ir para o Início: abrir pasta, recentes ou GitLab">${icon('plus')}<span>Abrir projeto</span></button>
-    <div class="section-label"><span>PROJETOS RECENTES</span><span id="project-count">0</span></div>
-    <nav id="project-list" aria-label="Projetos recentes"></nav>
-    <div class="sidebar-bottom"><div class="kit-summary"><span class="status-dot" id="kit-dot"></span><div><strong id="kit-label">Detectando plugin DK</strong><span id="kit-description">Verificando instalação do Claude</span></div></div><button id="install-dk-plugin" class="button kit-button" hidden>Instalar plugin DK no Claude</button><div id="system-resources" class="system-resources" tabindex="0" aria-label="Consumo da máquina sendo calculado"><button id="system-resources-toggle" class="system-resources-title" type="button" aria-expanded="true" aria-controls="system-resources-content"><span>MÁQUINA</span>${icon('down')}</button><div id="system-resources-content"><div class="system-resource"><span>CPU</span><strong id="system-cpu">—</strong></div><div class="system-meter"><span id="system-cpu-bar"></span></div><div class="system-resource"><span>Memória · inclui cache</span><strong id="system-memory">—</strong></div><div class="system-meter"><span id="system-memory-bar"></span></div><div class="system-resource"><span>Swap</span><strong id="system-swap">—</strong></div><div class="system-meter"><span id="system-swap-bar"></span></div><div class="resource-breakdown" aria-label="Detalhamento de memória"><div class="system-resource"><span>SEA Dock · RSS</span><strong id="system-dk-memory">—</strong></div><div class="system-resource"><span>Filhos detectados · RSS</span><strong id="system-child-memory">—</strong></div><div class="system-resource"><span>Outros processos · RSS</span><strong id="system-other-memory">—</strong></div><div class="system-resource"><span>Disponibilidade · estimada</span><strong id="system-available">—</strong></div><div class="system-resource"><span id="system-cache-label">Cache recuperável</span><strong id="system-cache">—</strong></div><div class="system-resource"><span>Pressão de memória</span><strong id="system-pressure">—</strong></div><small class="resource-breakdown-note">RSS soma páginas compartilhadas; valores não são parcelas exclusivas da memória da máquina.</small></div><button id="optimize-resources" class="button system-optimize" title="Limpar o cache do SEA Dock sem interromper projetos" aria-describedby="optimize-explanation">${icon('refresh')}Otimizar recursos</button><p id="optimize-explanation" class="system-optimize-help">Limpa apenas o cache do SEA Dock.</p><details id="mac-memory-tools" hidden><summary>Ferramentas avançadas do macOS</summary><button id="clear-system-cache" class="button system-optimize" title="Limpar cache de arquivos do macOS">Limpar cache do macOS</button><p class="system-optimize-help">Limpa cache de arquivos, não a memória dos aplicativos. Pode pedir senha e reduzir a velocidade temporariamente.</p><button id="open-activity-monitor" class="button system-optimize">Monitor de Atividade</button></details><div id="optimize-status" class="system-optimize-status" role="status" aria-live="polite"></div></div></div><div class="sidebar-footnote">LOCAL POR NATUREZA<span id="version">v—</span></div></div>
+    <div class="section-label"><span>PROJETOS</span><span id="project-count">0</span></div>
+    <div class="project-filter" id="project-filter-box" hidden><label class="sr-only" for="project-filter">Filtrar projetos por nome</label>${icon('search')}<input id="project-filter" type="search" placeholder="Filtrar projetos" autocomplete="off" spellcheck="false" aria-controls="project-list" /></div>
+    <nav id="project-list" aria-label="Projetos"></nav>
+    <div class="sidebar-bottom"><div class="kit-summary"><span class="status-dot" id="kit-dot"></span><div><strong id="kit-label">Detectando plugin DK</strong><span id="kit-description">Verificando instalação do Claude</span></div></div><button id="install-dk-plugin" class="button kit-button" hidden>Instalar plugin DK no Claude</button><div id="system-resources" class="system-resources" aria-label="Consumo da máquina sendo calculado"><button id="system-resources-toggle" class="system-resources-title machine-compact" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="system-resources-content" title="Ver detalhes da máquina">${icon('activity', 'machine-compact-icon')}<span class="machine-compact-label">Máquina</span><span class="machine-compact-meters" aria-hidden="true"><span class="machine-compact-meter"><small>CPU</small><span class="system-meter"><span id="system-cpu-mini"></span></span></span><span class="machine-compact-meter"><small>MEM</small><span class="system-meter"><span id="system-memory-mini"></span></span></span></span><span class="sr-only" id="system-compact-summary">Consumo da máquina sendo calculado</span>${icon('chevron', 'machine-compact-chevron')}</button><div id="system-resources-content" class="machine-popover" role="dialog" aria-label="Detalhes da máquina" tabindex="-1" hidden><div class="machine-popover-title">Máquina</div><div class="system-resource"><span>CPU</span><strong id="system-cpu">—</strong></div><div class="system-meter"><span id="system-cpu-bar"></span></div><div class="system-resource"><span>Memória · inclui cache</span><strong id="system-memory">—</strong></div><div class="system-meter"><span id="system-memory-bar"></span></div><div class="system-resource"><span>Swap</span><strong id="system-swap">—</strong></div><div class="system-meter"><span id="system-swap-bar"></span></div><div class="resource-breakdown" aria-label="Detalhamento de memória"><div class="system-resource"><span>SEA Dock · RSS</span><strong id="system-dk-memory">—</strong></div><div class="system-resource"><span>Filhos detectados · RSS</span><strong id="system-child-memory">—</strong></div><div class="system-resource"><span>Outros processos · RSS</span><strong id="system-other-memory">—</strong></div><div class="system-resource"><span>Disponibilidade · estimada</span><strong id="system-available">—</strong></div><div class="system-resource"><span id="system-cache-label">Cache recuperável</span><strong id="system-cache">—</strong></div><div class="system-resource"><span>Pressão de memória</span><strong id="system-pressure">—</strong></div><small class="resource-breakdown-note">RSS soma páginas compartilhadas; valores não são parcelas exclusivas da memória da máquina.</small></div><button id="optimize-resources" class="button system-optimize" title="Limpar o cache do SEA Dock sem interromper projetos" aria-describedby="optimize-explanation">${icon('refresh')}Otimizar recursos</button><p id="optimize-explanation" class="system-optimize-help">Limpa apenas o cache do SEA Dock.</p><details id="mac-memory-tools" hidden><summary>Ferramentas avançadas do macOS</summary><button id="clear-system-cache" class="button system-optimize" title="Limpar cache de arquivos do macOS">Limpar cache do macOS</button><p class="system-optimize-help">Limpa cache de arquivos, não a memória dos aplicativos. Pode pedir senha e reduzir a velocidade temporariamente.</p><button id="open-activity-monitor" class="button system-optimize">Monitor de Atividade</button></details><div id="optimize-status" class="system-optimize-status" role="status" aria-live="polite"></div></div></div><div class="sidebar-footnote">LOCAL POR NATUREZA<span id="version">v—</span></div></div>
   </aside>
   <main class="workspace">
     <header class="titlebar"><button id="toggle-sidebar" class="icon-button sidebar-toggle" aria-label="Recolher sidebar" aria-expanded="true" title="Recolher ou expandir sidebar">${icon('panel')}</button><span class="breadcrumb">Workspace ${icon('chevron')} <strong id="breadcrumb-project"><span id="project-title">Início</span></strong></span><div class="titlebar-actions"><button id="reveal-project" class="icon-button" aria-label="Abrir pasta do projeto" title="Abrir pasta do projeto" hidden>${icon('folder')}</button><button id="launcher-show" class="icon-button" aria-label="Página inicial" title="Página inicial">${icon('home')}</button><button id="profile-show" class="icon-button" aria-label="Perfil e configurações" title="Perfil e configurações">${icon('settings')}</button><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" title="Alternar tema SEA">Tema SEA</button><span class="local-badge"><span class="status-dot ready"></span>Ambiente local</span></div></header>
@@ -247,53 +248,88 @@ function renderKit() {
   $('action-hint').textContent = !kit ? 'Instale ou ative o plugin DK para executar as ações.' : !current ? 'Abra uma pasta para começar.' : 'Resultados renderizados · JSON disponível.';
   document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach(el => { el.disabled = !kit || !current || runningActions.has(current.path) || (el.dataset.action === 'validate' && !current.isDk); });
 }
+const PROJECT_FILTER_MIN = 8;
+const openedProjects = new Set<string>();
+let projectFilter = '';
+const normalizeProjectName = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+function isProjectOpen(path: string) {
+  if (current?.path === path || openedProjects.has(path)) return true;
+  for (const session of sessions.values()) if (session.cwd === path) return true;
+  return false;
+}
+function clearProjectFilter() {
+  if (!projectFilter && !$<HTMLInputElement>('project-filter').value) return;
+  projectFilter = ''; $<HTMLInputElement>('project-filter').value = ''; renderProjects();
+}
 function renderProjects() {
   const list = $('project-list');
   list.replaceChildren();
   $('project-count').textContent = String(projects.length);
+  const filterable = projects.length >= PROJECT_FILTER_MIN;
+  $('project-filter-box').hidden = !filterable;
+  if (!filterable && projectFilter) { projectFilter = ''; $<HTMLInputElement>('project-filter').value = ''; }
   if (!projects.length) {
     const hint = document.createElement('p'); hint.className = 'no-projects'; hint.textContent = 'Seus projetos aparecem aqui.'; list.append(hint);
+    return;
   }
-  for (const info of projects) {
-    const row = document.createElement('div'); row.className = `project-row${current?.path === info.path ? ' selected' : ''}`;
-    const select = document.createElement('button'); select.className = 'project-select'; select.title = info.title || info.name;
-    if (current?.path === info.path) select.setAttribute('aria-current', 'page');
-    select.innerHTML = `${icon('folder')}<span><strong></strong><small></small></span>`;
-    select.querySelector('strong')!.textContent = info.title || info.name;
-    select.querySelector('small')!.textContent = info.isDk ? 'Projeto DK' : 'Pasta de trabalho';
-    select.onclick = () => run(async () => {
-      const intent = beginProjectIntent(), snapshot = launcher.captureState();
-      const selected = await api.activateProject(info.path); rememberRecent(selected);
-      if (!launcher.isCurrent(snapshot)) return;
-      if (await activate(selected, intent)) launcher.completeOpen(snapshot, intent === projectIntent);
-    });
-    const forget = document.createElement('button'); forget.className = 'icon-button forget-project'; forget.title = 'Fechar projeto'; forget.setAttribute('aria-label', `Fechar projeto ${info.title || info.name}`); forget.innerHTML = icon('close');
-    forget.onclick = () => run(async () => {
-      if (closingProjects.has(info.path)) return;
-      closingProjects.add(info.path); forget.disabled = true;
-      try {
-      await opening;
-      if (editorOpening && !fileEditor) await editorOpening;
-      if (fileEditor && !await fileEditor.closeProject(info.path)) return;
-      const result = await api.closeProjectSessions(info.path);
-      for (const [id, session] of [...sessions]) if (session.cwd === info.path) {
-        clearTimeout(session.ackTimer); session.ackPending = 0; session.terminal.dispose(); session.element.remove(); sessions.delete(id); idleSnoozed.delete(id);
-      }
-      lastActive.delete(info.path); projectWorkspaceViews.delete(info.path); paneGroups.delete(info.path); browserTabs.delete(info.path); renderIdleNotice();
-      projects = projects.filter(project => project.path !== info.path);
-      if (current?.path === info.path) {
-        current = null; activeId = null;
-        fileEditor?.setProject('');
-        selectMainView('terminal');
-        renderProject(); focusSession(null, false);
-        selectPanel(null); await loadRootTree();
-        launcher.show('home');
-        if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.');
-      } else { renderProjects(); if (!current) launcher.show('home'); if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.'); }
-      } finally { closingProjects.delete(info.path); forget.disabled = false; }
-    });
-    row.append(select, forget); list.append(row);
+  const query = normalizeProjectName(projectFilter);
+  const visible = query ? projects.filter(info => normalizeProjectName(info.title || info.name).includes(query)) : projects;
+  if (!visible.length) {
+    const hint = document.createElement('p'); hint.className = 'no-projects'; hint.textContent = 'Nenhum projeto com esse nome. Pressione Esc para limpar o filtro.'; list.append(hint);
+    return;
   }
+  const open = visible.filter(info => isProjectOpen(info.path));
+  const recent = visible.filter(info => !isProjectOpen(info.path)).reverse();
+  for (const [label, group] of [['Abertos', open], ['Recentes', recent]] as const) {
+    if (!group.length) continue;
+    const heading = document.createElement('p'); heading.className = 'project-group-label'; heading.textContent = label;
+    list.append(heading);
+    for (const info of group) list.append(createProjectRow(info));
+  }
+}
+function createProjectRow(info: Project) {
+  const isSelected = current?.path === info.path, kind = info.isDk ? 'Projeto DK' : 'Pasta de trabalho';
+  const row = document.createElement('div'); row.className = `project-row${isSelected ? ' selected' : ' compact'}`;
+  row.dataset.kind = info.isDk ? 'dk' : 'folder';
+  const select = document.createElement('button'); select.className = 'project-select'; select.title = info.title || info.name;
+  select.setAttribute('aria-description', kind);
+  if (isSelected) select.setAttribute('aria-current', 'page');
+  select.innerHTML = isSelected ? `${icon('folder')}<span><strong></strong><small></small></span>` : `${icon('folder')}<span><strong></strong></span>${info.isDk ? '<em class="project-kind" aria-hidden="true">DK</em>' : ''}`;
+  select.querySelector('strong')!.textContent = info.title || info.name;
+  const small = select.querySelector('small'); if (small) small.textContent = kind;
+  select.onclick = () => run(async () => {
+    const intent = beginProjectIntent(), snapshot = launcher.captureState();
+    const selected = await api.activateProject(info.path); rememberRecent(selected);
+    if (!launcher.isCurrent(snapshot)) return;
+    if (await activate(selected, intent)) launcher.completeOpen(snapshot, intent === projectIntent);
+  });
+  const forget = document.createElement('button'); forget.className = 'icon-button forget-project'; forget.title = 'Fechar projeto'; forget.setAttribute('aria-label', `Fechar projeto ${info.title || info.name}`); forget.innerHTML = icon('close');
+  forget.onclick = () => run(async () => {
+    if (closingProjects.has(info.path)) return;
+    closingProjects.add(info.path); forget.disabled = true;
+    try {
+    await opening;
+    if (editorOpening && !fileEditor) await editorOpening;
+    if (fileEditor && !await fileEditor.closeProject(info.path)) return;
+    const result = await api.closeProjectSessions(info.path);
+    for (const [id, session] of [...sessions]) if (session.cwd === info.path) {
+      clearTimeout(session.ackTimer); session.ackPending = 0; session.terminal.dispose(); session.element.remove(); sessions.delete(id); idleSnoozed.delete(id);
+    }
+    lastActive.delete(info.path); projectWorkspaceViews.delete(info.path); paneGroups.delete(info.path); browserTabs.delete(info.path); renderIdleNotice();
+    projects = projects.filter(project => project.path !== info.path); openedProjects.delete(info.path);
+    if (current?.path === info.path) {
+      current = null; activeId = null;
+      fileEditor?.setProject('');
+      selectMainView('terminal');
+      renderProject(); focusSession(null, false);
+      selectPanel(null); await loadRootTree();
+      launcher.show('home');
+      if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.');
+    } else { renderProjects(); if (!current) launcher.show('home'); if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.'); }
+    } finally { closingProjects.delete(info.path); forget.disabled = false; }
+  });
+  row.append(select, forget);
+  return row;
 }
 function renderProject() {
   const label = current?.title || current?.name || 'Início';
@@ -896,7 +932,7 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   appliedProjectIntent = intent;
   const generation = ++activationGeneration;
   const projectChanged = current?.path !== info.path;
-  current = info;
+  current = info; openedProjects.add(info.path);
   const valid = () => generation === activationGeneration && current?.path === info.path && !closingProjects.has(info.path);
   const projectIndex = projects.findIndex(p => p.path === info.path);
   if (projectIndex >= 0) projects[projectIndex] = info;
@@ -1257,6 +1293,8 @@ function sidebar(collapsed: boolean) {
   button('toggle-sidebar').setAttribute('aria-expanded', String(!collapsed));
   button('toggle-sidebar').setAttribute('aria-label', collapsed ? 'Expandir sidebar' : 'Recolher sidebar');
   try { localStorage.setItem('sidebarCollapsed', String(collapsed)); } catch {}
+  if (collapsed) clearProjectFilter();
+  positionMachinePopover();
   requestAnimationFrame(fitActive);
   schedulePreviewResize();
 }
@@ -1283,14 +1321,69 @@ button('theme-toggle').onclick = () => setSeaTheme(!document.body.classList.cont
 try { setSeaTheme(localStorage.getItem('seaTheme') !== 'false'); } catch { setSeaTheme(true); }
 try { const saved = localStorage.getItem('glassTransparency'); setGlassTransparency(saved === null ? 12 : Number(saved)); } catch { setGlassTransparency(12); }
 try { setGlassAppearance(localStorage.getItem('glassAppearance') === 'true'); } catch { setGlassAppearance(false); }
-function setSystemResourcesCollapsed(collapsed: boolean) {
-  $('system-resources-content').hidden = collapsed;
-  const control = button('system-resources-toggle'); control.setAttribute('aria-expanded', String(!collapsed));
-  control.querySelector('svg')!.classList.toggle('collapsed', collapsed);
-  try { localStorage.setItem('systemResourcesCollapsed', String(collapsed)); } catch {}
+// Detalhes da máquina: popover ancorado na linha compacta da sidebar. Fica no
+// <body> porque o vidro da sidebar (backdrop-filter) prende elementos fixos.
+const machinePopover = $('system-resources-content');
+document.body.append(machinePopover);
+function positionMachinePopover() {
+  if (machinePopover.hidden) return;
+  const anchor = button('system-resources-toggle').getBoundingClientRect();
+  const sidebarBox = document.querySelector('.sidebar')!.getBoundingClientRect();
+  const margin = 8, collapsed = document.body.classList.contains('sidebar-collapsed');
+  const width = collapsed ? 280 : Math.max(220, sidebarBox.width - margin * 2);
+  const left = collapsed ? sidebarBox.right + margin : sidebarBox.left + margin;
+  machinePopover.style.width = `${width}px`;
+  machinePopover.style.left = `${Math.max(margin, Math.min(left, innerWidth - width - margin))}px`;
+  if (collapsed) {
+    // Ao lado do ícone, alinhado pela base e limitado à janela.
+    machinePopover.style.maxHeight = `${innerHeight - margin * 2}px`;
+    const height = machinePopover.offsetHeight;
+    machinePopover.style.top = `${Math.max(margin, Math.min(anchor.bottom - height, innerHeight - height - margin))}px`;
+  } else {
+    // Acima da linha compacta, sem nunca sair da janela.
+    const available = Math.max(160, anchor.top - margin * 2);
+    machinePopover.style.maxHeight = `${available}px`;
+    const height = machinePopover.offsetHeight;
+    machinePopover.style.top = `${Math.max(margin, anchor.top - margin - height)}px`;
+  }
 }
-button('system-resources-toggle').onclick = () => setSystemResourcesCollapsed(!$('system-resources-content').hidden);
-try { setSystemResourcesCollapsed(localStorage.getItem('systemResourcesCollapsed') === 'true'); } catch { setSystemResourcesCollapsed(false); }
+function setMachinePopoverOpen(open: boolean, restoreFocus = false) {
+  const control = button('system-resources-toggle');
+  if (open === !machinePopover.hidden) return;
+  machinePopover.hidden = !open;
+  control.setAttribute('aria-expanded', String(open));
+  $('system-resources').classList.toggle('open', open);
+  if (open) { positionMachinePopover(); machinePopover.focus({ preventScroll: true }); }
+  else if (restoreFocus) control.focus();
+  syncBrowserVisibility();
+}
+const machinePopoverCoversPreview = () => !machinePopover.hidden && document.body.classList.contains('sidebar-collapsed');
+button('system-resources-toggle').onclick = () => setMachinePopoverOpen(machinePopover.hidden === true);
+machinePopover.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setMachinePopoverOpen(false, true); } });
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && !machinePopover.hidden) { event.preventDefault(); setMachinePopoverOpen(false, true); } });
+document.addEventListener('pointerdown', event => {
+  if (machinePopover.hidden || !(event.target instanceof Node)) return;
+  if (machinePopover.contains(event.target) || button('system-resources-toggle').contains(event.target)) return;
+  setMachinePopoverOpen(false);
+}, true);
+machinePopover.addEventListener('focusout', () => {
+  // Diálogos nativos (senha do macOS) tiram o foco da janela; o popover continua aberto.
+  setTimeout(() => {
+    if (machinePopover.hidden || !document.hasFocus()) return;
+    // Botão desabilitado durante a otimização devolve o foco ao body: não fecha.
+    const focused = document.activeElement;
+    if (!focused || focused === document.body || machinePopover.contains(focused) || button('system-resources-toggle').contains(focused)) return;
+    setMachinePopoverOpen(false);
+  });
+});
+window.addEventListener('resize', positionMachinePopover);
+try { localStorage.removeItem('systemResourcesCollapsed'); } catch {}
+$<HTMLInputElement>('project-filter').addEventListener('input', event => { projectFilter = (event.target as HTMLInputElement).value; renderProjects(); });
+$<HTMLInputElement>('project-filter').addEventListener('keydown', event => {
+  if (event.key === 'Escape' && $<HTMLInputElement>('project-filter').value) { event.preventDefault(); event.stopPropagation(); clearProjectFilter(); }
+  else if (event.key === 'Enter') { event.preventDefault(); document.querySelector<HTMLButtonElement>('#project-list .project-select')?.click(); }
+  else if (event.key === 'ArrowDown') { event.preventDefault(); document.querySelector<HTMLButtonElement>('#project-list .project-select')?.focus(); }
+});
 button('toggle-sidebar').onclick = () => sidebar(!document.body.classList.contains('sidebar-collapsed'));
 try { sidebar(localStorage.getItem('sidebarCollapsed') === 'true'); } catch {}
 button('search-close').onclick = () => toggleSearch(false);
@@ -1385,17 +1478,26 @@ function renderResources(data: ResourceSnapshot) {
   $('system-cpu-bar').classList.toggle('high', machine.cpuPercent != null && machine.cpuPercent >= 80);
   const memoryPercent = machine.memoryUsedKiB == null || !machine.memoryTotalKiB ? 0 : machine.memoryUsedKiB / machine.memoryTotalKiB * 100;
   $('system-memory-bar').style.width = `${Math.max(0, Math.min(100, memoryPercent))}%`;
+  renderMachineCompact(machine.cpuPercent, machine.memoryUsedKiB == null || !machine.memoryTotalKiB ? null : memoryPercent, systemCpu, systemMemory);
   const description = 'Máquina inteira: CPU média de todos os núcleos. Memória não livre inclui cache e não equivale à pressão de memória. RSS é uma soma aproximada por processo e pode contar páginas compartilhadas várias vezes; não é uma divisão exata da memória física. No macOS, purgável cobre apenas uma parte do cache recuperável e disponibilidade não é pressão. No Linux, a pressão PSI indica a porcentagem média de tempo com alguma tarefa esperando memória nos últimos 10 segundos. Swap mostra uso e espaço atualmente alocado.';
   $('system-resources').title = description;
   $('system-resources').setAttribute('aria-label', `${description} CPU ${systemCpu}; memória não livre ${systemMemory}; swap ${systemSwap}.`);
   $('resource-indicator').setAttribute('aria-label', `SEA Dock: CPU ${formatCpu(data.app.cpuPercent)}, RAM RSS ${formatMemory(data.app.memoryKiB)}. Processos filhos e outros processos estão no detalhamento da máquina.`);
+}
+function renderMachineCompact(cpu: number | null, memory: number | null, cpuText: string, memoryText: string) {
+  const clamp = (value: number | null) => value == null || !Number.isFinite(value) ? 0 : Math.max(0, Math.min(100, value));
+  $('system-cpu-mini').style.width = `${clamp(cpu)}%`; $('system-cpu-mini').classList.toggle('high', cpu != null && cpu >= 80);
+  $('system-memory-mini').style.width = `${clamp(memory)}%`; $('system-memory-mini').classList.toggle('high', memory != null && memory >= 90);
+  const summary = cpuText === '—' && memoryText === '—' ? 'Consumo da máquina indisponível' : `Máquina: CPU ${cpuText}, memória ${memoryText}`;
+  $('system-compact-summary').textContent = summary;
+  button('system-resources-toggle').title = `${summary}. Clique para ver detalhes.`;
 }
 async function refreshResources() {
   clearTimeout(resourceTimer);
   if (document.visibilityState !== 'visible' || resourceBusy) return;
   resourceBusy = true;
   try { const data = await api.readResources(); renderResources(data); }
-  catch { $('resource-cpu').textContent = '—'; $('resource-memory').textContent = '—'; $('resource-scope').textContent = 'SEA Dock'; $('resource-indicator').title = 'Consumo de recursos indisponível.'; $('resource-indicator').setAttribute('aria-label', 'Consumo de recursos indisponível.'); for(const id of ['system-cpu','system-memory','system-swap','system-dk-memory','system-child-memory','system-other-memory','system-available','system-cache','system-pressure']) $(id).textContent='—'; $('system-cpu-bar').style.width = $('system-memory-bar').style.width = $('system-swap-bar').style.width = '0%'; $('system-cpu-bar').classList.remove('high'); $('system-resources').title = 'Consumo da máquina indisponível.'; $('system-resources').setAttribute('aria-label', 'Consumo da máquina indisponível.'); }
+  catch { $('resource-cpu').textContent = '—'; $('resource-memory').textContent = '—'; $('resource-scope').textContent = 'SEA Dock'; $('resource-indicator').title = 'Consumo de recursos indisponível.'; $('resource-indicator').setAttribute('aria-label', 'Consumo de recursos indisponível.'); for(const id of ['system-cpu','system-memory','system-swap','system-dk-memory','system-child-memory','system-other-memory','system-available','system-cache','system-pressure']) $(id).textContent='—'; $('system-cpu-bar').style.width = $('system-memory-bar').style.width = $('system-swap-bar').style.width = '0%'; $('system-cpu-bar').classList.remove('high'); renderMachineCompact(null, null, '—', '—'); $('system-resources').title = 'Consumo da máquina indisponível.'; $('system-resources').setAttribute('aria-label', 'Consumo da máquina indisponível.'); }
   finally {
     resourceBusy = false;
     if (document.visibilityState === 'visible') {
@@ -1419,7 +1521,7 @@ window.addEventListener('resize', schedulePreviewResize);
 // existing view while the launcher is open, retaining its page and session.
 let browserPreviewVisible = true;
 const syncBrowserVisibility = () => {
-  const visible = $('launcher').hidden === true;
+  const visible = $('launcher').hidden === true && !machinePopoverCoversPreview();
   if (visible === browserPreviewVisible) return;
   browserPreviewVisible = visible;
   api.setBrowserVisible(visible).catch(notify);

@@ -5,6 +5,7 @@ const root=path.resolve(__dirname,'..'), temp=fs.realpathSync(fs.mkdtempSync(pat
  app=await electron.launch({executablePath:process.env.DK_TERMINAL_EXECUTABLE||undefined,args:process.env.DK_TERMINAL_EXECUTABLE?[]:[root],env:{...process.env,DK_TERMINAL_TEST:'1',DK_TERMINAL_DATA_DIR:path.join(temp,'profile')}});
  const page=await app.firstWindow();await page.locator('#startup-loading').waitFor({state:'detached'});
  if(process.platform==='darwin'){
+   await page.locator('#system-resources-toggle').click();await page.locator('#system-resources-content').waitFor();
    await app.evaluate(({dialog})=>{dialog.showMessageBox=async(_window,options)=>{global.__cacheConfirmation=options;return {response:0};};});
    await page.locator('#mac-memory-tools summary').click();
    await page.locator('#clear-system-cache').click();await page.getByText('Limpeza cancelada.',{exact:true}).waitFor();
