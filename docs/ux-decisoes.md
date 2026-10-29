@@ -48,3 +48,15 @@ O plano cita um relatório JFM+D quando uma tela muda, mas não identifica um mo
 
 - **Rótulos:** botões só-ícone têm `title` e `aria-label` iguais à ação (`setIconButton`). Abas do painel: “Arquivos do projeto”, “Git”, “Contexto do projeto”, “Serviços do projeto”, “Contas e uso” (antes “Pasta” e “Consumo”, que não diziam o que abriam). `#reveal-project` passa a “Abrir pasta do projeto no Finder”; `#new-session` a “Nova sessão de terminal”.
 - **Verificação:** `tsc --noEmit` rejeita nome de ícone fora do mapa; `tests/project-inspector-desktop.cjs`, `tests/plugins-desktop.cjs`, `tests/desktop.cjs` e `tests/idle-desktop.cjs` conferem os novos rótulos.
+
+## Revisão visual das seções novas — 29/10/2026
+
+- **Contexto:** capturas em 1280x800, temas padrão e SEA (Início, workspace com sidebar expandida e recolhida, popover Máquina, painéis Arquivos, Git, Contexto, Serviços e Contas e uso, navegador com prévia, configurações), depois da entrada da sidebar nova, do status do plugin DK, de “Detectados nas sessões”, do modo debug e do fluxo “Criar projeto no GitLab SEA”.
+- **Decisões:**
+  - Linha compacta da sidebar: o botão Fechar projeto (32 px, separado da seleção) só ocupa largura no hover ou com foco na linha, em vez de reservar espaço invisível; o nome do projeto com selo DK deixava de caber (“Portal do Cli…”).
+  - Painel Serviços ganha cabeçalho com título “Serviços” à esquerda e Atualizar à direita, como os demais painéis; o botão “Preparar dependências” usa o mesmo corpo de texto dos outros botões do painel e fica em linha própria abaixo da descrição.
+  - Painel Git: “Criar projeto no GitLab SEA” passa a botão secundário de largura total (44 px). “Salvar versão” continua a única ação principal do painel; antes as duas competiam com o mesmo peso.
+  - Ferramentas do Git: “Excluir” branch fica afastado de “Trocar” e em cor de alerta.
+  - Prévia: o botão Desligar serviço ganha 32 px e afastamento de 10 px de “Visualizar projeto”. A barra da prévia mantém controles de 32 px, abaixo dos 44 px das ações principais, para não dobrar a altura da barra sobre a página.
+  - Contexto do projeto: `.git` aparece com ícone de pasta, não de arquivo. Nota final das configurações cita “Contas e uso” no lugar de “Consumo”.
+- **Verificação:** capturas em `revisao-visual/antes` e `revisao-visual/depois` (pasta da orquestração); `tests/sidebar-desktop.cjs`, `tests/session-services-desktop.cjs`, `tests/gitlab-publish-desktop.cjs` e `tests/git-branches-desktop.cjs` cobrem os fluxos tocados.

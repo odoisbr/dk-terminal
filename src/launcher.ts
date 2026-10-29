@@ -202,7 +202,7 @@ export class Launcher {
     const diagnostics=this.section('Diagnóstico');diagnostics.querySelector('.settings-heading-note')!.textContent='Colete logs para enviar ao suporte.';diagnostics.dataset.testid='settings-debug';mountDebugSettings(diagnostics,this.options.notify);right.append(diagnostics);
     plugins.classList.add('settings-plugins-section');const pluginTitle=plugins.querySelector('h2')!;pluginTitle.id='settings-plugins-title';plugins.setAttribute('aria-labelledby',pluginTitle.id);
     const pluginHost=element('div','settings-plugins-host');pluginHost.dataset.testid='settings-plugins';plugins.append(pluginHost);
-    grid.append(left,right,plugins);this.body.append(grid,element('p','settings-note settings-about','Serviços e suas funções são definidos no projeto. Extensões e modelos de Claude e Codex continuam sob configuração das ferramentas oficiais. As cotas podem ser consultadas na guia Consumo.'));
+    grid.append(left,right,plugins);this.body.append(grid,element('p','settings-note settings-about','Serviços e suas funções são definidos no projeto. Extensões e modelos de Claude e Codex continuam sob configuração das ferramentas oficiais. As cotas podem ser consultadas na guia Contas e uso.'));
     try {
       const cleanup=this.options.mountPlugins(pluginHost);
       if(typeof cleanup!=='function')throw new Error('Não foi possível preparar a seção de plugins.');

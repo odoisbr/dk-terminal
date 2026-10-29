@@ -31,7 +31,7 @@ export class DetectedServicesView {
     this.refreshButton.type = 'button'; this.refreshButton.id = 'services-refresh';
     this.refreshButton.title = 'Procurar de novo os serviços do projeto e os servidores abertos nas sessões';
     this.refreshButton.onclick = () => { if (this.root) void this.refresh(true); };
-    toolbar.append(this.refreshButton);
+    toolbar.append(element('strong', 'services-title', 'Serviços'), this.refreshButton);
     host.prepend(toolbar);
     this.section = element('div', 'detected-services'); this.section.id = 'detected-services';
     const label = element('div', 'section-label'); label.append(element('span', '', 'DETECTADOS NAS SESSÕES'));

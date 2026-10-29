@@ -322,7 +322,7 @@ function renderProject() {
     const files = $('project-files'); files.replaceChildren();
     for (const file of current.files) {
       const li = document.createElement('li'); li.className = file.present ? 'present' : 'absent';
-      li.innerHTML = `${icon('file')}<span></span><small></small>`;
+      li.innerHTML = `${icon(/(^|\/)\.git$|\/$/.test(file.name) ? 'folder' : 'file')}<span></span><small></small>`;
       li.querySelector('span')!.textContent = file.name;
       li.querySelector('small')!.textContent = file.present ? 'Encontrado' : 'Ausente';
       files.append(li);

@@ -115,7 +115,8 @@ export class GitView {
     this.host.append(notice); this.updateNotice(root);
     if (!status.gitlab && !status.gitlabHost) {
       const callout = el('div', 'gitlab-publish-callout');
-      callout.append(el('p', 'git-muted', status.hasOrigin ? 'O remoto desta pasta não é o GitLab SEA.' : 'Esta pasta ainda não está no GitLab SEA.'), this.publishButton(root));
+      const publish = this.publishButton(root); publish.classList.replace('primary', 'secondary');
+      callout.append(el('p', 'git-muted', status.hasOrigin ? 'O remoto desta pasta não é o GitLab SEA.' : 'Esta pasta ainda não está no GitLab SEA.'), publish);
       this.host.append(callout);
     }
     const layout = el('div', 'git-dashboard');
@@ -252,7 +253,7 @@ export class GitView {
         if (!window.confirm(`Trocar para a branch “${name}”? Arquivos abertos deste projeto serão fechados.`)) return;
         void this.perform(root, () => this.options.changeBranch(root, 'switch', name));
       };
-      const remove = el('button', 'button secondary', 'Excluir'); remove.type = 'button'; remove.disabled = !branches.value.length;
+      const remove = el('button', 'button secondary git-branch-delete', 'Excluir'); remove.type = 'button'; remove.disabled = !branches.value.length;
       remove.onclick = () => {
         if (!this.current(root) || this.state(root).busy) return;
         const name = select.value;

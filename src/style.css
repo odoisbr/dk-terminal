@@ -737,3 +737,19 @@ body.appearance-glass {
 .gitlab-publish-start .icon { width: 15px; height: 15px; }
 .launcher-header .icon-button .icon, .account-card .icon-button .icon { width: 15px; height: 15px; }
 @media (prefers-reduced-motion: reduce) { .remote-entry-button .remote-chevron, #panel-git .git-section-arrow { transition: none; } }
+
+/* Revisão visual 29/10/2026 */
+/* Linha compacta: o botão de fechar só ocupa largura no hover ou foco, e o nome usa a linha inteira em repouso. */
+.project-row.compact:not(:hover):not(:focus-within) .forget-project { display: none; }
+/* Serviços: cabeçalho com título, como nos demais painéis. */
+.services-toolbar { justify-content: space-between; align-items: center; gap: 10px; }
+.services-title { font-size: 12px; font-weight: 600; }
+#prepare-dependencies { font-size: 11px; height: 36px; margin-top: 8px; }
+/* Git: publicar no GitLab é ação secundária; Salvar versão continua a principal. */
+#panel-git .gitlab-publish-callout .gitlab-publish-start { width: 100%; min-height: 44px; }
+#panel-git .git-actions .git-branch-delete { margin-left: auto; color: var(--danger, #e2877b); }
+.service-row:has(> #prepare-dependencies) { flex-direction: column; align-items: stretch; gap: 8px; }
+.service-row:has(> #prepare-dependencies) #prepare-dependencies { margin-top: 0; }
+/* Prévia: Desligar fica separado de Visualizar projeto, com alvo maior. */
+.browser-runtime .primary { height: 32px; }
+.browser-runtime #browser-stop { width: 32px; height: 32px; margin-left: 10px; }
