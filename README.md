@@ -167,6 +167,7 @@ npm run test:editor
 npm run test:launcher
 npm run test:browser:tabs
 npm run test:browser:fullscreen
+npm run test:dock-preview
 npm run test:inspector
 npm run test:project:sessions
 npm run test:project:race
@@ -203,6 +204,39 @@ No macOS, coloque o aplicativo empacotado em uma pasta permanente, como `~/Appli
 Use `dock .` para abrir a pasta atual, ou `dock 'pasta com espaços' 'outra pasta'`. Um arquivo abre a pasta que o contém, como na ação do Finder; o arquivo em si não é aberto no editor. Se o aplicativo já estiver aberto, a solicitação é encaminhada a ele. `dock` sem argumentos usa a pasta atual; o limite é 32 caminhos existentes por solicitação.
 
 O comando guarda o caminho da cópia instalada. Se o aplicativo for movido ou removido, o terminal informa o problema. Para apontar para a nova localização, abra a cópia atual, escolha **SEA Dock → Remover comando dock do terminal** e instale novamente. A remoção preserva arquivos que não forem o comando original do SEA Dock ou que tenham sido editados. A instalação e a remoção dessa integração ainda não estão disponíveis no Windows e no Linux.
+
+## Apresentar telas com IA: `dock-preview`
+
+Toda sessão aberta pelo SEA Dock (terminal, Claude Code, Codex, Gemini CLI, Antigravity ou uma pessoa digitando) tem o comando `dock-preview`, que abre um protótipo, uma tela, uma imagem ou um documento do projeto no navegador interno do app. Nada precisa ser instalado: o comando vem no pacote, em `Resources/dock-tools/bin` (no desenvolvimento, `dock-tools/bin`), entra no fim do `PATH` das sessões e roda com o runtime do próprio SEA Dock como Node, sem depender de Python ou do Node do usuário.
+
+```sh
+dock-preview http://localhost:5173              # servidor local em execução
+dock-preview prototipo/index.html --titulo "Home"
+dock-preview telas/                             # index.html da pasta ou galeria dos arquivos
+dock-preview docs/visao.md                      # Markdown apresentado como página
+```
+
+- **Alvo**: endereço local (`localhost`, `127.0.0.1` ou `[::1]`, com ou sem `http://`) ou arquivo ou pasta dentro do projeto da sessão. HTML, imagens (png, jpg, svg, gif, webp), PDF e Markdown são apresentados; uma pasta abre o seu `index.html` ou uma galeria dos arquivos apresentáveis. Caminhos relativos partem da pasta atual.
+- **Saída**: uma linha, `OK: …` com o endereço aberto ou `ERRO: …` dizendo o que fazer (projeto não selecionado, arquivo fora do projeto, servidor local parado, sessão antiga depois de reiniciar o app). Códigos de saída: 0 sucesso, 1 recusa ou falha, 2 uso incorreto, 3 fora de uma sessão do SEA Dock.
+- **Segurança**: o pedido usa a mesma ponte da prévia do plugin DK (`dk-visualizar`), com token por projeto injetado só nas sessões daquele projeto e aceito apenas em `127.0.0.1`. Endereços externos são recusados. Arquivos são servidos por um servidor local por projeto, aberto sob demanda e encerrado ao fechar o projeto, atrás de um prefixo aleatório no endereço; cada pedido revalida o caminho real, recusa links simbólicos que saiam da raiz, arquivos ocultos e `node_modules`. Markdown e galerias são gerados sem HTML do autor e com política de conteúdo que bloqueia scripts. Como na prévia estática, caminhos absolutos a partir da raiz do site (`/assets/…`) não funcionam numa página servida de subpasta; use caminhos relativos ou o servidor do projeto.
+- **Nome**: o comando se chama `dock-preview`, e não `dock preview`, porque o `dock` instalado pelo menu fica em `~/.local/bin`, que costuma vir antes das ferramentas do app no `PATH` de login; nele, `dock preview` seria lido como “abrir a pasta preview”. Mudar o script do `dock` também invalidaria a conferência de integridade das cópias já instaladas. Um nome próprio funciona igual em qualquer sessão.
+
+### Instrução para colar na IA
+
+O botão **Copiar instrução para IA**, na guia **Serviços** do projeto e na barra do navegador, copia o texto abaixo. Cole no chat da IA ou, se quiser que valha sempre, no `AGENTS.md`, `CLAUDE.md` ou `GEMINI.md` do projeto; o app não grava esses arquivos.
+
+```markdown
+## Apresentar telas no SEA Dock
+
+Quando precisar mostrar um protótipo, uma tela, uma imagem ou um documento para a pessoa, abra no navegador interno do SEA Dock rodando no terminal:
+
+    dock-preview <alvo> [--titulo "Texto"]
+
+- <alvo> é um endereço local (http://localhost:5173, 127.0.0.1:3000) ou um arquivo ou pasta do projeto (prototipo/index.html, telas/, tela.png, docs/visao.md). Caminhos relativos partem da pasta atual.
+- A saída é uma linha: OK: quando abriu, ou ERRO: seguido do que fazer. Siga a orientação do erro antes de tentar de novo.
+- Só abre endereços locais e arquivos dentro do projeto. Para um servidor de desenvolvimento, inicie-o antes e passe o endereço.
+- Se o comando não existir, a sessão não foi aberta pelo SEA Dock: informe o caminho do arquivo à pessoa em vez de abrir.
+```
 
 ## Estrutura
 

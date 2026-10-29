@@ -8,6 +8,13 @@ function bundledToolsPath({ isPackaged, resourcesPath, appPath }) {
   try { return fs.statSync(path.join(base, 'sea')).isFile() ? base : null; } catch { return null; }
 }
 
+// Comandos do próprio SEA Dock para as sessões (hoje: `dock-preview`). Ficam fora
+// do asar, em Resources/dock-tools/bin no pacote e em dock-tools/bin no repositório.
+function bundledDockToolsPath({ isPackaged, resourcesPath, appPath }) {
+  const base = isPackaged ? path.join(resourcesPath, 'dock-tools', 'bin') : path.join(appPath, 'dock-tools', 'bin');
+  try { return fs.statSync(path.join(base, 'dock-preview')).isFile() ? base : null; } catch { return null; }
+}
+
 function withBundledTools(env, dir) {
   if (!dir) return env;
   const entries = (env.PATH || '').split(path.delimiter).filter(Boolean);
@@ -15,4 +22,4 @@ function withBundledTools(env, dir) {
   return { ...env, PATH: [...entries, dir].join(path.delimiter) };
 }
 
-module.exports = { bundledToolsPath, withBundledTools };
+module.exports = { bundledToolsPath, bundledDockToolsPath, withBundledTools };

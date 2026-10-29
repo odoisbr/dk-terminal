@@ -93,7 +93,8 @@ const outputs = await packager({
   asar: { unpackDir: 'node_modules/node-pty' },
   ignore: packageIgnores,
   icon: icon.packageIcon(root),
-  extraResource: withoutSeaCli ? [] : [vendor],
+  // dock-tools: comandos do SEA Dock para as sessões (dock-preview), fora do asar.
+  extraResource: [...(withoutSeaCli ? [] : [vendor]), path.join(root, 'dock-tools')],
   appBundleId: 'br.com.sea.dk.terminal', appCategoryType: 'public.app-category.developer-tools',
   extendInfo: { CFBundleDocumentTypes: [{ CFBundleTypeName: `Projeto ou arquivo do ${name}`, CFBundleTypeRole: 'Viewer', LSHandlerRank: 'Alternate', LSItemContentTypes: ['public.folder', 'public.text', 'public.source-code'] }] },
   osxSign: {

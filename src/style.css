@@ -644,3 +644,11 @@ body.appearance-glass {
 /* Status do plugin DK: a versão (inclusive "vX → vY") quebra linha em vez de sumir na reticência. */
 .kit-summary #kit-description { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
 .kit-button[aria-busy="true"] { cursor: progress; }
+
+/* Instrução de prévia para IA (dock-preview) */
+.preview-ai { padding: 4px 0 14px; border-top: 1px solid var(--line); }
+.preview-ai>.section-label { padding-left: 0; padding-right: 0; }
+.preview-ai .context-note { padding-top: 0; }
+.preview-ai code { font: 10px 'SFMono-Regular',Menlo,monospace; color: #d8e4d2; }
+.preview-ai-copy { width: 100%; height: 44px; justify-content: center; margin-top: 8px; }
+#browser-copy-ai { white-space: nowrap; }

@@ -1,0 +1,22 @@
+#!/bin/sh
+# SEA Dock: abre protótipos, telas e documentos do projeto no navegador do app.
+# Usa o runtime do próprio SEA Dock como Node (ELECTRON_RUN_AS_NODE só para este
+# processo); não depende de Python nem do Node instalado pelo usuário.
+_dock_here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 1
+_dock_script="$_dock_here/../dock-preview.cjs"
+_dock_runtime=
+# Aplicativo empacotado: SEA Dock.app/Contents/Resources/dock-tools/bin
+for _dock_candidate in "$_dock_here"/../../../MacOS/*; do
+  if [ -f "$_dock_candidate" ] && [ -x "$_dock_candidate" ]; then _dock_runtime=$_dock_candidate; break; fi
+done
+# Desenvolvimento: <repositório>/dock-tools/bin com o Electron de node_modules.
+if [ -z "$_dock_runtime" ]; then
+  for _dock_candidate in "$_dock_here/../../node_modules/electron/dist/Electron.app/Contents/MacOS/Electron" "$_dock_here/../../node_modules/electron/dist/electron"; do
+    if [ -f "$_dock_candidate" ] && [ -x "$_dock_candidate" ]; then _dock_runtime=$_dock_candidate; break; fi
+  done
+fi
+if [ -z "$_dock_runtime" ] || [ ! -f "$_dock_script" ]; then
+  printf '%s\n' 'ERRO: instalação do SEA Dock incompleta (runtime do dock-preview não encontrado). Reinstale o SEA Dock.' >&2
+  exit 1
+fi
+ELECTRON_RUN_AS_NODE=1 NODE_OPTIONS= exec "$_dock_runtime" "$_dock_script" "$@"
