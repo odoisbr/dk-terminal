@@ -16,6 +16,7 @@ let app;
  app = await electron.launch({args:[root],env:{...process.env,DK_TERMINAL_TEST:'1',DK_TERMINAL_DATA_DIR:path.join(temp,'config'),DK_TERMINAL_TEST_PROJECT:project},timeout:60000});
  const page=await app.firstWindow(); await page.locator('#startup-loading').waitFor({state:'detached'});
  await page.locator('#launcher-recents .launcher-recent').first().click();
+ await page.locator('#new-session').click();
  await page.locator('.terminal-pane[data-ready="true"]').waitFor();
  await page.evaluate(()=>{window.__output='';window.dk.onTerminalData(e=>window.__output+=e.data)});
  const id=(await page.locator('.tab-select[aria-selected="true"]').getAttribute('id')).slice(4);

@@ -1,0 +1,1043 @@
+{
+  "schema_version": 1,
+  "id": "COORD-PLUGINS-M2",
+  "pedido": "Fase 2 do plano: runner de agente com CLIs oficiais, Claude stream-json quando suportar aprovação segura, preservação do Codex app-server existente, prompt em camadas, aprovação explícita e ciclo de vida completo.",
+  "objetivo": "M2: run do Claude com prompt composto, streaming na UI e aprovação explícita.",
+  "modo": "execucao",
+  "contexto": [
+    {
+      "arquivo": "docs/plano-plugins-projeto.md",
+      "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+    },
+    {
+      "arquivo": "docs/orquestracao-plugins-projeto.md",
+      "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+    },
+    {
+      "arquivo": "docs/planejamento/README.md",
+      "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+    },
+    {
+      "arquivo": "docs/planejamento/02-m2-m3.md",
+      "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+    }
+  ],
+  "restricoes": [
+    "Nenhum token lido ou gravado pelo DK; login continua nas CLIs oficiais.",
+    "Nenhum JavaScript de terceiros no renderer; UI de plugin declarada em JSON.",
+    "Sem --permission-mode bypassPermissions; aprovações passam pela UI.",
+    "Não encerrar automaticamente sessão ou agente ativo nem descartar trabalho não salvo; prazo gera aviso e decisão do usuário.",
+    "Arquivos do usuário permanecem limpos: bridges e prompts injetados em memória.",
+    "Nomenclatura dk em tudo (data-dk-*, dk-edit-*, DK_*, .dk/).",
+    "Resultado de packet é JSON de até 4 KiB em dados; nada de histórico nem código colado.",
+    "Critérios de texto e resultados declarados são sinais preliminares; o aceite depende de testes e revisão independente vinculados à revisão real.",
+    "Alterar somente os arquivos declarados no packet; mudança fora do escopo reprova.",
+    "Sem leitura síncrona nova no main sem limite de tamanho.",
+    "Quando houver marco anterior, não despachar implementação até verificar seu estado e evidências reais; resultado declarado pelo executor não é prova suficiente.",
+    "Packet de escrita roda só npm test unitário; npm run build e testes de desktop ficam nos packets de verificação, porque dist/ entra no retrato do changeset.",
+    "Prazo por run configurável; o DEADLINE de 60 s das ações não se aplica.",
+    "Limite de runs simultâneos por projeto declarado e testado."
+  ],
+  "lacunas": [
+    "Aprovação interativa em claude -p ainda precisa ser comprovada. allowedTools não substitui o consentimento por operação; sem mecanismo equivalente, manter a CLI oficial interativa e informar indisponibilidade do runner."
+  ],
+  "saida": "Código, testes e README; estado em .dk/coordenacoes/COORD-PLUGINS-M2.json.",
+  "orcamento": {
+    "max_tarefas": 11,
+    "max_chamadas": 735,
+    "max_contexto_bytes": 10276045,
+    "max_tentativas": 16
+  },
+  "perfis": {
+    "leitor": {
+      "modelo": "haiku",
+      "esforco": "low",
+      "host": "claude_code"
+    },
+    "analista": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador-critico": {
+      "modelo": "fable",
+      "esforco": "xhigh",
+      "host": "claude_code"
+    },
+    "revisor": {
+      "modelo": "opus",
+      "esforco": "medium",
+      "host": "claude_code"
+    },
+    "revisor-seguranca": {
+      "modelo": "fable",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "testador": {
+      "modelo": "sonnet",
+      "esforco": "medium",
+      "host": "claude_code"
+    }
+  },
+  "politica_modelos": {
+    "leitura": "leitor",
+    "analise": "analista",
+    "implementacao": "implementador",
+    "revisao": "revisor"
+  },
+  "tarefas": [
+    {
+      "id": "m2-anterior",
+      "objetivo": "Confirmar que COORD-PLUGINS-M1 foi concluída: barra de etapas e catálogo visíveis com testes passando. Ler o estado em .dk/coordenacoes e o README; devolver dados.anterior.concluida.",
+      "categoria": "leitura",
+      "depende_de": [],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Marco anterior concluído com verificação registrada",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/anterior/concluida",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 15,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-inventario",
+      "objetivo": "Mapear o ciclo de vida de electron/codex-chat.cjs (spawn, eventos, aprovações, cancel, close), electron/session-processes.cjs, project:close-sessions e will-quit em electron/main.cjs, e as flags reais de claude --help (input-format, output-format, permission-prompt-tool, allowedTools) e codex exec --help (--json, sandbox). Devolver dados.inventario.",
+      "categoria": "leitura",
+      "depende_de": [
+        "m2-anterior"
+      ],
+      "condicao": {
+        "dependencia": "m2-anterior",
+        "ponteiro": "/anterior/concluida",
+        "igual": true
+      },
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Inventário completo",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/inventario/completo",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 15,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-desenho",
+      "objetivo": "Desenhar eventos normalizados (text_delta, tool_use, tool_result, status, usage, error, approval), o mecanismo de aprovação por operação sem bypassPermissions, as camadas do system prompt (charter DK, skill ativa, DESIGN.md, craft, instruções do projeto, etapa ativa, lista de arquivos) com limites de bytes, e os canais agent:start|cancel|approve|event. allowedTools não substitui o consentimento por operação; sem mecanismo comprovado, manter a CLI oficial interativa e informar indisponibilidade do runner. Registrar em dados.desenho.",
+      "categoria": "analise",
+      "depende_de": [
+        "m2-inventario"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Aprovação sem bypass definida",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/desenho/aprovacao/bypass",
+          "valor": false
+        }
+      ],
+      "limites": {
+        "chamadas": 25,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-prompt",
+      "objetivo": "Criar electron/prompt-composer.cjs: compor o system prompt em camadas conforme dados.desenho, com limites por camada e lista de arquivos truncada; teste unitário em tests/prompt-composer.test.cjs.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m2-desenho"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "electron/prompt-composer.cjs",
+        "tests/prompt-composer.test.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Compositor existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "electron/prompt-composer.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Camada da skill",
+          "tipo": "contem",
+          "arquivo": "electron/prompt-composer.cjs",
+          "valor": "SKILL.md"
+        },
+        {
+          "id": "C3",
+          "descricao": "Teste existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/prompt-composer.test.cjs"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M2-M2-PROMPT",
+        "objetivo": "Criar electron/prompt-composer.cjs: compor o system prompt em camadas conforme dados.desenho, com limites por camada e lista de arquivos truncada; teste unitário em tests/prompt-composer.test.cjs.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/prompt-composer.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "tests/prompt-composer.test.cjs",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Compositor existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "electron/prompt-composer.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Camada da skill",
+            "tipo": "contem",
+            "arquivo": "electron/prompt-composer.cjs",
+            "valor": "SKILL.md"
+          },
+          {
+            "id": "C3",
+            "descricao": "Teste existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/prompt-composer.test.cjs"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/prompt-composer.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-runner",
+      "objetivo": "Criar electron/agent-run.cjs: usar a CLI oficial do Claude em stream-json somente se a aprovação segura for comprovada; preservar o Codex app-server e suas aprovações e histórico, avaliando alternativa só após prova de equivalência. Normalizar eventos, aprovação, cancelamento, prazo e concorrência; teste unitário em tests/agent-run.test.cjs com CLI falsa.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m2-prompt"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "electron/agent-run.cjs",
+        "tests/agent-run.test.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Runner existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "electron/agent-run.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Usa stream-json",
+          "tipo": "contem",
+          "arquivo": "electron/agent-run.cjs",
+          "valor": "stream-json"
+        },
+        {
+          "id": "C3",
+          "descricao": "Não usa bypass",
+          "tipo": "nao_contem",
+          "arquivo": "electron/agent-run.cjs",
+          "valor": "bypassPermissions"
+        },
+        {
+          "id": "C4",
+          "descricao": "Teste existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/agent-run.test.cjs"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M2-M2-RUNNER",
+        "objetivo": "Criar electron/agent-run.cjs: usar a CLI oficial do Claude em stream-json somente se a aprovação segura for comprovada; preservar o Codex app-server e suas aprovações e histórico, avaliando alternativa só após prova de equivalência. Normalizar eventos, aprovação, cancelamento, prazo e concorrência; teste unitário em tests/agent-run.test.cjs com CLI falsa.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/agent-run.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "tests/agent-run.test.cjs",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Runner existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "electron/agent-run.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Usa stream-json",
+            "tipo": "contem",
+            "arquivo": "electron/agent-run.cjs",
+            "valor": "stream-json"
+          },
+          {
+            "id": "C3",
+            "descricao": "Não usa bypass",
+            "tipo": "nao_contem",
+            "arquivo": "electron/agent-run.cjs",
+            "valor": "bypassPermissions"
+          },
+          {
+            "id": "C4",
+            "descricao": "Teste existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/agent-run.test.cjs"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/agent-run.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-canais",
+      "objetivo": "Expor agent:start, agent:cancel, agent:approve e o evento agent:event em electron/main.cjs; incluir runs em project:close-sessions, closed e will-quit e em electron/session-processes.cjs; preload e src/api.d.ts.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m2-runner"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "electron/main.cjs",
+        "electron/preload.cjs",
+        "src/api.d.ts",
+        "electron/session-processes.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Canal de início",
+          "tipo": "contem",
+          "arquivo": "electron/main.cjs",
+          "valor": "agent:start"
+        },
+        {
+          "id": "C2",
+          "descricao": "Encerramento no fechamento do projeto",
+          "tipo": "contem",
+          "arquivo": "electron/main.cjs",
+          "valor": "agent"
+        },
+        {
+          "id": "C3",
+          "descricao": "Tipos declarados",
+          "tipo": "contem",
+          "arquivo": "src/api.d.ts",
+          "valor": "startAgent"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M2-M2-CANAIS",
+        "objetivo": "Expor agent:start, agent:cancel, agent:approve e o evento agent:event em electron/main.cjs; incluir runs em project:close-sessions, closed e will-quit e em electron/session-processes.cjs; preload e src/api.d.ts.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/main.cjs",
+            "sha256": "304f8d46bd3accf8eb65bbc3d7e3ef64e42663738bfabd3f7574525cc8cb54b9"
+          },
+          {
+            "arquivo": "electron/preload.cjs",
+            "sha256": "4d22990dfea6433d364174095b73bcde4e6c2f0bdaf6e67e8e826df3a14509c2"
+          },
+          {
+            "arquivo": "src/api.d.ts",
+            "sha256": "bc0194b83603f728cc97b02fc1d88c10762ba1e5937152eff146c9039be8b929"
+          },
+          {
+            "arquivo": "electron/session-processes.cjs",
+            "sha256": "bd14e9d34123a36cea01f56d46491b601781b1a125d2377f3105cbf82bf36f37"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Canal de início",
+            "tipo": "contem",
+            "arquivo": "electron/main.cjs",
+            "valor": "agent:start"
+          },
+          {
+            "id": "C2",
+            "descricao": "Encerramento no fechamento do projeto",
+            "tipo": "contem",
+            "arquivo": "electron/main.cjs",
+            "valor": "agent"
+          },
+          {
+            "id": "C3",
+            "descricao": "Tipos declarados",
+            "tipo": "contem",
+            "arquivo": "src/api.d.ts",
+            "valor": "startAgent"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/main.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-renderer",
+      "objetivo": "Criar src/agent.ts: view registrada em src/views.ts com streaming de texto, lista de ferramentas chamadas, pedido de aprovação explícito (aceitar e recusar afastados, estilos distintos), cancelar e consumo; reaproveitar padrões de src/chat.ts; ligar em src/main.ts e estilos em src/style.css.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m2-canais"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "src/agent.ts",
+        "src/main.ts",
+        "src/style.css"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "View do agente existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "src/agent.ts"
+        },
+        {
+          "id": "C2",
+          "descricao": "Aprovação na UI",
+          "tipo": "contem",
+          "arquivo": "src/agent.ts",
+          "valor": "approve"
+        },
+        {
+          "id": "C3",
+          "descricao": "main.ts registra a view",
+          "tipo": "contem",
+          "arquivo": "src/main.ts",
+          "valor": "from './agent'"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M2-M2-RENDERER",
+        "objetivo": "Criar src/agent.ts: view registrada em src/views.ts com streaming de texto, lista de ferramentas chamadas, pedido de aprovação explícito (aceitar e recusar afastados, estilos distintos), cancelar e consumo; reaproveitar padrões de src/chat.ts; ligar em src/main.ts e estilos em src/style.css.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "src/agent.ts",
+            "ausente": true
+          },
+          {
+            "arquivo": "src/main.ts",
+            "sha256": "b785ca179d09c98247440acdbd89e26ad47ad867dce8eb6a7353cef2db42449b"
+          },
+          {
+            "arquivo": "src/style.css",
+            "sha256": "2de3fe8f45e3adbe8c5bc1e5b73eff59377db4448a1beb0f9c7b033ada5b0778"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "View do agente existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "src/agent.ts"
+          },
+          {
+            "id": "C2",
+            "descricao": "Aprovação na UI",
+            "tipo": "contem",
+            "arquivo": "src/agent.ts",
+            "valor": "approve"
+          },
+          {
+            "id": "C3",
+            "descricao": "main.ts registra a view",
+            "tipo": "contem",
+            "arquivo": "src/main.ts",
+            "valor": "from './agent'"
+          }
+        ],
+        "saida": {
+          "arquivo": "src/agent.ts",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-testes",
+      "objetivo": "Criar teste desktop com runner sintético: streaming, aprovação e recusa, isolamento de pedidos pendentes ao alternar projetos, prazo que solicita decisão sem encerrar agente ativo e cancelamento confirmado; registrar test:agent e inclusão em test:all.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m2-renderer"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "tests/agent-desktop.cjs",
+        "package.json"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Teste de desktop existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/agent-desktop.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Script registrado",
+          "tipo": "contem",
+          "arquivo": "package.json",
+          "valor": "\"test:agent\""
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M2-M2-TESTES",
+        "objetivo": "Criar teste desktop com runner sintético: streaming, aprovação e recusa, isolamento de pedidos pendentes ao alternar projetos, prazo que solicita decisão sem encerrar agente ativo e cancelamento confirmado; registrar test:agent e inclusão em test:all.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "tests/agent-desktop.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "package.json",
+            "sha256": "d3f6ae86c417824e993459d62b7f76110f9d6b7a576b249e1ba0023a650587a1"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Teste de desktop existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/agent-desktop.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Script registrado",
+            "tipo": "contem",
+            "arquivo": "package.json",
+            "valor": "\"test:agent\""
+          }
+        ],
+        "saida": {
+          "arquivo": "tests/agent-desktop.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-docs",
+      "objetivo": "Documentar no README a seção \"Runner de agente\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m2-testes"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "README.md"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "README documenta o recurso",
+          "tipo": "contem",
+          "arquivo": "README.md",
+          "valor": "bypassPermissions"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M2-M2-DOCS",
+        "objetivo": "Documentar no README a seção \"Runner de agente\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "README.md",
+            "sha256": "3ee19ddfe1ff04a52f40dd9ca225205376ceaa54cab15369753f992ec067ef81"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "README documenta o recurso",
+            "tipo": "contem",
+            "arquivo": "README.md",
+            "valor": "bypassPermissions"
+          }
+        ],
+        "saida": {
+          "arquivo": "README.md",
+          "formato": "markdown",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-revisao",
+      "objetivo": "Revisar em contexto novo todas as alterações do marco contra o plano e a orquestração: conferir git status --short e git diff e ler explicitamente cada arquivo novo autorizado ainda não rastreado. Foco em: ausência de bypass, aprovação obrigatória, pedidos pendentes preservados ao alternar projetos e isolados por sessão, nenhum token lido, encerramento de processos, limites de runs e prazo, prompt sem vazamento de arquivos fora do projeto; sem evidência autorizada da CLI oficial ou decisão explícita de rever o escopo, M2 permanece incompleto e não libera M3. Devolver achados por arquivo e linha, classificados em bloqueante, importante e sugestão.",
+      "categoria": "revisao",
+      "depende_de": [
+        "m2-docs"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Nenhum achado bloqueante aberto",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/revisao/bloqueantes",
+          "valor": 0
+        }
+      ],
+      "limites": {
+        "chamadas": 30,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": "revisor-seguranca",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m2-verificacao",
+      "objetivo": "Executar npm run test:all e node tests/agent-desktop.cjs em cópia isolada fora da árvore inspecionada, com perfil temporário, depois dos packets de escrita. Antes dos testes, comparar o inventário e os hashes da árvore candidata e da cópia, incluindo alterações não commitadas e arquivos novos relevantes; rejeitar cópia com arquivo ausente ou divergente. Medir cenários de recursos pertinentes ao marco em condições comparáveis, identificando CPU, RSS, processos, watchers e limitações quando aplicável; marcar como não verificado o cenário que não puder ser executado. Registrar inventários, hashes, medições, saída, contagem e falhas em evidências compactas, sem dados sensíveis, vinculadas ao resultado por caminho local e hash. Validar previamente em fixture descartável se o runtime aceita evidências em .dk/coordenacoes/evidencias sem reprovar o retrato e respeita o limite de 4 MiB por arquivo; se não, definir outro mecanismo verificável antes do despacho. Conferir testes adversariais do planejamento. Não corrigir código: falha reprova a tarefa; aceite de desempenho depende de exame independente das evidências, não de uma declaração. Teste sintético não prova compatibilidade real. Sem validação autorizada da CLI oficial ou decisão explícita de rever o escopo, M2 permanece incompleto e não libera M3.",
+      "categoria": "revisao",
+      "depende_de": [
+        "m2-revisao"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Bash",
+        "Read"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Suíte completa passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/completos",
+          "valor": "passou"
+        },
+        {
+          "id": "C2",
+          "descricao": "Teste de desktop do marco passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/desktop",
+          "valor": "passou"
+        }
+      ],
+      "limites": {
+        "chamadas": 20,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    }
+  ]
+}

@@ -25,7 +25,7 @@ function aggregateResources(metrics, processRows, rootPid, collectorPid, hasPrev
   }
   if (hasPrevious && cpu.length === app.processCount && cpu.length) app.cpuPercent = cpu.reduce((sum, value) => sum + value, 0);
   if (memory.length === app.processCount && memory.length) app.memoryKiB = memory.reduce((sum, value) => sum + value, 0);
-  let children = null;
+  let children = null, otherProcesses = null;
   if (Array.isArray(processRows) && processRows.some(row => row.pid === rootPid)) {
     const byParent = new Map(), collectors = new Set(Array.isArray(collectorPid) ? collectorPid : [collectorPid]);
     for (const row of processRows) {
@@ -43,9 +43,12 @@ function aggregateResources(metrics, processRows, rootPid, collectorPid, hasPrev
       }
     }
     children = { cpuPercent: descendants.reduce((sum, row) => sum + row.cpu, 0), memoryKiB: descendants.reduce((sum, row) => sum + row.memoryKiB, 0), processCount: descendants.length };
+    const owned = new Set([...seen, ...descendants.map(row => row.pid), rootPid]);
+    const others = processRows.filter(row => !owned.has(row.pid) && !collectors.has(row.pid));
+    otherProcesses = {cpuPercent: others.reduce((sum,row)=>sum+row.cpu,0), memoryKiB:others.reduce((sum,row)=>sum+row.memoryKiB,0), processCount:others.length};
   }
   const add = (a, b) => Number.isFinite(a) && Number.isFinite(b) ? a + b : null;
-  return { app, children, total: children ? { cpuPercent: add(app.cpuPercent, children.cpuPercent), memoryKiB: add(app.memoryKiB, children.memoryKiB) } : { cpuPercent: app.cpuPercent, memoryKiB: app.memoryKiB }, sampledAt: now };
+  return { app, children, otherProcesses, total: children ? { cpuPercent: add(app.cpuPercent, children.cpuPercent), memoryKiB: add(app.memoryKiB, children.memoryKiB) } : { cpuPercent: app.cpuPercent, memoryKiB: app.memoryKiB }, sampledAt: now };
 }
 function processTable(platform) {
   if (platform !== 'darwin' && platform !== 'linux') return Promise.resolve(null);
@@ -79,7 +82,7 @@ function sessionResources(rows, roots, excludedPids = []) {
       memoryKiB += row.memoryKiB;
       pending.push(...(byParent.get(pid) || []));
     }
-    return [{ id: root.id, kind: root.kind === 'codex' ? 'codex' : 'terminal', root: root.kind === 'codex' ? root.root : undefined, memoryKiB, lastActivity: root.lastActivity }];
+    return [{ id: root.id, pid:root.pid, kind: root.kind === 'codex' ? 'codex' : 'terminal', root: root.kind === 'codex' ? root.root : undefined, memoryKiB, lastActivity: root.lastActivity }];
   });
 }
 function systemSample(api = os) {
@@ -133,11 +136,53 @@ function swapUsage(platform) {
     } catch { resolve(null); }
   });
 }
+function parseLinuxMemory(output, pressure) {
+  const value = key => { const match=new RegExp(`^${key}:\\s*(\\d+)\\s*kB\\s*$`,'im').exec(output); return match ? Number(match[1]) : null; };
+  const total=value('MemTotal'),available=value('MemAvailable'),cached=value('Cached'),reclaimable=value('SReclaimable'),shmem=value('Shmem');
+  const match=/^some\s+avg10=(\d+(?:\.\d+)?)(?:\s|$)/m.exec(pressure||'');
+  const pct=match?Number(match[1]):null;
+  return {
+    availablePercent:total && available!==null && available<=total ? available/total*100 : null,
+    cache:cached!==null && reclaimable!==null && shmem!==null ? {memoryKiB:Math.max(0,cached+reclaimable-shmem),kind:'estimate'} : null,
+    pressure:pct!==null && pct>=0 && pct<=100 ? {kind:'linux-psi',someAvg10:pct} : null,
+  };
+}
+function parseMacMemory(vmstat, pressureQuery) {
+  const page=/page size of\s+(\d+)\s+bytes/i.exec(vmstat||'');
+  const purgeable=/^Pages purgeable:\s*(\d+)\./mi.exec(vmstat||'');
+  const available=/System-wide memory free percentage:\s*(\d+)%/i.exec(pressureQuery||'');
+  const pct=available?Number(available[1]):null;
+  return {
+    availablePercent:pct!==null && pct>=0 && pct<=100 ? pct : null,
+    cache:page&&purgeable ? {memoryKiB:Number(page[1])*Number(purgeable[1])/1024,kind:'purgeable'} : null,
+    // The macOS query reports availability, not the system pressure state.
+    pressure:null,
+  };
+}
+function readCommand(file, args) {
+  return new Promise(resolve=>{try{let child;child=execFile(file,args,{timeout:2500,maxBuffer:128*1024,env:{PATH:'/usr/bin:/bin',LC_ALL:'C'}},(error,stdout)=>resolve({output:error?null:stdout,pid:child?.pid}));}catch{resolve({output:null,pid:null});}});
+}
+async function memoryDetails(platform) {
+  if(platform==='linux') {
+    const [memory,pressure]=await Promise.all([fs.promises.readFile('/proc/meminfo','utf8').catch(()=>null),fs.promises.readFile('/proc/pressure/memory','utf8').catch(()=>null)]);
+    return memory?parseLinuxMemory(memory,pressure):null;
+  }
+  if(platform==='darwin') {
+    // -Q is a read-only query. Never invoke modes that generate pressure.
+    let native=null; try { if(typeof process.getSystemMemoryInfo==='function') native=process.getSystemMemoryInfo(); } catch {}
+    const [vmstat,available]=await Promise.all([Number.isFinite(native?.purgeable) ? Promise.resolve({output:null,pid:null}) : readCommand('/usr/bin/vm_stat',[]),readCommand('/usr/bin/memory_pressure',['-Q'])]);
+    const detail=parseMacMemory(vmstat.output,available.output);
+    if(Number.isFinite(native?.purgeable) && native.purgeable>=0) detail.cache={memoryKiB:native.purgeable,kind:'purgeable'};
+    return detail.cache||available.output?{...detail,collectorPids:[vmstat.pid,available.pid]}:null;
+  }
+  return null;
+}
 class ResourceMonitor {
   constructor(getMetrics, options = {}) {
     this.getMetrics = getMetrics; this.platform = options.platform || process.platform; this.rootPid = options.rootPid || process.pid;
     this.getTable = options.getTable || processTable; this.clock = options.clock || Date.now;
     this.pending = null; this.last = null; this.previous = false; this.previousSystem = null; this.getSystem = options.getSystem || systemSample; this.getSwap = options.getSwap || swapUsage; this.getTerminals = options.getTerminals || (() => []);
+    this.getMemoryDetails=options.getMemoryDetails || memoryDetails; this.memoryDetailsLast=null; this.memoryDetailsAt=0;
   }
   read() {
     if (this.pending) return this.pending;
@@ -145,15 +190,18 @@ class ResourceMonitor {
     this.pending = (async () => {
       let metrics; try { metrics = this.getMetrics(); } catch { metrics = []; }
       if (!Array.isArray(metrics)) metrics = [];
-      const [table, swap] = await Promise.all([Promise.resolve().then(() => this.getTable(this.platform)).catch(() => null), Promise.resolve().then(() => this.getSwap(this.platform)).catch(() => null)]);
+      const needsMemoryDetails=!this.memoryDetailsAt || this.clock()-this.memoryDetailsAt>=30000;
+      const [table, swap, details] = await Promise.all([Promise.resolve().then(() => this.getTable(this.platform)).catch(() => null), Promise.resolve().then(() => this.getSwap(this.platform)).catch(() => null), needsMemoryDetails ? Promise.resolve().then(()=>this.getMemoryDetails(this.platform)).catch(()=>null) : Promise.resolve(this.memoryDetailsLast)]);
+      if(needsMemoryDetails){this.memoryDetailsLast=details;this.memoryDetailsAt=this.clock();}
       let system; try { system = this.getSystem(); } catch { system = null; }
-      const data = aggregateResources(metrics, table?.rows ?? null, this.rootPid, [table?.collectorPid, swap?.collectorPid], this.previous, this.clock());
-      data.system = { ...systemResources(system, this.previousSystem), swap: swap?.usage ?? null }; this.previousSystem = system;
+      const collectors=[table?.collectorPid, swap?.collectorPid, ...(needsMemoryDetails?details?.collectorPids||[]:[])];
+      const data = aggregateResources(metrics, table?.rows ?? null, this.rootPid, collectors, this.previous, this.clock());
+      data.system = { ...systemResources(system, this.previousSystem), swap: swap?.usage ?? null, availablePercent:details?.availablePercent ?? null, cache:details?.cache ?? null, pressure:details?.pressure ?? null }; this.previousSystem = system;
       let roots; try { roots = this.getTerminals(); } catch { roots = []; }
-      data.sessions = sessionResources(table?.rows, roots, [table?.collectorPid, swap?.collectorPid]);
+      data.sessions = sessionResources(table?.rows, roots, collectors);
       this.previous = metrics.length > 0; this.last = data; return data;
     })().finally(() => { this.pending = null; });
     return this.pending;
   }
 }
-module.exports = { ResourceMonitor, parseProcessTable, aggregateResources, systemSample, systemResources, parseSwapUsage, swapUsage, sessionResources };
+module.exports = { ResourceMonitor, parseProcessTable, aggregateResources, systemSample, systemResources, parseSwapUsage, swapUsage, sessionResources, parseLinuxMemory, parseMacMemory, memoryDetails };

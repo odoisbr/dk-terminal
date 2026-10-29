@@ -98,7 +98,7 @@ test('official stdio handshake, deltas, output bounds, private reasoning filteri
   assert.ok(!fs.readFileSync(f.storeFile, 'utf8').includes('PRIVATE_REASONING'));
   let log = f.log();
   assert.deepEqual(log[0].spawn, ['app-server', '--listen', 'stdio://']);
-  assert.deepEqual(log.find(value => value.method === 'initialize').params, { clientInfo: { name: 'dk_terminal', title: 'DK Terminal', version: '0.1.0' } });
+  assert.deepEqual(log.find(value => value.method === 'initialize').params, { clientInfo: { name: 'dk_terminal', title: 'SEA Dock', version: require('../package.json').version } });
   assert.ok(log.some(value => value.method === 'initialized'));
   assert.deepEqual(log.find(value => value.method === 'thread/start').params, { cwd: f.root });
   assert.deepEqual(log.find(value => value.method === 'turn/start').params.input, [{ type: 'text', text: 'Synthetic user request.' }]);

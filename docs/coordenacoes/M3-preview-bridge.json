@@ -1,0 +1,1159 @@
+{
+  "schema_version": 1,
+  "id": "COORD-PLUGINS-M3",
+  "pedido": "Fase 3 do plano: esquema dk-preview:// servido pelo main com contenção, iframe sandbox sem same-origin, bridges dk-edit-* em memória, patch que preserve conteúdo não editado e undo com gravação por file:save.",
+  "objetivo": "M3: tela HTML editada no preview e gravada, com undo e teste de desktop com PTY desligado.",
+  "modo": "execucao",
+  "contexto": [
+    {
+      "arquivo": "docs/plano-plugins-projeto.md",
+      "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+    },
+    {
+      "arquivo": "docs/orquestracao-plugins-projeto.md",
+      "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+    },
+    {
+      "arquivo": "docs/planejamento/README.md",
+      "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+    },
+    {
+      "arquivo": "docs/planejamento/02-m2-m3.md",
+      "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+    }
+  ],
+  "restricoes": [
+    "Nenhum token lido ou gravado pelo DK; login continua nas CLIs oficiais.",
+    "Nenhum JavaScript de terceiros no renderer; UI de plugin declarada em JSON.",
+    "Sem --permission-mode bypassPermissions; aprovações passam pela UI.",
+    "Não encerrar automaticamente sessão ou agente ativo nem descartar trabalho não salvo; prazo gera aviso e decisão do usuário.",
+    "Arquivos do usuário permanecem limpos: bridges e prompts injetados em memória.",
+    "Nomenclatura dk em tudo (data-dk-*, dk-edit-*, DK_*, .dk/).",
+    "Resultado de packet é JSON de até 4 KiB em dados; nada de histórico nem código colado.",
+    "Critérios de texto e resultados declarados são sinais preliminares; o aceite depende de testes e revisão independente vinculados à revisão real.",
+    "Alterar somente os arquivos declarados no packet; mudança fora do escopo reprova.",
+    "Sem leitura síncrona nova no main sem limite de tamanho.",
+    "Quando houver marco anterior, não despachar implementação até verificar seu estado e evidências reais; resultado declarado pelo executor não é prova suficiente.",
+    "Packet de escrita roda só npm test unitário; npm run build e testes de desktop ficam nos packets de verificação, porque dist/ entra no retrato do changeset.",
+    "Preview sem rede: connect-src none e sub-recursos só de dk-preview:.",
+    "Arquivo editável até 2 MiB; histórico de undo limitado e verificado contra o disco.",
+    "Antes de despachar M3, verificar o estado e as evidências reais de M2; resultado declarado não comprova o gate."
+  ],
+  "lacunas": [
+    "Projetos React (carimbo data-dk-source, proxy de dev server) ficam fora deste marco."
+  ],
+  "saida": "Código, testes e README; estado em .dk/coordenacoes/COORD-PLUGINS-M3.json.",
+  "orcamento": {
+    "max_tarefas": 12,
+    "max_chamadas": 847,
+    "max_contexto_bytes": 11744052,
+    "max_tentativas": 17
+  },
+  "perfis": {
+    "leitor": {
+      "modelo": "haiku",
+      "esforco": "low",
+      "host": "claude_code"
+    },
+    "analista": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador-critico": {
+      "modelo": "fable",
+      "esforco": "xhigh",
+      "host": "claude_code"
+    },
+    "revisor": {
+      "modelo": "opus",
+      "esforco": "medium",
+      "host": "claude_code"
+    },
+    "revisor-seguranca": {
+      "modelo": "fable",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "testador": {
+      "modelo": "sonnet",
+      "esforco": "medium",
+      "host": "claude_code"
+    }
+  },
+  "politica_modelos": {
+    "leitura": "leitor",
+    "analise": "analista",
+    "implementacao": "implementador",
+    "revisao": "revisor"
+  },
+  "tarefas": [
+    {
+      "id": "m3-anterior",
+      "objetivo": "Confirmar que COORD-PLUGINS-M2 foi concluída: runner de agente com aprovação e testes verificados. Ler o estado em .dk/coordenacoes e o README; devolver dados.anterior.concluida.",
+      "categoria": "leitura",
+      "depende_de": [],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Marco anterior concluído com verificação registrada",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/anterior/concluida",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 15,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-inventario",
+      "objetivo": "Mapear resolveFile e TEXT_LIMIT em electron/files.cjs, o registro de dk-app:// e protocol.handle em electron/main.cjs, PreviewBrowser em electron/browser.cjs, renderHtml em src/editor.ts, a CSP de index.html e file:save com revisão. Devolver dados.inventario.",
+      "categoria": "leitura",
+      "depende_de": [
+        "m3-anterior"
+      ],
+      "condicao": {
+        "dependencia": "m3-anterior",
+        "ponteiro": "/anterior/concluida",
+        "igual": true
+      },
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Inventário completo",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/inventario/completo",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 15,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-desenho",
+      "objetivo": "Desenhar o esquema dk-preview://<hash-projeto>/<caminho>, a injeção em memória dos bridges, o protocolo dk-edit-* (seleção, texto inline, estilo, link, imagem, ações estruturais, resize, inserção armada, copy/paste, undo/redo) com esquema JSON por mensagem, o modelo de patch e undo (beforeSource, afterSource, revisão do disco) e os canais preview:open|close. Registrar em dados.desenho.",
+      "categoria": "analise",
+      "depende_de": [
+        "m3-inventario"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Iframe sem same-origin",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/desenho/iframe/allow_same_origin",
+          "valor": false
+        }
+      ],
+      "limites": {
+        "chamadas": 25,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-protocolo",
+      "objetivo": "Criar electron/preview-protocol.cjs: handler de dk-preview com contenção de resolveFile, tipos MIME, injeção dos bridges só em HTML, bloqueio de rede e de caminhos fora do projeto; teste unitário em tests/preview-protocol.test.cjs.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m3-desenho"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "electron/preview-protocol.cjs",
+        "tests/preview-protocol.test.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Handler existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "electron/preview-protocol.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Esquema dk-preview",
+          "tipo": "contem",
+          "arquivo": "electron/preview-protocol.cjs",
+          "valor": "dk-preview"
+        },
+        {
+          "id": "C3",
+          "descricao": "Teste existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/preview-protocol.test.cjs"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M3-M3-PROTOCOLO",
+        "objetivo": "Criar electron/preview-protocol.cjs: handler de dk-preview com contenção de resolveFile, tipos MIME, injeção dos bridges só em HTML, bloqueio de rede e de caminhos fora do projeto; teste unitário em tests/preview-protocol.test.cjs.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/preview-protocol.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "tests/preview-protocol.test.cjs",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Handler existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "electron/preview-protocol.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Esquema dk-preview",
+            "tipo": "contem",
+            "arquivo": "electron/preview-protocol.cjs",
+            "valor": "dk-preview"
+          },
+          {
+            "id": "C3",
+            "descricao": "Teste existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/preview-protocol.test.cjs"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/preview-protocol.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-bridge",
+      "objetivo": "Criar assets/dk-edit-bridge.js, assets/dk-edit-bridge.css e assets/dk-flow-runtime.js: seleção com data-dk-id, mensagens dk-edit-* por postMessage ao parent, navegação data-dk-navigate, overlays data-dk-overlay*, Escape, find bridge; sem dependências e sem rede.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m3-desenho"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "assets/dk-edit-bridge.js",
+        "assets/dk-edit-bridge.css",
+        "assets/dk-flow-runtime.js"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Bridge existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "assets/dk-edit-bridge.js"
+        },
+        {
+          "id": "C2",
+          "descricao": "Mensagens dk-edit",
+          "tipo": "contem",
+          "arquivo": "assets/dk-edit-bridge.js",
+          "valor": "dk-edit-"
+        },
+        {
+          "id": "C3",
+          "descricao": "Runtime de fluxo existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "assets/dk-flow-runtime.js"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M3-M3-BRIDGE",
+        "objetivo": "Criar assets/dk-edit-bridge.js, assets/dk-edit-bridge.css e assets/dk-flow-runtime.js: seleção com data-dk-id, mensagens dk-edit-* por postMessage ao parent, navegação data-dk-navigate, overlays data-dk-overlay*, Escape, find bridge; sem dependências e sem rede.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "assets/dk-edit-bridge.js",
+            "ausente": true
+          },
+          {
+            "arquivo": "assets/dk-edit-bridge.css",
+            "ausente": true
+          },
+          {
+            "arquivo": "assets/dk-flow-runtime.js",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Bridge existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "assets/dk-edit-bridge.js"
+          },
+          {
+            "id": "C2",
+            "descricao": "Mensagens dk-edit",
+            "tipo": "contem",
+            "arquivo": "assets/dk-edit-bridge.js",
+            "valor": "dk-edit-"
+          },
+          {
+            "id": "C3",
+            "descricao": "Runtime de fluxo existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "assets/dk-flow-runtime.js"
+          }
+        ],
+        "saida": {
+          "arquivo": "assets/dk-edit-bridge.js",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-patch",
+      "objetivo": "Criar src/preview-patch.ts: aplicar mensagens dk-edit-* com estratégia que preserve trechos não editados, comentários, doctype, entidades, BOM e fins de linha; histórico de undo/redo com beforeSource/afterSource e limite; testes em tests/preview-patch.test.cjs. DOMParser não é exigido e sua reserialização não deve alterar conteúdo silenciosamente.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m3-desenho"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "src/preview-patch.ts",
+        "tests/preview-patch.test.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Patch existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "src/preview-patch.ts"
+        },
+        {
+          "id": "C2",
+          "descricao": "Teste dedicado existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/preview-patch.test.cjs"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M3-M3-PATCH",
+        "objetivo": "Criar src/preview-patch.ts: aplicar mensagens dk-edit-* com estratégia que preserve trechos não editados, comentários, doctype, entidades, BOM e fins de linha; histórico de undo/redo com beforeSource/afterSource e limite; testes em tests/preview-patch.test.cjs. DOMParser não é exigido e sua reserialização não deve alterar conteúdo silenciosamente.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "src/preview-patch.ts",
+            "ausente": true
+          },
+          {
+            "arquivo": "tests/preview-patch.test.cjs",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Patch existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "src/preview-patch.ts"
+          },
+          {
+            "id": "C2",
+            "descricao": "Teste dedicado existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/preview-patch.test.cjs"
+          }
+        ],
+        "saida": {
+          "arquivo": "src/preview-patch.ts",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-csp-canais",
+      "objetivo": "Registrar dk-preview com privilégios mínimos, sem bypassCSP, e ligar o handler em electron/main.cjs; expor preview:open e preview:close; adicionar frame-src dk-preview: à CSP do host e aplicar política sem rede ao documento filho; preload e src/api.d.ts.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m3-protocolo"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "index.html",
+        "electron/main.cjs",
+        "electron/preload.cjs",
+        "src/api.d.ts"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "CSP permite o esquema",
+          "tipo": "contem",
+          "arquivo": "index.html",
+          "valor": "frame-src dk-preview:"
+        },
+        {
+          "id": "C2",
+          "descricao": "CSP mantém connect-src none",
+          "tipo": "contem",
+          "arquivo": "index.html",
+          "valor": "connect-src 'none'"
+        },
+        {
+          "id": "C3",
+          "descricao": "Esquema registrado",
+          "tipo": "contem",
+          "arquivo": "electron/main.cjs",
+          "valor": "dk-preview"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M3-M3-CSP-CANAIS",
+        "objetivo": "Registrar dk-preview com privilégios mínimos, sem bypassCSP, e ligar o handler em electron/main.cjs; expor preview:open e preview:close; adicionar frame-src dk-preview: à CSP do host e aplicar política sem rede ao documento filho; preload e src/api.d.ts.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "index.html",
+            "sha256": "a3b594792dc3383374ee1e6bcc06a47477151b423f6428cade892b3429021a66"
+          },
+          {
+            "arquivo": "electron/main.cjs",
+            "sha256": "304f8d46bd3accf8eb65bbc3d7e3ef64e42663738bfabd3f7574525cc8cb54b9"
+          },
+          {
+            "arquivo": "electron/preload.cjs",
+            "sha256": "4d22990dfea6433d364174095b73bcde4e6c2f0bdaf6e67e8e826df3a14509c2"
+          },
+          {
+            "arquivo": "src/api.d.ts",
+            "sha256": "bc0194b83603f728cc97b02fc1d88c10762ba1e5937152eff146c9039be8b929"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "CSP permite o esquema",
+            "tipo": "contem",
+            "arquivo": "index.html",
+            "valor": "frame-src dk-preview:"
+          },
+          {
+            "id": "C2",
+            "descricao": "CSP mantém connect-src none",
+            "tipo": "contem",
+            "arquivo": "index.html",
+            "valor": "connect-src 'none'"
+          },
+          {
+            "id": "C3",
+            "descricao": "Esquema registrado",
+            "tipo": "contem",
+            "arquivo": "electron/main.cjs",
+            "valor": "dk-preview"
+          }
+        ],
+        "saida": {
+          "arquivo": "index.html",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-renderer",
+      "objetivo": "Criar src/preview.ts: view registrada com iframe sandbox=\"allow-scripts\" (sem allow-same-origin), barra com undo/redo e salvar, escuta de postMessage com event.source igual ao contentWindow, geração ativa e esquema validado; tratar mensagens como propostas não confiáveis sem escrita automática. Aplicar o patch e gravar por file:save com revisão; ligar em src/main.ts e estilos em src/style.css.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m3-bridge",
+        "m3-patch",
+        "m3-csp-canais"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "src/preview.ts",
+        "src/main.ts",
+        "src/style.css"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "View existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "src/preview.ts"
+        },
+        {
+          "id": "C2",
+          "descricao": "Sandbox só com scripts",
+          "tipo": "contem",
+          "arquivo": "src/preview.ts",
+          "valor": "allow-scripts"
+        },
+        {
+          "id": "C3",
+          "descricao": "Sem same-origin",
+          "tipo": "nao_contem",
+          "arquivo": "src/preview.ts",
+          "valor": "allow-same-origin"
+        },
+        {
+          "id": "C4",
+          "descricao": "main.ts registra a view",
+          "tipo": "contem",
+          "arquivo": "src/main.ts",
+          "valor": "from './preview'"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M3-M3-RENDERER",
+        "objetivo": "Criar src/preview.ts: view registrada com iframe sandbox=\"allow-scripts\" (sem allow-same-origin), barra com undo/redo e salvar, escuta de postMessage com event.source igual ao contentWindow, geração ativa e esquema validado; tratar mensagens como propostas não confiáveis sem escrita automática. Aplicar o patch e gravar por file:save com revisão; ligar em src/main.ts e estilos em src/style.css.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "src/preview.ts",
+            "ausente": true
+          },
+          {
+            "arquivo": "src/main.ts",
+            "sha256": "b785ca179d09c98247440acdbd89e26ad47ad867dce8eb6a7353cef2db42449b"
+          },
+          {
+            "arquivo": "src/style.css",
+            "sha256": "2de3fe8f45e3adbe8c5bc1e5b73eff59377db4448a1beb0f9c7b033ada5b0778"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "View existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "src/preview.ts"
+          },
+          {
+            "id": "C2",
+            "descricao": "Sandbox só com scripts",
+            "tipo": "contem",
+            "arquivo": "src/preview.ts",
+            "valor": "allow-scripts"
+          },
+          {
+            "id": "C3",
+            "descricao": "Sem same-origin",
+            "tipo": "nao_contem",
+            "arquivo": "src/preview.ts",
+            "valor": "allow-same-origin"
+          },
+          {
+            "id": "C4",
+            "descricao": "main.ts registra a view",
+            "tipo": "contem",
+            "arquivo": "src/main.ts",
+            "valor": "from './preview'"
+          }
+        ],
+        "saida": {
+          "arquivo": "src/preview.ts",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-testes",
+      "objetivo": "Criar teste desktop com HTML temporário, edição e undo; verificar preservação dos bytes não editados, conflitos, mensagens forjadas e bloqueio de fetch, WebSocket, imagens e CSS do iframe sem afetar o browser atual; registrar test:preview e inclusão em test:all.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m3-renderer"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "tests/preview-desktop.cjs",
+        "package.json"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Teste de desktop existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/preview-desktop.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Script registrado",
+          "tipo": "contem",
+          "arquivo": "package.json",
+          "valor": "\"test:preview\""
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M3-M3-TESTES",
+        "objetivo": "Criar teste desktop com HTML temporário, edição e undo; verificar preservação dos bytes não editados, conflitos, mensagens forjadas e bloqueio de fetch, WebSocket, imagens e CSS do iframe sem afetar o browser atual; registrar test:preview e inclusão em test:all.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "tests/preview-desktop.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "package.json",
+            "sha256": "d3f6ae86c417824e993459d62b7f76110f9d6b7a576b249e1ba0023a650587a1"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Teste de desktop existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/preview-desktop.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Script registrado",
+            "tipo": "contem",
+            "arquivo": "package.json",
+            "valor": "\"test:preview\""
+          }
+        ],
+        "saida": {
+          "arquivo": "tests/preview-desktop.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-docs",
+      "objetivo": "Documentar no README a seção \"Preview com edição\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m3-testes"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [
+        "README.md"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "README documenta o recurso",
+          "tipo": "contem",
+          "arquivo": "README.md",
+          "valor": "dk-preview"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M3-M3-DOCS",
+        "objetivo": "Documentar no README a seção \"Preview com edição\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/02-m2-m3.md",
+            "sha256": "3336f072dc91c3b1c8d85de6147097d799bd4a8e9e27123f920e734656cda305"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "README.md",
+            "sha256": "3ee19ddfe1ff04a52f40dd9ca225205376ceaa54cab15369753f992ec067ef81"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "README documenta o recurso",
+            "tipo": "contem",
+            "arquivo": "README.md",
+            "valor": "dk-preview"
+          }
+        ],
+        "saida": {
+          "arquivo": "README.md",
+          "formato": "markdown",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-revisao",
+      "objetivo": "Revisar em contexto novo todas as alterações do marco contra o plano e a orquestração: conferir git status --short e git diff e ler explicitamente cada arquivo novo autorizado ainda não rastreado. Foco em: iframe sem same-origin e sem acesso ao IPC, CSP, contenção do esquema, validação de mensagens, nenhum bridge gravado em disco, undo verificado contra o disco. Devolver achados por arquivo e linha, classificados em bloqueante, importante e sugestão.",
+      "categoria": "revisao",
+      "depende_de": [
+        "m3-docs"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Nenhum achado bloqueante aberto",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/revisao/bloqueantes",
+          "valor": 0
+        }
+      ],
+      "limites": {
+        "chamadas": 30,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": "revisor-seguranca",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m3-verificacao",
+      "objetivo": "Executar npm run test:all e node tests/preview-desktop.cjs em cópia isolada fora da árvore inspecionada, com perfil temporário, depois dos packets de escrita. Antes dos testes, comparar o inventário e os hashes da árvore candidata e da cópia, incluindo alterações não commitadas e arquivos novos relevantes; rejeitar cópia com arquivo ausente ou divergente. Medir cenários de recursos pertinentes ao marco em condições comparáveis, identificando CPU, RSS, processos, watchers e limitações quando aplicável; marcar como não verificado o cenário que não puder ser executado. Registrar inventários, hashes, medições, saída, contagem e falhas em evidências compactas, sem dados sensíveis, vinculadas ao resultado por caminho local e hash. Validar previamente em fixture descartável se o runtime aceita evidências em .dk/coordenacoes/evidencias sem reprovar o retrato e respeita o limite de 4 MiB por arquivo; se não, definir outro mecanismo verificável antes do despacho. Conferir testes adversariais do planejamento. Não corrigir código: falha reprova a tarefa; aceite de desempenho depende de exame independente das evidências, não de uma declaração. ",
+      "categoria": "revisao",
+      "depende_de": [
+        "m3-revisao"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/02-m2-m3.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Bash",
+        "Read"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Suíte completa passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/completos",
+          "valor": "passou"
+        },
+        {
+          "id": "C2",
+          "descricao": "Teste de desktop do marco passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/desktop",
+          "valor": "passou"
+        }
+      ],
+      "limites": {
+        "chamadas": 20,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    }
+  ]
+}

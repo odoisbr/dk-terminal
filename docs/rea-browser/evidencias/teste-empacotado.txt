@@ -1,0 +1,8 @@
+✓ Isolamento do renderer, permissão negada e acesso de sub-recurso a outra origem observados
+✓ Navegação de topo externa, file: e redirecionamento externo bloqueados
+✓ Download cancelado sem gravar arquivo
+✓ Cache HTTP temporário é limpo antes da reabertura
+✓ Partições separadas, storage limpo e WebContents removido ao fechar
+✓ Aberturas repetidas não deixam WebContents ativos
+✓ Troca de projeto durante carregamento não conserva a prévia anterior
+✓ Navegações concorrentes mantêm o endereço mais recente

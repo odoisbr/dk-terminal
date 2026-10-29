@@ -2,6 +2,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { executable } = require('./core.cjs');
+const { staticEntry, createStaticServer } = require('./static-preview.cjs');
+const { detectPackageManager } = require('./dependency-cache.cjs');
 
 function jsonFile(root, file) {
   if (!fs.existsSync(file)) return null;
@@ -29,12 +31,13 @@ function definitions(root) {
   const pkg = jsonFile(root, path.join(root, 'package.json'));
   if (pkg && pkg.scripts && typeof pkg.scripts === 'object') {
     const declared = typeof pkg.packageManager === 'string' ? pkg.packageManager.split('@')[0] : null;
-    const manager = ['npm', 'pnpm', 'yarn', 'bun'].includes(declared) ? declared :
+    const detected = detectPackageManager(root);
+    const manager = detected.ok ? detected.manager : ['npm', 'pnpm', 'yarn', 'bun'].includes(declared) ? declared :
       fs.existsSync(path.join(root, 'pnpm-lock.yaml')) ? 'pnpm' : fs.existsSync(path.join(root, 'yarn.lock')) ? 'yarn' :
       fs.existsSync(path.join(root, 'bun.lock')) || fs.existsSync(path.join(root, 'bun.lockb')) ? 'bun' : 'npm';
     for (const name of Object.keys(pkg.scripts)) {
       if (/^(dev|start|serve|preview|watch|worker|api)(:[a-zA-Z0-9_-]+)*$/.test(name) && typeof pkg.scripts[name] === 'string') {
-        result.push({ id: `script:${name}`, name, command: manager, args: ['run', name] });
+        result.push({ id: `script:${name}`, name, command: manager, args: ['run', name], managerError: !detected.ok && !detected.workspace ? detected.error : null });
       }
     }
   }
@@ -51,6 +54,8 @@ function definitions(root) {
       result.push({ id: `custom:${item.name}`, name: item.name, command: item.command, args: item.args, role: item.role });
     }
   }
+  // Static preview is an explicit option alongside any framework services.
+  if (result.length < 24 && staticEntry(root)) result.push({ id: 'static:preview', name: 'Prévia estática', role: 'frontend', static: true });
   if (result.length > 24) throw new Error('O limite é 24 serviços definidos por projeto.');
   if (new Set(result.map(item => item.id)).size !== result.length) throw new Error('Existem nomes de serviço repetidos.');
   return result;
@@ -76,6 +81,20 @@ class Services {
     if ([...this.running.values()].filter(x => ['running', 'starting', 'stopping'].includes(x.status)).length >= 8) throw new Error('O limite é oito serviços ativos.');
     const def = definitions(root).find(item => item.id === id);
     if (!def) throw new Error('Este serviço não existe no projeto.');
+    if (def.managerError) throw new Error(def.managerError);
+    if (def.static) {
+      const entry = { ...def, root, status: 'starting', log: 'Prévia estática local, sem instalação de dependências.', server: null };
+      this.running.set(key, entry);
+      try {
+        entry.server = createStaticServer(root, {
+          ready: url => { if (entry.status !== 'starting') return; entry.url = url; entry.status = 'running'; this.emit(entry); },
+          error: error => { entry.status = 'failed'; entry.log = error.message; this.emit(entry); },
+          close: () => { if (entry.status !== 'failed') entry.status = 'stopped'; entry.url = null; this.emit(entry); },
+        });
+      } catch (error) { this.running.delete(key); throw error; }
+      this.emit(entry);
+      return this.snapshot(entry);
+    }
     let command = executable(def.command, this.env);
     if (path.isAbsolute(def.command)) {
       try { fs.accessSync(def.command, fs.constants.X_OK); if (fs.statSync(def.command).isFile()) command = def.command; } catch {}
@@ -119,6 +138,7 @@ class Services {
     const entry = this.running.get(this.key(root, id));
     if (!entry || !['running', 'starting'].includes(entry.status)) throw new Error('Este serviço não está rodando.');
     entry.status = 'stopping'; this.emit(entry);
+    if (entry.static) { entry.server.close(); return this.snapshot(entry); }
     if (process.platform === 'win32') {
       spawn('taskkill', ['/PID', String(entry.child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
     } else {
@@ -135,6 +155,7 @@ class Services {
   closeAll() {
     for (const entry of this.running.values()) {
       clearTimeout(entry.timer); clearTimeout(entry.killTimer);
+      if (entry.static && ['running', 'starting', 'stopping'].includes(entry.status)) { entry.server.close(); continue; }
       if (['running', 'starting', 'stopping'].includes(entry.status) && entry.child?.pid) {
         entry.status = 'stopping';
         if (process.platform === 'win32') spawn('taskkill', ['/PID', String(entry.child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });

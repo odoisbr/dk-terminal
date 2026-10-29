@@ -49,9 +49,9 @@ def workflow(target, command):
     }
     document = {"AMApplicationBuild": "523", "AMApplicationVersion": "2.10", "AMDocumentVersion": "2", "actions": [{"action": action, "isViewVisible": True}], "connectors": {}, "workflowMetaData": metadata}
     info = {
-        "CFBundleIdentifier": IDENTIFIER, "CFBundleName": "Abrir com DK", "DKManagedIntegration": True,
+        "CFBundleIdentifier": IDENTIFIER, "CFBundleName": "Abrir com SEA Dock", "DKManagedIntegration": True,
         "NSServices": [{"NSBackgroundColorName": "background", "NSIconName": "NSActionTemplate",
-                        "NSMenuItem": {"default": "Abrir com DK"}, "NSMessage": "runWorkflowAsService",
+                        "NSMenuItem": {"default": "Abrir com SEA Dock"}, "NSMessage": "runWorkflowAsService",
                         "NSRequiredContext": {"NSApplicationIdentifier": "com.apple.finder"},
                         "NSSendFileTypes": ["public.folder", "public.data"]}],
     }
@@ -87,7 +87,7 @@ def main():
     bundle = args.app.resolve()
     info = plistlib.loads((bundle / "Contents/Info.plist").read_bytes())
     if info.get("CFBundleIdentifier") != "br.com.sea.dk.terminal":
-        raise SystemExit("O aplicativo indicado não é o DK Terminal.")
+        raise SystemExit("O aplicativo indicado não é o SEA Dock.")
     command = "exec /usr/bin/open -a " + shlex.quote(str(bundle)) + ' -- "$@"'
     prepared = workflow(ROOT / "integrations/macos" / SERVICE, command)
     if args.mode == "prepare":

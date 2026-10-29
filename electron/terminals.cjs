@@ -69,12 +69,14 @@ class Terminals {
       session.pty = pty.spawn(spec.file, spec.args, { name: 'xterm-256color', cols, rows, cwd: session.workingDirectory, env });
       session.state = 'running';
       session.pty.onData(data => {
+        if (session.state !== 'running') return;
         session.lastActivity = Date.now();
         session.pending += data.length;
         this.send('terminal:data', { id, data });
         if (!session.paused && session.pending > 256 * 1024) { session.pty.pause(); session.paused = true; }
       });
       session.pty.onExit(({ exitCode, signal }) => {
+        if (session.state === 'closing') return;
         session.state = 'exited';
         this.send('terminal:exit', { id, exitCode, signal });
       });
@@ -100,32 +102,48 @@ class Terminals {
     if (session.paused && session.pending < 64 * 1024 && session.state === 'running') { session.pty.resume(); session.paused = false; }
   }
 
-  close(id) {
+  async close(id) {
     const session = this.get(id);
-    if (session.state === 'running') { try { session.pty.kill(); } catch {} }
-    this.sessions.delete(id);
+    if (session.closePromise) return session.closePromise;
+    const running = session.state === 'running';
+    session.state = 'closing';
+    session.closePromise = (async () => {
+      let result = {partial:false};
+      try {
+        if (running && Number.isInteger(session.pty?.pid) && session.pty.pid > 0) {
+          result = await stopTerminalTree(session.pty.pid, () => session.pty.kill());
+        } else if (running) {
+          try { session.pty?.kill(); } catch {}
+          result = {partial:true};
+        }
+        return result;
+      } finally {
+        if (this.sessions.get(id) === session) this.sessions.delete(id);
+      }
+    })();
+    return session.closePromise;
   }
 
   async closeProject(root) {
     const owned = [...this.sessions.values()].filter(session => session.cwd === root);
-    const results = await Promise.all(owned.map(async session => {
-      let result = {partial:false};
-      if (session.state === 'running') {
-        if (Number.isInteger(session.pty?.pid) && session.pty.pid > 0) {
-          result = await stopTerminalTree(session.pty.pid, () => session.pty.kill());
-        } else {
-          try { session.pty?.kill(); } catch {}
-          result = {partial:true};
-        }
-      }
-      if (this.sessions.get(session.id) === session) this.sessions.delete(session.id);
-      return result;
-    }));
+    const results = await Promise.all(owned.map(session => this.close(session.id)));
     return {closed:owned.length, partial:results.some(result=>result.partial)};
   }
 
   resourceRoots() { return [...this.sessions.values()].filter(session => session.state === 'running' && Number.isInteger(session.pty?.pid)).map(session => ({ id: session.id, pid: session.pty.pid, lastActivity: session.lastActivity, kind: 'terminal' })); }
 
-  closeAll() { for (const id of this.sessions.keys()) this.close(id); }
+  async closeAllAndWait() {
+    const results = await Promise.allSettled([...this.sessions.keys()].map(id => this.close(id)));
+    return {partial:results.some(result=>result.status==='rejected' || result.value.partial)};
+  }
+
+  // Quit/crash handlers cannot wait for asynchronous process inspection.
+  // Close PTYs synchronously there; explicit tab/project closes use close().
+  closeAll() {
+    for (const session of this.sessions.values()) {
+      if (session.state === 'running' || session.state === 'closing') { try { session.pty?.kill(); } catch {} }
+    }
+    this.sessions.clear();
+  }
 }
 module.exports = { Terminals };

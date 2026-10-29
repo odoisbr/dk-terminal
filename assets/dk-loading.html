@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>DK · Loading</title><style>html,body{margin:0;width:100%;height:100%;background:#101214}#startup-loading { position: fixed; inset: 0; z-index: 200; background: #101214; color: #f2f1ea; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 1; transition: opacity 240ms ease; -webkit-app-region: drag; }
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>SEA Dock · Carregando</title><style>html,body{margin:0;width:100%;height:100%;background:#101214}#startup-loading { position: fixed; inset: 0; z-index: 200; background: #101214; color: #f2f1ea; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 1; transition: opacity 240ms ease; -webkit-app-region: drag; }
 #startup-loading svg { width: 186px; height: auto; overflow: visible; }
 .loading-progress { width: 86px; height: 2px; border-radius: 2px; background: #2c3328; overflow: hidden; margin-top: 34px; }
 .loading-progress::after { content: ''; display: block; width: 100%; height: 100%; background: #dff793; transform: scaleX(.15); transform-origin: left; animation: dk-progress 3200ms ease-in-out infinite; }
@@ -7,7 +7,14 @@ body.booting #app { opacity: 0; pointer-events: none; }
 #startup-loading.is-leaving { opacity: 0; pointer-events: none; }
 @keyframes dk-progress { 0% { transform: scaleX(.1); transform-origin: left; opacity: .4; } 48% { transform: scaleX(1); transform-origin: left; opacity: 1; } 49% { transform-origin: right; } 100% { transform: scaleX(.1); transform-origin: right; opacity: .4; } }
 @media (prefers-reduced-motion: reduce) { .loading-progress::after { animation: none; transform: scaleX(.45); } #startup-loading { transition: none; } }
-</style></head><body><div id="startup-loading" role="status" aria-label="Carregando DK Terminal"><svg xmlns="http://www.w3.org/2000/svg" width="744" height="444" viewBox="68 47 124 74" fill="none" role="img" aria-labelledby="title desc">
+body.sea-loading #startup-loading { background: #061820; }
+body.sea-loading .loading-progress { background: #28414b; }
+body.sea-loading .loading-progress::after { background: #7fcde3; }
+#startup-loading .sea-motion-stage { position: absolute; visibility: hidden; width: min(360px, 80vw); }
+#startup-loading .sea-motion-fallback { display: block; width: 116px; height: auto; }
+body.sea-motion-playing #startup-loading .sea-motion-stage { position: static; visibility: visible; }
+body.sea-motion-playing #startup-loading .sea-motion-fallback { display: none; }
+</style></head><body><div id="startup-loading" role="status" aria-label="Carregando SEA Dock"><svg xmlns="http://www.w3.org/2000/svg" width="744" height="444" viewBox="68 47 124 74" fill="none" role="img" aria-labelledby="title desc">
   <title id="title">DK</title>
   <desc id="desc">Marca DK com letras branco-creme e seta verde-lima apontando para cima e à direita. Fundo transparente.</desc>
   <style>#dk { clip-path: url(#dk-reveal); animation: dk-wordmark 3200ms ease-in-out infinite; }
@@ -26,4 +33,4 @@ body.booting #app { opacity: 0; pointer-events: none; }
 M 102.7,95 C 102.7,87.6 99.65,83.8 94.75,83.8 C 89.35,83.8 86.15,87.75 86.15,95.05 C 86.15,102.2 89.35,106.05 94.75,106.05 C 99.7,106.05 102.7,102.25 102.7,95 Z"/>
   <path id="seta" pathLength="1" d="M 165.85,55.65 H 183.8 V 73.55 M 183.8,55.65 L 161.15,78.05" stroke="#DFF793" stroke-width="5.7" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
-<div class="loading-progress" aria-hidden="true"></div><p>Preparando seu espaço</p></div></body></html>
+<div class="loading-progress" aria-hidden="true"></div><p>Preparando seu espaço no SEA Dock</p></div></body></html>

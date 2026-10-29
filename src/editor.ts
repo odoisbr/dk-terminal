@@ -117,6 +117,8 @@ export class FileEditor {
   private readonly view: EditorView;
   private projectRoot = '';
   private currentKey: string | null = null;
+  private workspaceActive = false;
+  private viewTabKey: string | null = null;
   private destroyed = false;
 
   constructor(private readonly host: HTMLElement, private readonly options: EditorOptions) {
@@ -157,6 +159,12 @@ export class FileEditor {
     this.activate(next ?? null, false);
   }
 
+  setWorkspaceActive(active: boolean): void {
+    if (this.workspaceActive === active) return;
+    this.workspaceActive = active;
+    this.renderTabs();
+  }
+
   async open(root: string, relative: string): Promise<void> {
     if (this.destroyed) return;
     const key = `${root}\0${relative}`;
@@ -185,6 +193,7 @@ export class FileEditor {
     const tabs = [...this.tabs.values()].filter(tab => tab.root === root);
     for (const tab of tabs) if (!await this.allowReplace(tab)) return false;
     for (const tab of tabs) this.tabs.delete(tab.key);
+    for (const key of this.imageCache.keys()) if (key.startsWith(root + '\0')) this.imageCache.delete(key);
     this.recentByProject.delete(root); this.emitDirty();
     if (this.projectRoot === root) this.activate(null, false); else this.renderTabs();
     return true;
@@ -192,7 +201,7 @@ export class FileEditor {
 
   clearTemporaryImages(): void { this.imageCache.clear(); }
 
-  hasUnsaved(): boolean { return [...this.tabs.values()].some(tab => tab.dirty); }
+  hasUnsaved(root?: string): boolean { return [...this.tabs.values()].some(tab => tab.dirty && (!root || tab.root === root)); }
 
   async saveCurrent(): Promise<boolean> {
     const focused = document.activeElement;
@@ -239,7 +248,16 @@ export class FileEditor {
   private activate(key: string | null, focus = true): void {
     const tab = key ? this.tabs.get(key) : undefined;
     this.currentKey = tab?.key ?? null;
-    if (tab) { this.recentByProject.set(tab.root, tab.key); if (tab.state) this.view.setState(tab.state); }
+    if (tab) this.recentByProject.set(tab.root, tab.key);
+    if (tab?.state) { this.view.setState(tab.state); this.viewTabKey = tab.key; }
+    else if (this.viewTabKey !== null) {
+      // Do not keep the last document and its undo tree alive after it closes
+      // or while a non-text preview is displayed. Open tabs retain their own state.
+      // Keep CodeMirror's base fields available for any pending blur or
+      // completion callback while dropping the old document and undo history.
+      this.view.setState(EditorState.create({ extensions: [basicSetup, EditorState.readOnly.of(true)] }));
+      this.viewTabKey = null;
+    }
     this.render();
     if (focus && tab) this.options.onSelect();
     if (focus && tab?.state && (!mermaidFile(tab.file.name) || tab.showCode) && (!htmlFile(tab.file.name) || tab.showCode)) this.view.focus();
@@ -350,7 +368,7 @@ export class FileEditor {
     const nodes: HTMLElement[] = [];
     for (const tab of this.tabs.values()) {
       if (tab.root !== this.projectRoot) continue;
-      const wrapper = element('div', 'dk-editor-tab'); wrapper.setAttribute('role', 'tab'); wrapper.setAttribute('aria-selected', String(tab.key === this.currentKey)); wrapper.title = tab.relative;
+      const wrapper = element('div', 'dk-editor-tab'); wrapper.setAttribute('role', 'tab'); wrapper.setAttribute('aria-selected', String(this.workspaceActive && tab.key === this.currentKey)); wrapper.title = tab.relative;
       const name = element('button', 'dk-editor-tab-name'); name.type = 'button'; name.textContent = tab.file.name; name.addEventListener('click', () => this.activate(tab.key));
       const mark = element('span', 'dk-editor-dirty'); mark.textContent = tab.dirty ? '●' : ''; mark.setAttribute('aria-label', tab.dirty ? 'Alterações não salvas' : 'Arquivo salvo');
       const close = element('button', 'dk-editor-tab-close'); close.type = 'button'; close.textContent = '×'; close.title = `Fechar ${tab.file.name}`; close.setAttribute('aria-label', close.title); close.addEventListener('click', () => { void this.closeTab(tab); });
@@ -406,7 +424,7 @@ export class FileEditor {
       this.tabs.delete(tab.key); this.emitDirty();
       if (this.currentKey === tab.key) {
         const next = [...this.tabs.values()].filter(candidate => candidate.root === this.projectRoot).at(-1);
-        this.activate(next?.key ?? null);
+        this.activate(next?.key ?? null, this.workspaceActive);
         if (!next) this.options.onEmpty();
       } else this.renderTabs();
       return true;

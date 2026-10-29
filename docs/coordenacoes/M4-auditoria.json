@@ -1,0 +1,1123 @@
+{
+  "schema_version": 1,
+  "id": "COORD-PLUGINS-M4",
+  "pedido": "Fase 4 do plano: auditoria do protótipo contra o Documento de Requisitos com achados em JSON, skill de calibração editável como plugin v2 de primeira parte e loop de verificação visual com pré-gate determinístico.",
+  "objetivo": "M4: auditoria de uma tela contra requisitos com achados renderizados.",
+  "modo": "execucao",
+  "contexto": [
+    {
+      "arquivo": "docs/plano-plugins-projeto.md",
+      "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+    },
+    {
+      "arquivo": "docs/orquestracao-plugins-projeto.md",
+      "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+    },
+    {
+      "arquivo": "docs/planejamento/README.md",
+      "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+    },
+    {
+      "arquivo": "docs/planejamento/03-m4-qualidade.md",
+      "sha256": "118c35763f94c64dcb32e586f04ac044d18eb45e431d8bd821f5a2d883021eee"
+    }
+  ],
+  "restricoes": [
+    "Nenhum token lido ou gravado pelo DK; login continua nas CLIs oficiais.",
+    "Nenhum JavaScript de terceiros no renderer; UI de plugin declarada em JSON.",
+    "Sem --permission-mode bypassPermissions; aprovações passam pela UI.",
+    "Não encerrar automaticamente sessão ou agente ativo nem descartar trabalho não salvo; prazo gera aviso e decisão do usuário.",
+    "Arquivos do usuário permanecem limpos: bridges e prompts injetados em memória.",
+    "Nomenclatura dk em tudo (data-dk-*, dk-edit-*, DK_*, .dk/).",
+    "Resultado de packet é JSON de até 4 KiB em dados; nada de histórico nem código colado.",
+    "Critérios de texto e resultados declarados são sinais preliminares; o aceite depende de testes e revisão independente vinculados à revisão real.",
+    "Alterar somente os arquivos declarados no packet; mudança fora do escopo reprova.",
+    "Sem leitura síncrona nova no main sem limite de tamanho.",
+    "Quando houver marco anterior, não despachar implementação até verificar seu estado e evidências reais; resultado declarado pelo executor não é prova suficiente.",
+    "Packet de escrita roda só npm test unitário; npm run build e testes de desktop ficam nos packets de verificação, porque dist/ entra no retrato do changeset.",
+    "Achados somente nos tipos tela_obsoleta, regra_nao_documentada e regra_divergente com fix.target prototype|document.",
+    "Screenshot não vai à rede: manter no host, fora do alcance do runner, prompt e saída; se não for possível comprovar, desabilitar a captura.",
+    "Antes de despachar M4, verificar o estado e as evidências reais de M2 e M3; resultado declarado não comprova o gate."
+  ],
+  "lacunas": [
+    "Playwright é devDependency: a verificação visual declara indisponibilidade no aplicativo empacotado."
+  ],
+  "saida": "Código, testes e README; estado em .dk/coordenacoes/COORD-PLUGINS-M4.json.",
+  "orcamento": {
+    "max_tarefas": 12,
+    "max_chamadas": 791,
+    "max_contexto_bytes": 11010048,
+    "max_tentativas": 17
+  },
+  "perfis": {
+    "leitor": {
+      "modelo": "haiku",
+      "esforco": "low",
+      "host": "claude_code"
+    },
+    "analista": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador-critico": {
+      "modelo": "fable",
+      "esforco": "xhigh",
+      "host": "claude_code"
+    },
+    "revisor": {
+      "modelo": "opus",
+      "esforco": "medium",
+      "host": "claude_code"
+    },
+    "revisor-seguranca": {
+      "modelo": "fable",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "testador": {
+      "modelo": "sonnet",
+      "esforco": "medium",
+      "host": "claude_code"
+    }
+  },
+  "politica_modelos": {
+    "leitura": "leitor",
+    "analise": "analista",
+    "implementacao": "implementador",
+    "revisao": "revisor"
+  },
+  "tarefas": [
+    {
+      "id": "m4-anterior",
+      "objetivo": "Confirmar que COORD-PLUGINS-M2 e COORD-PLUGINS-M3 foi concluída: runner com aprovação e preview com edição, com testes passando. Ler o estado em .dk/coordenacoes e o README; devolver dados.anterior.concluida.",
+      "categoria": "leitura",
+      "depende_de": [],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Marco anterior concluído com verificação registrada",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/anterior/concluida",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 15,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-inventario",
+      "objetivo": "Mapear a ação audit em electron/actions.cjs, a API do runner (electron/agent-run.cjs) e do compositor, o host de plugins v2, a presença e versão do Playwright e onde o Documento de Requisitos e as telas HTML ficam em um projeto DK. Devolver dados.inventario.",
+      "categoria": "leitura",
+      "depende_de": [
+        "m4-anterior"
+      ],
+      "condicao": {
+        "dependencia": "m4-anterior",
+        "ponteiro": "/anterior/concluida",
+        "igual": true
+      },
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Inventário completo",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/inventario/completo",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 15,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-desenho",
+      "objetivo": "Desenhar o esquema JSON dos achados (tipo, requisito, trecho, severidade, fix.target, fix.sugestao), o prompt de auditoria com a skill de calibração, o pré-gate determinístico (elementos-chave, console sem erros) e o fluxo de screenshot; canais audit:prototype e visual:check. Registrar em dados.desenho.",
+      "categoria": "analise",
+      "depende_de": [
+        "m4-inventario"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Três tipos de achado",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/desenho/achados/tipos",
+          "valor": 3
+        }
+      ],
+      "limites": {
+        "chamadas": 25,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-auditoria",
+      "objetivo": "Criar electron/prototype-audit.cjs: selecionar requisitos e HTML com consentimento para envio ao provedor, sem incluir capturas; rodar pelo runner com skill de calibração, validar JSON de achados e limitar tamanho; teste unitário em tests/prototype-audit.test.cjs com runner falso e entradas adversariais.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m4-desenho"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [
+        "electron/prototype-audit.cjs",
+        "tests/prototype-audit.test.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Módulo existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "electron/prototype-audit.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Tipos de achado validados",
+          "tipo": "contem",
+          "arquivo": "electron/prototype-audit.cjs",
+          "valor": "regra_divergente"
+        },
+        {
+          "id": "C3",
+          "descricao": "Teste existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/prototype-audit.test.cjs"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M4-M4-AUDITORIA",
+        "objetivo": "Criar electron/prototype-audit.cjs: selecionar requisitos e HTML com consentimento para envio ao provedor, sem incluir capturas; rodar pelo runner com skill de calibração, validar JSON de achados e limitar tamanho; teste unitário em tests/prototype-audit.test.cjs com runner falso e entradas adversariais.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/03-m4-qualidade.md",
+            "sha256": "118c35763f94c64dcb32e586f04ac044d18eb45e431d8bd821f5a2d883021eee"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/prototype-audit.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "tests/prototype-audit.test.cjs",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Módulo existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "electron/prototype-audit.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Tipos de achado validados",
+            "tipo": "contem",
+            "arquivo": "electron/prototype-audit.cjs",
+            "valor": "regra_divergente"
+          },
+          {
+            "id": "C3",
+            "descricao": "Teste existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/prototype-audit.test.cjs"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/prototype-audit.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-plugin-calibracao",
+      "objetivo": "Criar o plugin v2 de primeira parte extensions/dk-auditoria/plugin.json com contributes.catalogs e a skill extensions/dk-auditoria/skills/auditoria-prototipo/SKILL.md (critérios de calibração editáveis por cópia para .dk/plugins do projeto).",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m4-desenho"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [
+        "extensions/dk-auditoria/plugin.json",
+        "extensions/dk-auditoria/skills/auditoria-prototipo/SKILL.md"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Manifesto v2",
+          "tipo": "contem",
+          "arquivo": "extensions/dk-auditoria/plugin.json",
+          "valor": "\"schema\": 2"
+        },
+        {
+          "id": "C2",
+          "descricao": "Skill existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "extensions/dk-auditoria/skills/auditoria-prototipo/SKILL.md"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M4-M4-PLUGIN-CALIBRACAO",
+        "objetivo": "Criar o plugin v2 de primeira parte extensions/dk-auditoria/plugin.json com contributes.catalogs e a skill extensions/dk-auditoria/skills/auditoria-prototipo/SKILL.md (critérios de calibração editáveis por cópia para .dk/plugins do projeto).",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/03-m4-qualidade.md",
+            "sha256": "118c35763f94c64dcb32e586f04ac044d18eb45e431d8bd821f5a2d883021eee"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "extensions/dk-auditoria/plugin.json",
+            "ausente": true
+          },
+          {
+            "arquivo": "extensions/dk-auditoria/skills/auditoria-prototipo/SKILL.md",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Manifesto v2",
+            "tipo": "contem",
+            "arquivo": "extensions/dk-auditoria/plugin.json",
+            "valor": "\"schema\": 2"
+          },
+          {
+            "id": "C2",
+            "descricao": "Skill existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "extensions/dk-auditoria/skills/auditoria-prototipo/SKILL.md"
+          }
+        ],
+        "saida": {
+          "arquivo": "extensions/dk-auditoria/plugin.json",
+          "formato": "markdown",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-visual",
+      "objetivo": "Criar electron/visual-check.cjs: pré-gate sobre HTML em dk-preview e captura em memória isolada do runner; usar Playwright quando disponível e declarar indisponibilidade quando a ferramenta ou a proteção da captura não puderem ser comprovadas. Teste unitário em tests/visual-check.test.cjs.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m4-desenho"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [
+        "electron/visual-check.cjs",
+        "tests/visual-check.test.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Módulo existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "electron/visual-check.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Indisponibilidade declarada",
+          "tipo": "contem",
+          "arquivo": "electron/visual-check.cjs",
+          "valor": "playwright"
+        },
+        {
+          "id": "C3",
+          "descricao": "Teste existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/visual-check.test.cjs"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M4-M4-VISUAL",
+        "objetivo": "Criar electron/visual-check.cjs: pré-gate sobre HTML em dk-preview e captura em memória isolada do runner; usar Playwright quando disponível e declarar indisponibilidade quando a ferramenta ou a proteção da captura não puderem ser comprovadas. Teste unitário em tests/visual-check.test.cjs.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/03-m4-qualidade.md",
+            "sha256": "118c35763f94c64dcb32e586f04ac044d18eb45e431d8bd821f5a2d883021eee"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/visual-check.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "tests/visual-check.test.cjs",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Módulo existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "electron/visual-check.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Indisponibilidade declarada",
+            "tipo": "contem",
+            "arquivo": "electron/visual-check.cjs",
+            "valor": "playwright"
+          },
+          {
+            "id": "C3",
+            "descricao": "Teste existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/visual-check.test.cjs"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/visual-check.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-canais",
+      "objetivo": "Expor audit:prototype e visual:check em electron/main.cjs com project(root), aprovação do runner reaproveitada; preload e src/api.d.ts.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m4-auditoria",
+        "m4-visual",
+        "m4-plugin-calibracao"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [
+        "electron/main.cjs",
+        "electron/preload.cjs",
+        "src/api.d.ts"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Canal de auditoria",
+          "tipo": "contem",
+          "arquivo": "electron/main.cjs",
+          "valor": "audit:prototype"
+        },
+        {
+          "id": "C2",
+          "descricao": "Tipos declarados",
+          "tipo": "contem",
+          "arquivo": "src/api.d.ts",
+          "valor": "auditPrototype"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M4-M4-CANAIS",
+        "objetivo": "Expor audit:prototype e visual:check em electron/main.cjs com project(root), aprovação do runner reaproveitada; preload e src/api.d.ts.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/03-m4-qualidade.md",
+            "sha256": "118c35763f94c64dcb32e586f04ac044d18eb45e431d8bd821f5a2d883021eee"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/main.cjs",
+            "sha256": "304f8d46bd3accf8eb65bbc3d7e3ef64e42663738bfabd3f7574525cc8cb54b9"
+          },
+          {
+            "arquivo": "electron/preload.cjs",
+            "sha256": "4d22990dfea6433d364174095b73bcde4e6c2f0bdaf6e67e8e826df3a14509c2"
+          },
+          {
+            "arquivo": "src/api.d.ts",
+            "sha256": "bc0194b83603f728cc97b02fc1d88c10762ba1e5937152eff146c9039be8b929"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Canal de auditoria",
+            "tipo": "contem",
+            "arquivo": "electron/main.cjs",
+            "valor": "audit:prototype"
+          },
+          {
+            "id": "C2",
+            "descricao": "Tipos declarados",
+            "tipo": "contem",
+            "arquivo": "src/api.d.ts",
+            "valor": "auditPrototype"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/main.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-renderer",
+      "objetivo": "Criar src/audit.ts: view registrada com achados agrupados por tipo, ação por fix.target (abrir no preview ou no editor do documento), estado de carregamento e resultado do pré-gate; ligar ao botão Auditoria em src/main.ts; estilos em src/style.css.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m4-canais"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [
+        "src/audit.ts",
+        "src/main.ts",
+        "src/style.css"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "View existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "src/audit.ts"
+        },
+        {
+          "id": "C2",
+          "descricao": "Ação por alvo do fix",
+          "tipo": "contem",
+          "arquivo": "src/audit.ts",
+          "valor": "target"
+        },
+        {
+          "id": "C3",
+          "descricao": "main.ts registra a view",
+          "tipo": "contem",
+          "arquivo": "src/main.ts",
+          "valor": "from './audit'"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M4-M4-RENDERER",
+        "objetivo": "Criar src/audit.ts: view registrada com achados agrupados por tipo, ação por fix.target (abrir no preview ou no editor do documento), estado de carregamento e resultado do pré-gate; ligar ao botão Auditoria em src/main.ts; estilos em src/style.css.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/03-m4-qualidade.md",
+            "sha256": "118c35763f94c64dcb32e586f04ac044d18eb45e431d8bd821f5a2d883021eee"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "src/audit.ts",
+            "ausente": true
+          },
+          {
+            "arquivo": "src/main.ts",
+            "sha256": "b785ca179d09c98247440acdbd89e26ad47ad867dce8eb6a7353cef2db42449b"
+          },
+          {
+            "arquivo": "src/style.css",
+            "sha256": "2de3fe8f45e3adbe8c5bc1e5b73eff59377db4448a1beb0f9c7b033ada5b0778"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "View existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "src/audit.ts"
+          },
+          {
+            "id": "C2",
+            "descricao": "Ação por alvo do fix",
+            "tipo": "contem",
+            "arquivo": "src/audit.ts",
+            "valor": "target"
+          },
+          {
+            "id": "C3",
+            "descricao": "main.ts registra a view",
+            "tipo": "contem",
+            "arquivo": "src/main.ts",
+            "valor": "from './audit'"
+          }
+        ],
+        "saida": {
+          "arquivo": "src/audit.ts",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-testes",
+      "objetivo": "Criar teste desktop com runner/provedor falsos, consentimento de HTML e requisitos, achados válidos e inválidos, conflito de arquivos e tentativas de ler ou transmitir captura por ferramentas e imagem embutida; confirmar indisponibilidade quando não houver proteção comprovada; registrar test:audit em test:all.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m4-renderer"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [
+        "tests/audit-desktop.cjs",
+        "package.json"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Teste de desktop existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/audit-desktop.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Script registrado",
+          "tipo": "contem",
+          "arquivo": "package.json",
+          "valor": "\"test:audit\""
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M4-M4-TESTES",
+        "objetivo": "Criar teste desktop com runner/provedor falsos, consentimento de HTML e requisitos, achados válidos e inválidos, conflito de arquivos e tentativas de ler ou transmitir captura por ferramentas e imagem embutida; confirmar indisponibilidade quando não houver proteção comprovada; registrar test:audit em test:all.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/03-m4-qualidade.md",
+            "sha256": "118c35763f94c64dcb32e586f04ac044d18eb45e431d8bd821f5a2d883021eee"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "tests/audit-desktop.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "package.json",
+            "sha256": "d3f6ae86c417824e993459d62b7f76110f9d6b7a576b249e1ba0023a650587a1"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Teste de desktop existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/audit-desktop.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Script registrado",
+            "tipo": "contem",
+            "arquivo": "package.json",
+            "valor": "\"test:audit\""
+          }
+        ],
+        "saida": {
+          "arquivo": "tests/audit-desktop.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-docs",
+      "objetivo": "Documentar no README a seção \"Auditoria do protótipo\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m4-testes"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [
+        "README.md"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "README documenta o recurso",
+          "tipo": "contem",
+          "arquivo": "README.md",
+          "valor": "regra_divergente"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M4-M4-DOCS",
+        "objetivo": "Documentar no README a seção \"Auditoria do protótipo\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/03-m4-qualidade.md",
+            "sha256": "118c35763f94c64dcb32e586f04ac044d18eb45e431d8bd821f5a2d883021eee"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "README.md",
+            "sha256": "3ee19ddfe1ff04a52f40dd9ca225205376ceaa54cab15369753f992ec067ef81"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "README documenta o recurso",
+            "tipo": "contem",
+            "arquivo": "README.md",
+            "valor": "regra_divergente"
+          }
+        ],
+        "saida": {
+          "arquivo": "README.md",
+          "formato": "markdown",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-revisao",
+      "objetivo": "Revisar em contexto novo todas as alterações do marco contra o plano e a orquestração: conferir git status --short e git diff e ler explicitamente cada arquivo novo autorizado ainda não rastreado. Foco em: consentimento de conteúdo, esquema validado, isolamento da captura frente ao runner, testes adversariais, indisponibilidade do Playwright e UX dos achados. Devolver achados por arquivo e linha, classificados em bloqueante, importante e sugestão.",
+      "categoria": "revisao",
+      "depende_de": [
+        "m4-docs"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Nenhum achado bloqueante aberto",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/revisao/bloqueantes",
+          "valor": 0
+        }
+      ],
+      "limites": {
+        "chamadas": 30,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": "revisor-seguranca",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m4-verificacao",
+      "objetivo": "Executar npm run test:all e node tests/audit-desktop.cjs em cópia isolada fora da árvore inspecionada, com perfil temporário, depois dos packets de escrita. Antes dos testes, comparar o inventário e os hashes da árvore candidata e da cópia, incluindo alterações não commitadas e arquivos novos relevantes; rejeitar cópia com arquivo ausente ou divergente. Medir cenários de recursos pertinentes ao marco em condições comparáveis, identificando CPU, RSS, processos, watchers e limitações quando aplicável; marcar como não verificado o cenário que não puder ser executado. Registrar inventários, hashes, medições, saída, contagem e falhas em evidências compactas, sem dados sensíveis, vinculadas ao resultado por caminho local e hash. Validar previamente em fixture descartável se o runtime aceita evidências em .dk/coordenacoes/evidencias sem reprovar o retrato e respeita o limite de 4 MiB por arquivo; se não, definir outro mecanismo verificável antes do despacho. Conferir testes adversariais do planejamento. Não corrigir código: falha reprova a tarefa; aceite de desempenho depende de exame independente das evidências, não de uma declaração. ",
+      "categoria": "revisao",
+      "depende_de": [
+        "m4-revisao"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/03-m4-qualidade.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Bash",
+        "Read"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Suíte completa passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/completos",
+          "valor": "passou"
+        },
+        {
+          "id": "C2",
+          "descricao": "Teste de desktop do marco passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/desktop",
+          "valor": "passou"
+        }
+      ],
+      "limites": {
+        "chamadas": 20,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    }
+  ]
+}

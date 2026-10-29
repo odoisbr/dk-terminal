@@ -1,3 +1,4 @@
+const { startProjectTerminal } = require('./helpers/project-session.cjs');
 const { _electron: electron }=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
@@ -25,6 +26,9 @@ async function main(){
  assert.equal(await page.evaluate(()=>localStorage.getItem('systemResourcesCollapsed')),'true');
  await page.getByRole('button',{name:'Perfil e configurações',exact:true}).last().click();
  await page.getByText('Conta SEA teste').waitFor();assert.equal(await page.getByText('Conta GitLab teste').count(),1);
+ const seaTheme=page.getByRole('checkbox',{name:'Tema SEA',exact:true});
+ assert.equal(await seaTheme.isChecked(),true);assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('theme-sea')),true);
+ await seaTheme.uncheck();assert.equal(await page.evaluate(()=>localStorage.getItem('seaTheme')),'false');
  const alertCard=page.getByRole('heading',{name:'Avisos de atividade'}).locator('..').locator('..').locator('..');const toolCard=page.getByRole('heading',{name:'Ferramentas instaladas'}).locator('..').locator('..').locator('..');
  const [a,t]=await Promise.all([alertCard.boundingBox(),toolCard.boundingBox()]);assert.ok(a&&t);assert.ok(Math.abs(t.y-(a.y+a.height)-16)<2, 'Ferramentas devem ficar diretamente abaixo dos avisos');
  const glass=page.getByRole('checkbox',{name:'Efeito de vidro (glassmorphism)'});
@@ -61,7 +65,7 @@ async function main(){
  await page.getByRole('button',{name:/imagem.png/}).click();await page.locator('.remote-image').waitFor();assert.equal(await page.locator('.remote-image').evaluate(el=>el.complete && el.naturalWidth>0),true);assert.equal(await app.evaluate(()=>global.__localCopies),0);
  if(process.env.DK_TERMINAL_EXECUTABLE){await app.evaluate(({dialog},project)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[project]});},project);await page.getByRole('button',{name:'Início',exact:true}).click();await page.locator('#launcher-open-local').click();}
  else {await page.getByRole('button',{name:'Preparar cópia local'}).click();}
- await page.locator('.terminal-pane[data-ready=true]').waitFor();assert.equal(await page.locator('#launcher').isVisible(),false);
+ await startProjectTerminal(page);assert.equal(await page.locator('#launcher').isVisible(),false);
  if(!process.env.DK_TERMINAL_EXECUTABLE)assert.equal(await app.evaluate(()=>global.__localCopies),1);
  await page.getByRole('button',{name:'Recolher sidebar'}).click();const width=(await page.locator('.sidebar').boundingBox()).width;if(process.platform==='darwin')assert.ok(width>=84);
  await page.getByRole('button',{name:'Tema SEA'}).click();assert.equal(await page.locator('.brand-logo').isVisible(),false);assert.equal(await page.locator('.sea-logo-compact').isVisible(),true);assert.ok((await page.locator('.sea-logo-compact').boundingBox()).width >= 40);assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).getPropertyValue('--sidebar').trim()),'#112b36');

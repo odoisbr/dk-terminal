@@ -1,0 +1,1027 @@
+{
+  "schema_version": 1,
+  "id": "COORD-PLUGINS-M1",
+  "pedido": "Fase 1 do plano: catálogos de skills e design systems do kit e do projeto, barra de etapas gateadas na .action-bar com critérios calculados no aplicativo.",
+  "objetivo": "M1: barra de etapas lendo critérios reais e catálogo de skills do kit visível.",
+  "modo": "execucao",
+  "contexto": [
+    {
+      "arquivo": "docs/plano-plugins-projeto.md",
+      "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+    },
+    {
+      "arquivo": "docs/orquestracao-plugins-projeto.md",
+      "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+    },
+    {
+      "arquivo": "docs/planejamento/README.md",
+      "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+    },
+    {
+      "arquivo": "docs/planejamento/01-m0-m1.md",
+      "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+    }
+  ],
+  "restricoes": [
+    "Nenhum token lido ou gravado pelo DK; login continua nas CLIs oficiais.",
+    "Nenhum JavaScript de terceiros no renderer; UI de plugin declarada em JSON.",
+    "Sem --permission-mode bypassPermissions; aprovações passam pela UI.",
+    "Não encerrar automaticamente sessão ou agente ativo nem descartar trabalho não salvo; prazo gera aviso e decisão do usuário.",
+    "Arquivos do usuário permanecem limpos: bridges e prompts injetados em memória.",
+    "Nomenclatura dk em tudo (data-dk-*, dk-edit-*, DK_*, .dk/).",
+    "Resultado de packet é JSON de até 4 KiB em dados; nada de histórico nem código colado.",
+    "Critérios de texto e resultados declarados são sinais preliminares; o aceite depende de testes e revisão independente vinculados à revisão real.",
+    "Alterar somente os arquivos declarados no packet; mudança fora do escopo reprova.",
+    "Sem leitura síncrona nova no main sem limite de tamanho.",
+    "Quando houver marco anterior, não despachar implementação até verificar seu estado e evidências reais; resultado declarado pelo executor não é prova suficiente.",
+    "Packet de escrita roda só npm test unitário; npm run build e testes de desktop ficam nos packets de verificação, porque dist/ entra no retrato do changeset.",
+    "Etapas em português: levantamento, fluxos, documentacao, telas; cascata estrita.",
+    "Catálogos com limite de 64 KiB por arquivo e 64 itens por raiz."
+  ],
+  "lacunas": [
+    "dk etapas --json não foi encontrado nas CLIs do kit examinadas; confirmar capacidades do kit efetivamente conectado antes de calcular critérios em electron/stages.cjs."
+  ],
+  "saida": "Código, testes e README; estado em .dk/coordenacoes/COORD-PLUGINS-M1.json.",
+  "orcamento": {
+    "max_tarefas": 11,
+    "max_chamadas": 707,
+    "max_contexto_bytes": 9909044,
+    "max_tentativas": 16
+  },
+  "perfis": {
+    "leitor": {
+      "modelo": "haiku",
+      "esforco": "low",
+      "host": "claude_code"
+    },
+    "analista": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador": {
+      "modelo": "opus",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "implementador-critico": {
+      "modelo": "fable",
+      "esforco": "xhigh",
+      "host": "claude_code"
+    },
+    "revisor": {
+      "modelo": "opus",
+      "esforco": "medium",
+      "host": "claude_code"
+    },
+    "revisor-seguranca": {
+      "modelo": "fable",
+      "esforco": "high",
+      "host": "claude_code"
+    },
+    "testador": {
+      "modelo": "sonnet",
+      "esforco": "medium",
+      "host": "claude_code"
+    }
+  },
+  "politica_modelos": {
+    "leitura": "leitor",
+    "analise": "analista",
+    "implementacao": "implementador",
+    "revisao": "revisor"
+  },
+  "tarefas": [
+    {
+      "id": "m1-anterior",
+      "objetivo": "Confirmar que COORD-PLUGINS-M0 foi concluída: plugin v2 listado na UI com testes passando. Ler o estado em .dk/coordenacoes e o README; devolver dados.anterior.concluida.",
+      "categoria": "leitura",
+      "depende_de": [],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Marco anterior concluído com verificação registrada",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/anterior/concluida",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 15,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-inventario",
+      "objetivo": "Mapear kitInfo e o uso de yaml em electron, os limites de projectTitle, as ações e o DEADLINE de electron/actions.cjs, a .action-bar e renderProject em src/main.ts, e o que projeto.yml e o registro do projeto já informam por etapa. Devolver dados.inventario.",
+      "categoria": "leitura",
+      "depende_de": [
+        "m1-anterior"
+      ],
+      "condicao": {
+        "dependencia": "m1-anterior",
+        "ponteiro": "/anterior/concluida",
+        "igual": true
+      },
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Inventário completo",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/inventario/completo",
+          "valor": true
+        }
+      ],
+      "limites": {
+        "chamadas": 15,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-desenho",
+      "objetivo": "Desenhar o modelo de etapas (nome, critérios com id, descrição, estado pendente|concluído|indisponível, procedência e fix agent|action), a cascata de desbloqueio, o esquema do catálogo (frontmatter de SKILL.md e DESIGN.md, origem kit|projeto) e os canais catalog:list, catalog:read, stages:read. Não tratar fonte ilegível como requisito não atendido ou concluído. Registrar em dados.desenho.",
+      "categoria": "analise",
+      "depende_de": [
+        "m1-inventario"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Quatro etapas na cascata",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/desenho/etapas",
+          "valor": 4
+        }
+      ],
+      "limites": {
+        "chamadas": 25,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-catalogos",
+      "objetivo": "Criar electron/catalogs.cjs: listar e ler skills/*/SKILL.md e design-systems/*/DESIGN.md do kit e de <projeto>/.dk, frontmatter via yaml, limites de tamanho e quantidade, contenção por realpath; teste unitário em tests/catalogs.test.cjs.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m1-desenho"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "electron/catalogs.cjs",
+        "tests/catalogs.test.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Módulo existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "electron/catalogs.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Lê SKILL.md",
+          "tipo": "contem",
+          "arquivo": "electron/catalogs.cjs",
+          "valor": "SKILL.md"
+        },
+        {
+          "id": "C3",
+          "descricao": "Teste existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/catalogs.test.cjs"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M1-M1-CATALOGOS",
+        "objetivo": "Criar electron/catalogs.cjs: listar e ler skills/*/SKILL.md e design-systems/*/DESIGN.md do kit e de <projeto>/.dk, frontmatter via yaml, limites de tamanho e quantidade, contenção por realpath; teste unitário em tests/catalogs.test.cjs.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/catalogs.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "tests/catalogs.test.cjs",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Módulo existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "electron/catalogs.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Lê SKILL.md",
+            "tipo": "contem",
+            "arquivo": "electron/catalogs.cjs",
+            "valor": "SKILL.md"
+          },
+          {
+            "id": "C3",
+            "descricao": "Teste existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/catalogs.test.cjs"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/catalogs.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-etapas",
+      "objetivo": "Criar electron/stages.cjs: calcular critérios por etapa a partir de projeto.yml e do registro do projeto, cascata estrita, fixes declarados; teste unitário em tests/stages.test.cjs com projetos sintéticos em cada estado.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m1-desenho"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "electron/stages.cjs",
+        "tests/stages.test.cjs"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Módulo existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "electron/stages.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Etapa de levantamento modelada",
+          "tipo": "contem",
+          "arquivo": "electron/stages.cjs",
+          "valor": "levantamento"
+        },
+        {
+          "id": "C3",
+          "descricao": "Teste existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/stages.test.cjs"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": null,
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M1-M1-ETAPAS",
+        "objetivo": "Criar electron/stages.cjs: calcular critérios por etapa a partir de projeto.yml e do registro do projeto, cascata estrita, fixes declarados; teste unitário em tests/stages.test.cjs com projetos sintéticos em cada estado.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/stages.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "tests/stages.test.cjs",
+            "ausente": true
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Módulo existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "electron/stages.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Etapa de levantamento modelada",
+            "tipo": "contem",
+            "arquivo": "electron/stages.cjs",
+            "valor": "levantamento"
+          },
+          {
+            "id": "C3",
+            "descricao": "Teste existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/stages.test.cjs"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/stages.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-canais",
+      "objetivo": "Expor catalog:list, catalog:read e stages:read em electron/main.cjs com project(root) e kitInfo, preload e src/api.d.ts; invalidar cache ao trocar de projeto.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m1-catalogos",
+        "m1-etapas"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "electron/main.cjs",
+        "electron/preload.cjs",
+        "src/api.d.ts"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Canal de etapas",
+          "tipo": "contem",
+          "arquivo": "electron/main.cjs",
+          "valor": "stages:read"
+        },
+        {
+          "id": "C2",
+          "descricao": "Canal de catálogo",
+          "tipo": "contem",
+          "arquivo": "electron/main.cjs",
+          "valor": "catalog:list"
+        },
+        {
+          "id": "C3",
+          "descricao": "Tipos declarados",
+          "tipo": "contem",
+          "arquivo": "src/api.d.ts",
+          "valor": "readStages"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M1-M1-CANAIS",
+        "objetivo": "Expor catalog:list, catalog:read e stages:read em electron/main.cjs com project(root) e kitInfo, preload e src/api.d.ts; invalidar cache ao trocar de projeto.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "electron/main.cjs",
+            "sha256": "304f8d46bd3accf8eb65bbc3d7e3ef64e42663738bfabd3f7574525cc8cb54b9"
+          },
+          {
+            "arquivo": "electron/preload.cjs",
+            "sha256": "4d22990dfea6433d364174095b73bcde4e6c2f0bdaf6e67e8e826df3a14509c2"
+          },
+          {
+            "arquivo": "src/api.d.ts",
+            "sha256": "bc0194b83603f728cc97b02fc1d88c10762ba1e5937152eff146c9039be8b929"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Canal de etapas",
+            "tipo": "contem",
+            "arquivo": "electron/main.cjs",
+            "valor": "stages:read"
+          },
+          {
+            "id": "C2",
+            "descricao": "Canal de catálogo",
+            "tipo": "contem",
+            "arquivo": "electron/main.cjs",
+            "valor": "catalog:list"
+          },
+          {
+            "id": "C3",
+            "descricao": "Tipos declarados",
+            "tipo": "contem",
+            "arquivo": "src/api.d.ts",
+            "valor": "readStages"
+          }
+        ],
+        "saida": {
+          "arquivo": "electron/main.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-renderer",
+      "objetivo": "Criar src/stages.ts (barra de etapas na .action-bar: estado, critérios, botão de correção que abre terminal Claude com o prompt da skill da etapa ou roda a ação do CLI) e src/catalogs.ts (view de catálogo registrada em src/views.ts); ligar em src/main.ts dentro de renderProject; estilos em src/style.css; área de toque mínima de 44 px.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m1-canais"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "src/main.ts",
+        "src/stages.ts",
+        "src/catalogs.ts",
+        "src/style.css"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Barra de etapas existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "src/stages.ts"
+        },
+        {
+          "id": "C2",
+          "descricao": "Catálogo existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "src/catalogs.ts"
+        },
+        {
+          "id": "C3",
+          "descricao": "main.ts liga as etapas",
+          "tipo": "contem",
+          "arquivo": "src/main.ts",
+          "valor": "from './stages'"
+        }
+      ],
+      "limites": {
+        "chamadas": 80,
+        "contexto_bytes": 1048576,
+        "tentativas": 2
+      },
+      "perfil": "implementador-critico",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M1-M1-RENDERER",
+        "objetivo": "Criar src/stages.ts (barra de etapas na .action-bar: estado, critérios, botão de correção que abre terminal Claude com o prompt da skill da etapa ou roda a ação do CLI) e src/catalogs.ts (view de catálogo registrada em src/views.ts); ligar em src/main.ts dentro de renderProject; estilos em src/style.css; área de toque mínima de 44 px.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "src/main.ts",
+            "sha256": "b785ca179d09c98247440acdbd89e26ad47ad867dce8eb6a7353cef2db42449b"
+          },
+          {
+            "arquivo": "src/stages.ts",
+            "ausente": true
+          },
+          {
+            "arquivo": "src/catalogs.ts",
+            "ausente": true
+          },
+          {
+            "arquivo": "src/style.css",
+            "sha256": "2de3fe8f45e3adbe8c5bc1e5b73eff59377db4448a1beb0f9c7b033ada5b0778"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Barra de etapas existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "src/stages.ts"
+          },
+          {
+            "id": "C2",
+            "descricao": "Catálogo existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "src/catalogs.ts"
+          },
+          {
+            "id": "C3",
+            "descricao": "main.ts liga as etapas",
+            "tipo": "contem",
+            "arquivo": "src/main.ts",
+            "valor": "from './stages'"
+          }
+        ],
+        "saida": {
+          "arquivo": "src/main.ts",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-testes",
+      "objetivo": "Criar tests/stages-desktop.cjs no padrão de tests/desktop.cjs (perfil temporário, projeto temporário, sem rede) cobrindo a entrega verificável do marco, e registrar o script \"test:stages\" e a entrada em test:all no package.json.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m1-renderer"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "tests/stages-desktop.cjs",
+        "package.json"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Teste de desktop existe",
+          "tipo": "arquivo_existe",
+          "arquivo": "tests/stages-desktop.cjs"
+        },
+        {
+          "id": "C2",
+          "descricao": "Script registrado",
+          "tipo": "contem",
+          "arquivo": "package.json",
+          "valor": "\"test:stages\""
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M1-M1-TESTES",
+        "objetivo": "Criar tests/stages-desktop.cjs no padrão de tests/desktop.cjs (perfil temporário, projeto temporário, sem rede) cobrindo a entrega verificável do marco, e registrar o script \"test:stages\" e a entrada em test:all no package.json.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "tests/stages-desktop.cjs",
+            "ausente": true
+          },
+          {
+            "arquivo": "package.json",
+            "sha256": "d3f6ae86c417824e993459d62b7f76110f9d6b7a576b249e1ba0023a650587a1"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "Teste de desktop existe",
+            "tipo": "arquivo_existe",
+            "arquivo": "tests/stages-desktop.cjs"
+          },
+          {
+            "id": "C2",
+            "descricao": "Script registrado",
+            "tipo": "contem",
+            "arquivo": "package.json",
+            "valor": "\"test:stages\""
+          }
+        ],
+        "saida": {
+          "arquivo": "tests/stages-desktop.cjs",
+          "formato": "texto",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-docs",
+      "objetivo": "Documentar no README a seção \"Etapas e catálogos\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+      "categoria": "implementacao",
+      "depende_de": [
+        "m1-testes"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [
+        "README.md"
+      ],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "README documenta o recurso",
+          "tipo": "contem",
+          "arquivo": "README.md",
+          "valor": "levantamento"
+        }
+      ],
+      "limites": {
+        "chamadas": 60,
+        "contexto_bytes": 786432,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": {
+        "schema_version": 1,
+        "id": "COORD-PLUGINS-M1-M1-DOCS",
+        "objetivo": "Documentar no README a seção \"Etapas e catálogos\": o que o recurso faz e não faz, permissões, limites e como testar. Sem promessas de recursos futuros.",
+        "origem": "docs/plano-plugins-projeto.md seção 3 e docs/orquestracao-plugins-projeto.md",
+        "fontes": [
+          {
+            "arquivo": "docs/plano-plugins-projeto.md",
+            "sha256": "e319f61670b448ce17e27542d87220980cb557e7bdd909db697231cec396ce53"
+          },
+          {
+            "arquivo": "docs/orquestracao-plugins-projeto.md",
+            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+          },
+          {
+            "arquivo": "docs/planejamento/README.md",
+            "sha256": "92d1c3818e92e5317cd0a7c83d1c286ca1b479967c8d8a4ecee1f338f152c399"
+          },
+          {
+            "arquivo": "docs/planejamento/01-m0-m1.md",
+            "sha256": "a70ea8d6bcc380f490c9f5bc29b74ec5e30a5825214a67bbbd47a1d4c6a4e103"
+          }
+        ],
+        "alvos": [
+          {
+            "arquivo": "README.md",
+            "sha256": "3ee19ddfe1ff04a52f40dd9ca225205376ceaa54cab15369753f992ec067ef81"
+          }
+        ],
+        "criterios": [
+          {
+            "id": "C1",
+            "descricao": "README documenta o recurso",
+            "tipo": "contem",
+            "arquivo": "README.md",
+            "valor": "levantamento"
+          }
+        ],
+        "saida": {
+          "arquivo": "README.md",
+          "formato": "markdown",
+          "max_palavras": 6000,
+          "max_passos": 40
+        },
+        "parada": {
+          "sucesso": "todos_criterios",
+          "max_tentativas": 2
+        }
+      },
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-revisao",
+      "objetivo": "Revisar em contexto novo todas as alterações do marco contra o plano e a orquestração: conferir git status --short e git diff e ler explicitamente cada arquivo novo autorizado ainda não rastreado. Foco em: cascata de etapas correta, limites dos catálogos, contenção de caminhos e UX da barra; revisar acessibilidade e estados de interação, delegando a revisores especializados apenas se o host oferecer essa capacidade. Devolver achados por arquivo e linha, classificados em bloqueante, importante e sugestão.",
+      "categoria": "revisao",
+      "depende_de": [
+        "m1-docs"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Nenhum achado bloqueante aberto",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/revisao/bloqueantes",
+          "valor": 0
+        }
+      ],
+      "limites": {
+        "chamadas": 30,
+        "contexto_bytes": 524288,
+        "tentativas": 2
+      },
+      "perfil": "revisor",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    },
+    {
+      "id": "m1-verificacao",
+      "objetivo": "Executar npm run test:all e node tests/stages-desktop.cjs em cópia isolada fora da árvore inspecionada, com perfil temporário, depois dos packets de escrita. Antes dos testes, comparar o inventário e os hashes da árvore candidata e da cópia, incluindo alterações não commitadas e arquivos novos relevantes; rejeitar cópia com arquivo ausente ou divergente. Medir cenários de recursos pertinentes ao marco em condições comparáveis, identificando CPU, RSS, processos, watchers e limitações quando aplicável; marcar como não verificado o cenário que não puder ser executado. Registrar inventários, hashes, medições, saída, contagem e falhas em evidências compactas, sem dados sensíveis, vinculadas ao resultado por caminho local e hash. Validar previamente em fixture descartável se o runtime aceita evidências em .dk/coordenacoes/evidencias sem reprovar o retrato e respeita o limite de 4 MiB por arquivo; se não, definir outro mecanismo verificável antes do despacho. Conferir testes adversariais do planejamento. Não corrigir código: falha reprova a tarefa; aceite de desempenho depende de exame independente das evidências, não de uma declaração. ",
+      "categoria": "revisao",
+      "depende_de": [
+        "m1-revisao"
+      ],
+      "condicao": null,
+      "fontes": [
+        "docs/plano-plugins-projeto.md",
+        "docs/orquestracao-plugins-projeto.md",
+        "docs/planejamento/README.md",
+        "docs/planejamento/01-m0-m1.md"
+      ],
+      "arquivos": [],
+      "skills": [],
+      "tools": [
+        "Bash",
+        "Read"
+      ],
+      "criterios": [
+        {
+          "id": "C1",
+          "descricao": "Suíte completa passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/completos",
+          "valor": "passou"
+        },
+        {
+          "id": "C2",
+          "descricao": "Teste de desktop do marco passou",
+          "tipo": "resultado_json_valor",
+          "ponteiro": "/testes/desktop",
+          "valor": "passou"
+        }
+      ],
+      "limites": {
+        "chamadas": 20,
+        "contexto_bytes": 262144,
+        "tentativas": 2
+      },
+      "perfil": "testador",
+      "contrato_tarefa": null,
+      "acao_externa": null,
+      "autorizacao": null,
+      "repositorio_verificado_por": null
+    }
+  ]
+}

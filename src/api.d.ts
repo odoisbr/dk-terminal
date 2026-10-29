@@ -12,6 +12,7 @@ type ClaudePlugin = { status: 'installed' | 'missing' | 'disabled' | 'no-claude'
 type SessionInfo = { id: string; cwd: string; label: string; kind: 'action' | 'shell' | 'extension'; cwdFallback?: boolean };
 type TerminalSize = { cols: number; rows: number };
 type Service = { id: string; name: string; role?: 'frontend' | 'backend' | null; status: 'starting' | 'running' | 'stopping' | 'stopped' | 'failed'; pid: number | null; exitCode: number | null; url: string | null; log: string };
+type DependencyPlan = { ok: true; manager: string } | { ok: false; error: string; reason?: string };
 type DirectoryEntry = { name: string; relative: string; kind: 'directory' | 'file' | 'link' };
 type DirectoryListing = { relative: string; entries: DirectoryEntry[]; truncated: boolean };
 type GraphNode = { id: string; label: string; category: string; dependencies: string[]; state: string; attempts: number; blocked: string; depth: number };
@@ -22,8 +23,8 @@ type UsageWindow = { id: string; label: string; usedPercent: number; resetsAt: n
 type ProviderUsage = { id: string; name: string; account?: string; plan?: string; windows: UsageWindow[]; message: string; source?: string; checkedAt: number };
 type UsageSnapshot = { checkedAt: number; providers: ProviderUsage[] };
 type ResourcePart = { cpuPercent: number | null; memoryKiB: number | null; processCount: number };
-type ResourceSnapshot = { app: ResourcePart; children: ResourcePart | null; total: { cpuPercent: number | null; memoryKiB: number | null }; system: { cpuPercent: number | null; memoryUsedKiB: number | null; memoryTotalKiB: number | null; swap: { usedKiB: number; totalKiB: number } | null }; sessions: { id: string; kind: 'terminal' | 'codex'; root?: string; memoryKiB: number; lastActivity: number }[]; sampledAt: number };
-type DkActionResult = { action: string; label: string; root: string; code: number | null; data: unknown; output: string; stderr: string; startedAt: string; finishedAt: string; jsonParsed?: boolean; timedOut?: boolean; cancelled?: boolean; truncated?: boolean; status?: string; signal?: string | null };
+type ResourceSnapshot = { app: ResourcePart; children: ResourcePart | null; otherProcesses: ResourcePart | null; total: { cpuPercent: number | null; memoryKiB: number | null }; system: { cpuPercent: number | null; memoryUsedKiB: number | null; memoryTotalKiB: number | null; swap: { usedKiB: number; totalKiB: number } | null; availablePercent:number|null; cache:{memoryKiB:number;kind:'estimate'|'purgeable'}|null; pressure:{kind:'linux-psi';someAvg10:number}|null }; sessions: { id: string; pid?:number; kind: 'terminal' | 'codex'; root?: string; memoryKiB: number; lastActivity: number }[]; sampledAt: number };
+type DkActionResult = { action: string; label: string; root: string; code: number | null; data: unknown; output: string; stderr: string; startedAt: string; finishedAt: string; jsonParsed?: boolean; timedOut?: boolean; cancelled?: boolean; truncated?: boolean; cleanupPartial?: boolean; status?: string; signal?: string | null };
 interface Window {
   dk: {
     bootstrap(): Promise<Bootstrap>;
@@ -79,19 +80,33 @@ interface Window {
     listOrchestrations(path: string): Promise<GraphListing>;
     watchOrchestrations(path: string | null): Promise<void>;
     onOrchestrationChanged(callback: (event: { path: string }) => void): () => void;
-    openBrowser(path: string, url: string, bounds: PreviewBounds): Promise<{ url: string }>;
+    listPlugins(path: string | null): Promise<import('./plugins').PluginSnapshot>;
+    reloadPlugins(path: string | null): Promise<import('./plugins').PluginSnapshot>;
+    stopWatchingPlugins(): Promise<void>;
+    executePlugin(path: string, pluginId: string, actionId: string, revision: string): Promise<SessionInfo | null>;
+    onPluginsChanged(callback: (event: { path: string }) => void): () => void;
+    createBrowserTab(path: string): Promise<string>;
+    openBrowser(path: string, url: string, bounds: PreviewBounds, id: string): Promise<{ url: string; cancelled?: boolean }>;
+    selectBrowser(path: string | null, id?: string): Promise<boolean>;
     onBrowserRequest(callback: (event: { id: string; root: string; url: string }) => void): () => void;
     finishBrowserRequest(id: string, ok: boolean): Promise<void>;
     resizeBrowser(bounds: PreviewBounds): Promise<void>;
-    closeBrowser(): Promise<void>;
-    onBrowserChanged(callback: (event: { path: string; loading: boolean; url?: string; title?: string; error?: string }) => void): () => void;
+    setBrowserVisible(visible: boolean): Promise<void>;
+    setBrowserFullscreen(enabled: boolean): Promise<boolean>;
+    browserFullscreenNeedsRestore(): Promise<boolean>;
+    onBrowserFullscreenChanged(callback: (active: boolean) => void): () => void;
+    onBrowserFullscreenError(callback: (message: string) => void): () => void;
+    closeBrowser(path: string, id: string): Promise<boolean>;
+    onBrowserChanged(callback: (event: { path: string; id: string; loading: boolean; url?: string; title?: string; error?: string }) => void): () => void;
     createTerminal(path: string, action?: string): Promise<SessionInfo>;
-    splitTerminal(path: string, id: string, agent?: string): Promise<SessionInfo>;
+    prepareDependencies(path: string): Promise<SessionInfo | null>;
+    dependencyPlan(path: string): Promise<DependencyPlan>;
+    splitTerminal(path: string, id: string, agent?: string): Promise<SessionInfo | null>;
     startTerminal(id: string, size: TerminalSize): Promise<void>;
     writeTerminal(id: string, data: string): Promise<void>;
     resizeTerminal(id: string, size: TerminalSize): Promise<void>;
     acknowledgeTerminal(id: string, count: number): Promise<void>;
-    closeTerminal(id: string): Promise<void>;
+    closeTerminal(id: string): Promise<{partial:boolean}>;
     onTerminalData(callback: (event: { id: string; data: string }) => void): () => void;
     onTerminalExit(callback: (event: { id: string; exitCode: number }) => void): () => void;
     onMenu(callback: (action: string) => void): () => void;

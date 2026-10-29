@@ -1,4 +1,5 @@
 const { spawn } = require('node:child_process');
+const { version } = require('../package.json');
 const { executable } = require('./core.cjs');
 
 function durationLabel(minutes) {
@@ -75,7 +76,7 @@ function readCodex(env, root, register) {
         if (value.id === 3) return finish(null, codexSnapshot(account, value.result));
       }
     });
-    write({ id: 1, method: 'initialize', params: { clientInfo: { name: 'dk_terminal', title: 'DK Terminal', version: '0.1.0' } } });
+    write({ id: 1, method: 'initialize', params: { clientInfo: { name: 'dk_terminal', title: 'SEA Dock', version } } });
   });
 }
 function readClaude(env, root, register) {

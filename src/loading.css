@@ -7,3 +7,10 @@ body.booting #app { opacity: 0; pointer-events: none; }
 #startup-loading.is-leaving { opacity: 0; pointer-events: none; }
 @keyframes dk-progress { 0% { transform: scaleX(.1); transform-origin: left; opacity: .4; } 48% { transform: scaleX(1); transform-origin: left; opacity: 1; } 49% { transform-origin: right; } 100% { transform: scaleX(.1); transform-origin: right; opacity: .4; } }
 @media (prefers-reduced-motion: reduce) { .loading-progress::after { animation: none; transform: scaleX(.45); } #startup-loading { transition: none; } }
+body.sea-loading #startup-loading { background: #061820; }
+body.sea-loading .loading-progress { background: #28414b; }
+body.sea-loading .loading-progress::after { background: #7fcde3; }
+#startup-loading .sea-motion-stage { position: absolute; visibility: hidden; width: min(360px, 80vw); }
+#startup-loading .sea-motion-fallback { display: block; width: 116px; height: auto; }
+body.sea-motion-playing #startup-loading .sea-motion-stage { position: static; visibility: visible; }
+body.sea-motion-playing #startup-loading .sea-motion-fallback { display: none; }

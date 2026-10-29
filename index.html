@@ -4,14 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" />
-    <title>DK Terminal</title>
+    <title>SEA Dock</title>
     <link rel="stylesheet" href="/src/loading.css" />
   </head>
-  <body class="booting">
-    <div id="startup-loading" role="status" aria-live="polite" aria-label="Carregando DK Terminal">
-      <!-- DK_LOADING_LOGO -->
+  <body class="booting sea-loading">
+    <div id="startup-loading" role="status" aria-live="polite" aria-label="Carregando SEA Dock">
+      <!-- SEA_LOADING_MOTION -->
+      <img class="sea-motion-fallback" src="./assets/sea-vertical-white.png" alt="" />
       <div class="loading-progress" aria-hidden="true"></div>
-      <p>Preparando seu espaço</p>
+      <p>Preparando seu espaço no SEA Dock</p>
     </div>
     <div id="app"></div><script type="module" src="/src/main.ts"></script>
   </body>
