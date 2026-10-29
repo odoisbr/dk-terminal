@@ -3,6 +3,7 @@ import { Compartment, EditorState, type Extension, type Text } from '@codemirror
 import { EditorView, keymap } from '@codemirror/view';
 import { undo, redo, undoDepth, redoDepth, isolateHistory } from '@codemirror/commands';
 import { openSearchPanel } from '@codemirror/search';
+import { setIconButton } from './icons';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
@@ -65,6 +66,7 @@ const STYLES = `
 .dk-editor-tab-name{padding:8px 2px 9px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:175px}
 .dk-editor-tab-close{padding:5px 8px!important;color:#8e9b9e!important;font-size:16px!important}
 .dk-editor-tab-close:hover{color:#fff!important}.dk-editor-dirty{font-size:13px;color:#c7e98e}
+.dk-editor-tab-close .icon{width:12px;height:12px;display:block}.dk-editor-actions button .icon{width:14px;height:14px;display:block}
 .dk-editor-actions{margin-left:auto;display:flex;align-items:center;gap:4px;padding:4px 8px;flex-shrink:0}
 .dk-editor-actions button{border:1px solid #3d494c;border-radius:5px;color:#dbe4e4;background:transparent;font:inherit;padding:4px 8px;cursor:pointer}
 .dk-editor-actions button:hover:not(:disabled){background:#303b3e}.dk-editor-actions button:disabled{opacity:.4;cursor:default}
@@ -134,8 +136,8 @@ export class FileEditor {
     this.reloadButton.addEventListener('click', () => { void this.reloadCurrent(); });
     this.modeButton.type = 'button'; this.modeButton.addEventListener('click', () => this.toggleMode());
     this.undoButton.type = this.redoButton.type = 'button';
-    this.undoButton.textContent = '↶'; this.undoButton.title = 'Desfazer'; this.undoButton.setAttribute('aria-label', 'Desfazer');
-    this.redoButton.textContent = '↷'; this.redoButton.title = 'Refazer'; this.redoButton.setAttribute('aria-label', 'Refazer');
+    setIconButton(this.undoButton, 'undo', 'Desfazer', '⌘ Z');
+    setIconButton(this.redoButton, 'redo', 'Refazer', '⌘ ⇧ Z');
     this.undoButton.addEventListener('click', () => { undo(this.view); });
     this.redoButton.addEventListener('click', () => { redo(this.view); });
     this.host.addEventListener('keydown', event => {
@@ -371,7 +373,7 @@ export class FileEditor {
       const wrapper = element('div', 'dk-editor-tab'); wrapper.setAttribute('role', 'tab'); wrapper.setAttribute('aria-selected', String(this.workspaceActive && tab.key === this.currentKey)); wrapper.title = tab.relative;
       const name = element('button', 'dk-editor-tab-name'); name.type = 'button'; name.textContent = tab.file.name; name.addEventListener('click', () => this.activate(tab.key));
       const mark = element('span', 'dk-editor-dirty'); mark.textContent = tab.dirty ? '●' : ''; mark.setAttribute('aria-label', tab.dirty ? 'Alterações não salvas' : 'Arquivo salvo');
-      const close = element('button', 'dk-editor-tab-close'); close.type = 'button'; close.textContent = '×'; close.title = `Fechar ${tab.file.name}`; close.setAttribute('aria-label', close.title); close.addEventListener('click', () => { void this.closeTab(tab); });
+      const close = element('button', 'dk-editor-tab-close'); close.type = 'button'; setIconButton(close, 'close', `Fechar ${tab.file.name}`); close.addEventListener('click', () => { void this.closeTab(tab); });
       wrapper.append(name, mark, close); nodes.push(wrapper);
     }
     this.tabBar.replaceChildren(...nodes);

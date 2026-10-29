@@ -21,9 +21,9 @@ async function main(){
   add('gitlab:local',()=>{global.__localCopies++;return {path:project,name:'Projeto local',title:'Projeto local',isDk:false,files:[]};});
   add('account:status',provider=>({status:'connected',name:provider==='sea'?'Conta SEA teste':'Conta GitLab teste'}));
  },project);
- const machine=page.locator('#system-resources-toggle');assert.equal(await machine.getAttribute('aria-expanded'),'true');
- await machine.click();assert.equal(await machine.getAttribute('aria-expanded'),'false');assert.equal(await page.locator('#system-resources-content').isVisible(),false);
- assert.equal(await page.evaluate(()=>localStorage.getItem('systemResourcesCollapsed')),'true');
+ const machine=page.locator('#system-resources-toggle');assert.equal(await machine.getAttribute('aria-expanded'),'false');
+ await machine.click();assert.equal(await machine.getAttribute('aria-expanded'),'true');assert.equal(await page.locator('#system-resources-content').isVisible(),true);
+ await page.keyboard.press('Escape');assert.equal(await machine.getAttribute('aria-expanded'),'false');assert.equal(await page.locator('#system-resources-content').isVisible(),false);
  await page.getByRole('button',{name:'Perfil e configurações',exact:true}).last().click();
  await page.getByText('Conta SEA teste').waitFor();assert.equal(await page.getByText('Conta GitLab teste').count(),1);
  const seaTheme=page.getByRole('checkbox',{name:'Tema SEA',exact:true});

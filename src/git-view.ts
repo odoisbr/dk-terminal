@@ -1,4 +1,6 @@
+import { icon, setIconButton } from './icons';
 import { renderGitGraph } from './git-graph';
+import { GitlabPublishFlow } from './gitlab-publish';
 import './git.css';
 
 type GitOptions = {
@@ -31,6 +33,7 @@ export class GitView {
   private serial = 0;
   private root: string | null = null;
   private readonly states = new Map<string, GitState>();
+  private readonly publishFlows = new Map<string, GitlabPublishFlow>();
   constructor(private host: HTMLElement, private options: GitOptions) {}
 
   private state(root: string): GitState {
@@ -49,6 +52,8 @@ export class GitView {
     this.root = root;
     this.host.replaceChildren();
     if (!root) { this.host.append(el('p', 'context-note', 'Abra um projeto para acompanhar suas versões.')); return; }
+    const flow = this.publishFlows.get(root);
+    if (flow) { this.host.replaceChildren(flow.element); return; }
     const state = this.state(root);
     if (state.busy) {
       const notice = el('p', 'git-feedback', 'Operação Git em andamento…');
@@ -61,7 +66,7 @@ export class GitView {
       const status = await window.dk.gitStatus(root);
       if (serial !== this.serial || !this.current(root)) return;
       if (!status.repository) {
-        this.host.replaceChildren(el('p', 'context-note', 'Esta pasta ainda não é um repositório Git. Abra um projeto com Git para acompanhar alterações e histórico.'));
+        this.host.replaceChildren(el('p', 'context-note', 'Esta pasta ainda não é um repositório Git. Abra um projeto com Git para acompanhar alterações e histórico, ou publique esta pasta como um novo projeto no GitLab SEA.'), this.publishButton(root));
         return;
       }
       // An unavailable history or branch list must not hide pending changes.
@@ -80,7 +85,7 @@ export class GitView {
     toggle.type = 'button';
     toggle.setAttribute('aria-label', count === undefined ? title : `${title}, ${count}`);
     toggle.setAttribute('aria-controls', `git-${key}-content`);
-    const arrow = el('span', 'git-section-arrow', '›'); arrow.setAttribute('aria-hidden', 'true');
+    const arrow = el('span', 'git-section-arrow'); arrow.innerHTML = icon('chevron'); arrow.setAttribute('aria-hidden', 'true');
     const label = el('strong', '', title); toggle.append(arrow, label);
     if (count !== undefined) { const badge = el('span', 'git-section-count', count); badge.setAttribute('aria-hidden', 'true'); toggle.append(badge); }
     const body = el('div', `git-section-content git-${key}-content`); body.id = `git-${key}-content`;
@@ -102,12 +107,18 @@ export class GitView {
 
     const header = el('div', 'git-heading'), copy = el('div');
     copy.append(el('span', 'git-kicker', 'CONTROLE DE VERSÃO'), el('strong', 'git-branch', status.branch));
-    const refresh = el('button', 'git-refresh', '↻'); refresh.type = 'button';
-    refresh.title = 'Atualizar Git'; refresh.setAttribute('aria-label', 'Atualizar Git');
+    const refresh = el('button', 'git-refresh'); refresh.type = 'button';
+    setIconButton(refresh, 'refresh', 'Atualizar Git');
     refresh.onclick = () => void this.refresh(); header.append(copy, refresh); this.host.append(header);
 
     const notice = el('p', 'git-operation-status'); notice.setAttribute('role', 'status'); notice.setAttribute('aria-live', 'polite');
     this.host.append(notice); this.updateNotice(root);
+    if (!status.gitlab && !status.gitlabHost) {
+      const callout = el('div', 'gitlab-publish-callout');
+      const publish = this.publishButton(root); publish.classList.replace('primary', 'secondary');
+      callout.append(el('p', 'git-muted', status.hasOrigin ? 'O remoto desta pasta não é o GitLab SEA.' : 'Esta pasta ainda não está no GitLab SEA.'), publish);
+      this.host.append(callout);
+    }
     const layout = el('div', 'git-dashboard');
     const changes = this.section(root, 'changes', 'Alterações', String(status.changes.length));
     const history = this.section(root, 'graph', 'Grafo', graph.value ? String(graph.value.length) : '—');
@@ -242,7 +253,7 @@ export class GitView {
         if (!window.confirm(`Trocar para a branch “${name}”? Arquivos abertos deste projeto serão fechados.`)) return;
         void this.perform(root, () => this.options.changeBranch(root, 'switch', name));
       };
-      const remove = el('button', 'button secondary', 'Excluir'); remove.type = 'button'; remove.disabled = !branches.value.length;
+      const remove = el('button', 'button secondary git-branch-delete', 'Excluir'); remove.type = 'button'; remove.disabled = !branches.value.length;
       remove.onclick = () => {
         if (!this.current(root) || this.state(root).busy) return;
         const name = select.value;
@@ -270,6 +281,23 @@ export class GitView {
       if (status.branch !== '(HEAD destacado)') links.append(action('Criar merge request', () => window.dk.gitOpenGitlab(root, 'new-merge-request'), undefined, false));
       body.append(links);
     }
+  }
+
+  private publishButton(root: string) {
+    const button = el('button', 'button primary gitlab-publish-start', 'Criar projeto no GitLab SEA'); button.type = 'button'; button.insertAdjacentHTML('afterbegin', icon('cloudUp'));
+    button.dataset.testid = 'gitlab-publish-start';
+    button.onclick = () => {
+      if (!this.current(root) || this.state(root).busy || this.publishFlows.has(root)) return;
+      if (this.options.hasUnsaved()) { window.alert('Salve os arquivos abertos no editor antes de publicar a pasta.'); return; }
+      const flow = new GitlabPublishFlow(root, {
+        // The flow keeps rendering into its own element while the panel shows
+        // another project; refresh() reattaches it.
+        isCurrent: () => this.publishFlows.get(root) === flow,
+        close: () => { if (flow.busy) return; this.publishFlows.delete(root); if (this.current(root)) void this.refresh(); },
+      });
+      this.publishFlows.set(root, flow); this.host.replaceChildren(flow.element); void flow.start();
+    };
+    return button;
   }
 
   private updateNotice(root: string) {

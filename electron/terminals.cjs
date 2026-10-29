@@ -8,13 +8,15 @@ const { terminalEnvironment } = require('./terminal-environment.cjs');
 const { stopTerminalTree } = require('./session-processes.cjs');
 
 class Terminals {
-  constructor(send, env, previewEnvironment = () => ({})) { this.send = send; this.env = env; this.previewEnvironment = previewEnvironment; this.sessions = new Map(); }
+  constructor(send, env, previewEnvironment = () => ({}), log = () => {}) { this.send = send; this.env = env; this.previewEnvironment = previewEnvironment; this.log = log; this.sessions = new Map(); }
 
   create(project, spec = null, workingDirectory = project.path, cwdFallback = false) {
     if (this.sessions.size >= 16) throw new Error('Feche uma sessão antes de abrir outra. O limite é 16.');
     const id = randomUUID();
     const session = { id, cwd: project.path, workingDirectory, label: spec?.label || 'Terminal', spec, pty: null, state: 'pending', pending: 0, paused: false, lastActivity: Date.now() };
     this.sessions.set(id, session);
+    // Ciclo de vida para o modo debug: nunca inclui entrada nem saída do terminal.
+    this.log('info', `Sessão criada: ${id} · ${spec ? spec.kind || 'action' : 'shell'} · ${session.label} · ${project.path}`);
     return { id, cwd: session.cwd, label: session.label, kind: spec ? spec.kind || 'action' : 'shell', cwdFallback };
   }
 
@@ -78,9 +80,15 @@ class Terminals {
       session.pty.onExit(({ exitCode, signal }) => {
         if (session.state === 'closing') return;
         session.state = 'exited';
+        this.log(exitCode === 0 ? 'info' : 'warn', `Sessão terminou: ${id} · código ${exitCode}${signal ? ` · sinal ${signal}` : ''}`);
         this.send('terminal:exit', { id, exitCode, signal });
       });
-    } catch (error) { session.state = 'exited'; throw new Error(`Não foi possível abrir o terminal: ${error.message}`); }
+      this.log('info', `Sessão iniciada: ${id} · PID ${session.pty.pid} · ${path.basename(spec.file)}`);
+    } catch (error) {
+      session.state = 'exited';
+      this.log('error', `Falha ao iniciar sessão ${id}: ${[spec.file, ...(spec.args || [])].join(' ')} · ${error.code || 'sem código'} · ${error.message}`);
+      throw new Error(`Não foi possível abrir o terminal: ${error.message}`);
+    }
   }
 
   write(id, data) {
@@ -116,6 +124,7 @@ class Terminals {
           try { session.pty?.kill(); } catch {}
           result = {partial:true};
         }
+        this.log('info', `Sessão fechada: ${id}${result.partial ? ' · encerramento parcial' : ''}`);
         return result;
       } finally {
         if (this.sessions.get(id) === session) this.sessions.delete(id);
@@ -129,6 +138,9 @@ class Terminals {
     const results = await Promise.all(owned.map(session => this.close(session.id)));
     return {closed:owned.length, partial:results.some(result=>result.partial)};
   }
+
+  // PTYs em execução de um projeto, para descobrir servidores iniciados nelas.
+  projectRoots(root) { return [...this.sessions.values()].filter(session => session.cwd === root && session.state === 'running' && Number.isInteger(session.pty?.pid) && session.pty.pid > 0).map(session => ({ id: session.id, pid: session.pty.pid, label: session.label })); }
 
   resourceRoots() { return [...this.sessions.values()].filter(session => session.state === 'running' && Number.isInteger(session.pty?.pid)).map(session => ({ id: session.id, pid: session.pty.pid, lastActivity: session.lastActivity, kind: 'terminal' })); }
 

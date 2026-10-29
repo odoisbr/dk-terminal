@@ -6,11 +6,11 @@ test('acesso remoto é limitado a projetos selecionados e usa glab sem credencia
  const client=new Integrations({PATH:dir},execute);await assert.rejects(client.tree(999),/Selecione/);const result=await client.listProjects('Projeto');assert.equal(result.items[0].id,42);assert.equal((await client.tree(42)).entries[0].name,'arquivo.md');assert.equal((await client.file(42,'arquivo.md')).content,'conteúdo');await assert.rejects(client.file(42,'../segredo'),/inválido/);assert.ok(calls.every(args=>args.includes(HOST)));assert.ok(calls.every(args=>!args.some(a=>a.includes('token'))));
 });
 test('somente escolha explícita prepara cópia e pasta existente nunca é sobrescrita',async t=>{
- const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dk-gitlab-copy-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));fs.writeFileSync(path.join(dir,'glab'),'#!/bin/sh\n',{mode:0o755});
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dk-gitlab-copy-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));for(const name of ['glab','git'])fs.writeFileSync(path.join(dir,name),'#!/bin/sh\n',{mode:0o755});
  const calls=[], execute=async(_file,args)=>{calls.push(args);if(args[0]==='api')return JSON.stringify({id:3,name:'Alpha',path_with_namespace:'design/area/alpha',default_branch:'main'});return '';};
  const client=new Integrations({PATH:dir},execute);await client.getProject(3);assert.equal(calls.length,1);
- const target=await client.materialize(3,dir);assert.equal(target,path.join(dir,'alpha'));assert.deepEqual(calls[2].slice(0,3),['repo','clone','https://gitlab.seatecnologia.com.br/design/area/alpha.git']);assert.ok(!calls[2].join(' ').includes('token'));
- fs.mkdirSync(target);await assert.rejects(client.materialize(3,dir),/Já existe/);assert.equal(calls.length,4);
+ const target=await client.materialize(3,dir);assert.equal(target,path.join(dir,'alpha'));const clone=calls.find(args=>args[0]==='clone');assert.deepEqual(clone,['clone','--','git@gitlab.seatecnologia.com.br:design/area/alpha.git',target]);assert.ok(!calls.some(args=>args.join(' ').includes('token')));
+ const before=calls.length;fs.mkdirSync(target);await assert.rejects(client.materialize(3,dir),/Já existe/);assert.equal(calls.length,before+1);
 });
 test('login e diagnóstico usam comandos fixos, sem aceitar provedores arbitrários',async t=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dk-cli-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));for(const name of ['sea','glab','node'])fs.writeFileSync(path.join(dir,name),'#!/bin/sh\n',{mode:0o755});

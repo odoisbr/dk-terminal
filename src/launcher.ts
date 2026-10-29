@@ -1,4 +1,6 @@
 import type { Terminal } from '@xterm/xterm';
+import { mountDebugSettings } from './debug';
+import { icon, iconMark, type IconName } from './icons';
 
 type Preferences = { fontSize:number; scrollback:number; cursorBlink:boolean; idleMinutes:number; idleMemoryMiB:number; idleAlerts:boolean };
 type LauncherSnapshot = { revision:number; hidden:boolean };
@@ -23,13 +25,7 @@ type Options = {
 };
 const element = <K extends keyof HTMLElementTagNameMap>(tag:K, className='', text='') => { const item=document.createElement(tag);item.className=className;item.textContent=text;return item; };
 const option = (text:string,value:string) => { const item=document.createElement('option');item.textContent=text;item.value=value;return item; };
-const glyphs:Record<string,string> = {
-  plus:'<path d="M12 5v14M5 12h14"/>', folder:'<path d="M3 6h7l2 2h9v11H3z"/>', git:'<circle cx="6" cy="5" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7v10m2-6h4a6 6 0 0 0 6-2"/>',
-  settings:'<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="9" cy="18" r="2"/>',
-  activity:'<path d="M3 12h5l2-6 4 12 3-6h4"/>', user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', tool:'<path d="M14 4a5 5 0 0 0-6 6L3 15l6 6 5-5a5 5 0 0 0 6-6l-3 3-3-3 3-3z"/>', arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>'
-};
-function mark(name:string,className='launcher-glyph') { const item=element('span',className);item.setAttribute('aria-hidden','true');item.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${glyphs[name]||glyphs.folder}</svg>`;return item; }
-
+const mark = iconMark;
 export class Launcher {
   private readonly host: HTMLElement;
   private readonly body: HTMLElement;
@@ -44,7 +40,7 @@ export class Launcher {
   private pluginsCleanup:(()=>void)|null=null;
   constructor(private readonly options:Options) {
     this.host=element('section','launcher');this.host.id='launcher';this.host.setAttribute('aria-label','Início e configurações');this.host.hidden=true;
-    this.host.innerHTML=`<div class="launcher-shell"><header class="launcher-header"><div><span class="launcher-kicker">SEA DOCK</span><h1 id="launcher-title">Seu espaço de trabalho</h1></div><button id="launcher-close" class="icon-button" aria-label="Fechar início">×</button></header><nav class="launcher-nav" aria-label="Navegação inicial"><button data-route="home">Início</button><button data-route="gitlab">GitLab SEA</button><button data-route="settings">Perfil e configurações</button></nav><div id="launcher-body" class="launcher-body"></div></div><section id="account-dialog" class="account-dialog" aria-label="Autenticação" hidden><div class="account-card"><header><strong id="account-title">Entrar</strong><button id="account-close" class="icon-button" aria-label="Fechar autenticação">×</button></header><p>A ferramenta oficial gerencia suas credenciais. O SEA Dock não as armazena.</p><div id="account-terminal" class="account-terminal"></div><div id="account-status" role="status"></div></div></section>`;
+    this.host.innerHTML=`<div class="launcher-shell"><header class="launcher-header"><div><span class="launcher-kicker">SEA DOCK</span><h1 id="launcher-title">Seu espaço de trabalho</h1></div><button id="launcher-close" class="icon-button" aria-label="Fechar Início" title="Fechar Início (Esc)">${icon('close')}</button></header><nav class="launcher-nav" aria-label="Navegação inicial"><button data-route="home">Início</button><button data-route="gitlab">GitLab SEA</button><button data-route="settings">Perfil e configurações</button></nav><div id="launcher-body" class="launcher-body"></div></div><section id="account-dialog" class="account-dialog" aria-label="Autenticação" hidden><div class="account-card"><header><strong id="account-title">Entrar</strong><button id="account-close" class="icon-button" aria-label="Fechar autenticação" title="Fechar autenticação">${icon('close')}</button></header><p>A ferramenta oficial gerencia suas credenciais. O SEA Dock não as armazena.</p><div id="account-terminal" class="account-terminal"></div><div id="account-status" role="status"></div></div></section>`;
     document.getElementById('app')!.append(this.host);
     this.body=this.host.querySelector('#launcher-body')!;this.title=this.host.querySelector('#launcher-title')!;this.accountDialog=this.host.querySelector('#account-dialog')!;
     this.host.querySelectorAll<HTMLButtonElement>('[data-route]').forEach(button=>{button.onclick=()=>this.route(button.dataset.route as 'home'|'gitlab'|'settings');});
@@ -87,7 +83,7 @@ export class Launcher {
     if(focused)[...list.querySelectorAll<HTMLButtonElement>('[data-recent-path]')].find(row=>row.dataset.recentPath===focused)?.focus();
   }
   refreshRecents() {const list=this.body.querySelector<HTMLElement>('#launcher-local-recents');if(list)this.renderLocalRecents(list);}
-  private actionCard(label:string,description:string,symbol:string,action:()=>void,id:string) {
+  private actionCard(label:string,description:string,symbol:IconName,action:()=>void,id:string) {
     const card=this.button('',action,'launcher-card');card.id=id;card.setAttribute('aria-label',label);
     const text=element('span','launcher-card-copy');text.append(element('strong','',label),element('small','',description));
     card.append(mark(symbol),text,mark('arrow','launcher-card-arrow'));return card;
@@ -100,8 +96,8 @@ export class Launcher {
     start.append(element('h2','welcome-heading','Começar'));
     const actions=element('div','launcher-cards');
     const create=this.actionCard('Criar projeto do zero','Comece com uma pasta vazia','plus',()=>this.newProject(),'launcher-create-project');
-    const local=this.actionCard('Abrir projeto local','Continue em uma pasta existente','folder',()=>{void this.openAndActivate(()=>window.dk.selectProject()).catch(this.options.notify);},'launcher-open-local');
-    const remote=this.actionCard('Abrir projeto GitLab SEA','Projetos do grupo Design','git',()=>this.route('gitlab'),'launcher-open-gitlab');
+    const local=this.actionCard('Abrir projeto local','Continue em uma pasta existente','folderOpen',()=>{void this.openAndActivate(()=>window.dk.selectProject()).catch(this.options.notify);},'launcher-open-local');
+    const remote=this.actionCard('Abrir projeto GitLab SEA','Projetos do grupo Design','cloudDown',()=>this.route('gitlab'),'launcher-open-gitlab');
     actions.append(create,local,remote);start.append(actions,element('h2','launcher-section','Projetos recentes'));
     const list=element('div','launcher-recents');list.id='launcher-recents';const remotes=this.options.getRemoteProjects();
     list.append(element('h3','launcher-recent-heading','Locais'));
@@ -140,7 +136,7 @@ export class Launcher {
     const status=element('p','launcher-muted','Consultando projetos…');const list=element('div','launcher-recents');list.id='gitlab-projects';this.body.append(status,list);
     try {const result=await window.dk.gitlabProjects(query,page);if(token!==this.loadId)return;status.textContent=result.items.length?'Escolha um projeto.':'Nenhum projeto encontrado.';
       const rows=new Map<number,HTMLElement>();
-      for(const item of result.items){const row=this.button('',()=>{void this.openRemote(item.id);},'launcher-recent gitlab-project');const copy=element('span','gitlab-project-copy');copy.append(element('strong','',item.name),element('small','',item.path));row.append(mark('git'),copy,mark('arrow','launcher-card-arrow'));rows.set(item.id,copy);list.append(row);}
+      for(const item of result.items){const row=this.button('',()=>{void this.openRemote(item.id);},'launcher-recent gitlab-project');const copy=element('span','gitlab-project-copy');copy.append(element('strong','',item.name),element('small','',item.path));row.append(mark('cloudDown'),copy,mark('arrow','launcher-card-arrow'));rows.set(item.id,copy);list.append(row);}
       if(result.items.length){
         const localStatus=element('div','gitlab-local-status');localStatus.setAttribute('role','status');this.body.append(localStatus);
         const check=async(refresh=false)=>{localStatus.replaceChildren(element('span','','Buscando cópias no volume SEA…'));
@@ -188,7 +184,7 @@ export class Launcher {
   private async loadTree(project:RemoteProject,container:HTMLElement,folder:string,page:number,viewer:HTMLElement) {
     const note=element('p','launcher-muted','Carregando…');container.append(note);
     try {const listing=await window.dk.gitlabTree(project.id,folder,page);if(this.selected!==project||!container.isConnected)return;note.remove();
-      for(const entry of listing.entries){const row=element('div','remote-entry');const control=this.button(`${entry.kind==='directory'?'▸':'◇'}  ${entry.name}`,()=>{if(entry.kind==='directory'){const existing=row.querySelector<HTMLElement>('.remote-children');if(existing){existing.hidden=!existing.hidden;return;}const children=element('div','remote-children');row.append(children);void this.loadTree(project,children,entry.path,1,viewer);}else void this.loadFile(project,entry.path,viewer);},'remote-entry-button');row.append(control);container.append(row);}
+      for(const entry of listing.entries){const row=element('div','remote-entry');const control=this.button('',()=>{if(entry.kind==='directory'){const existing=row.querySelector<HTMLElement>('.remote-children');if(existing){existing.hidden=!existing.hidden;control.setAttribute('aria-expanded',String(!existing.hidden));return;}control.setAttribute('aria-expanded','true');const children=element('div','remote-children');row.append(children);void this.loadTree(project,children,entry.path,1,viewer);}else void this.loadFile(project,entry.path,viewer);},'remote-entry-button');control.innerHTML=entry.kind==='directory'?`${icon('chevron','remote-chevron')}${icon('folder')}`:icon('file');control.append(element('span','',entry.name));if(entry.kind==='directory')control.setAttribute('aria-expanded','false');row.append(control);container.append(row);}
       if(listing.hasMore){const more=this.button('Mostrar mais',()=>{more.remove();void this.loadTree(project,container,folder,page+1,viewer);},'remote-more');container.append(more);}
       if(!listing.entries.length&&page===1)container.append(element('p','launcher-muted','Pasta vazia.'));
     }catch(error){note.textContent='Não foi possível ler esta pasta.';this.options.notify(error);}
@@ -203,9 +199,10 @@ export class Launcher {
     this.body.append(element('p','launcher-intro','Preferências deste computador e conexões usadas pelo SEA Dock.'));
     const grid=element('div','settings-grid');const appearance=this.section('Aparência e terminal'),alerts=this.section('Avisos de atividade'),accounts=this.section('Contas'),tools=this.section('Ferramentas instaladas'),plugins=this.section('Plugins');
     const left=element('div','settings-column'),right=element('div','settings-column');left.append(appearance,accounts);right.append(alerts,tools);
+    const diagnostics=this.section('Diagnóstico');diagnostics.querySelector('.settings-heading-note')!.textContent='Colete logs para enviar ao suporte.';diagnostics.dataset.testid='settings-debug';mountDebugSettings(diagnostics,this.options.notify);right.append(diagnostics);
     plugins.classList.add('settings-plugins-section');const pluginTitle=plugins.querySelector('h2')!;pluginTitle.id='settings-plugins-title';plugins.setAttribute('aria-labelledby',pluginTitle.id);
     const pluginHost=element('div','settings-plugins-host');pluginHost.dataset.testid='settings-plugins';plugins.append(pluginHost);
-    grid.append(left,right,plugins);this.body.append(grid,element('p','settings-note settings-about','Serviços e suas funções são definidos no projeto. Extensões e modelos de Claude e Codex continuam sob configuração das ferramentas oficiais. As cotas podem ser consultadas na guia Consumo.'));
+    grid.append(left,right,plugins);this.body.append(grid,element('p','settings-note settings-about','Serviços e suas funções são definidos no projeto. Extensões e modelos de Claude e Codex continuam sob configuração das ferramentas oficiais. As cotas podem ser consultadas na guia Contas e uso.'));
     try {
       const cleanup=this.options.mountPlugins(pluginHost);
       if(typeof cleanup!=='function')throw new Error('Não foi possível preparar a seção de plugins.');
@@ -234,10 +231,10 @@ export class Launcher {
     const rows=element('div','tools-list');tools.append(this.button('Verificar novamente',()=>{void this.settings(true);}),rows);rows.textContent='Verificando…';try {const found=await window.dk.checkTools(refresh);if(token!==this.loadId)return;rows.replaceChildren();for(const tool of found){const row=element('div','tool-row');const text=element('div');text.append(element('strong','',tool.name),element('small','',tool.purpose+(tool.id==='codex'?' · opcional':'')));row.append(text,element('span',tool.available?'tool-ok':'tool-missing',tool.available?tool.version||'Disponível':tool.installed?'Não foi possível verificar':'Não encontrado'));rows.append(row);}}catch{if(token===this.loadId)rows.textContent='Não foi possível verificar as ferramentas.';}
   }
   private section(title:string){
-    const symbols:Record<string,string>={'Aparência e terminal':'settings','Avisos de atividade':'activity','Contas':'user','Ferramentas instaladas':'tool','Plugins':'tool'};
+    const symbols:Record<string,IconName>={'Aparência e terminal':'sliders','Avisos de atividade':'bell','Contas':'user','Ferramentas instaladas':'tool','Plugins':'blocks','Diagnóstico':'bug'};
     const descriptions:Record<string,string>={'Aparência e terminal':'Personalize seu espaço de trabalho.','Avisos de atividade':'Defina quando receber avisos.','Contas':'Gerencie suas conexões.','Ferramentas instaladas':'Confira o que está disponível.','Plugins':'Gerencie extensões e permissões.'};
     const box=element('section','settings-section'),heading=element('div','settings-heading'),copy=element('div','settings-heading-copy');
-    copy.append(element('h2','',title),element('p','settings-heading-note',descriptions[title]||''));heading.append(mark(symbols[title]||'settings'),copy);box.append(heading);return box;
+    copy.append(element('h2','',title),element('p','settings-heading-note',descriptions[title]||''));heading.append(mark(symbols[title]||'sliders'),copy);box.append(heading);return box;
   }
   private async login(provider:'sea'|'gitlab') {
     const routeToken=this.loadId,closeGeneration=this.loginGeneration+1;

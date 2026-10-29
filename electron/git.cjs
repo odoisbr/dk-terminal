@@ -3,6 +3,8 @@ const fs = require('node:fs');
 const {executable} = require('./core.cjs');
 const {remoteIdentity} = require('./local-repositories.cjs');
 const {readProjectFile} = require('./files.cjs');
+const {HOST} = require('./gitlab-errors.cjs');
+const {remoteHost} = require('./gitlab-publish.cjs');
 
 class Git {
   constructor(env) { this.env = {...env, GIT_TERMINAL_PROMPT:'0', GCM_INTERACTIVE:'Never', GIT_PAGER:'cat', PAGER:'cat', NO_COLOR:'1'}; for (const key of Object.keys(this.env)) if (/^GIT_(TRACE|CURL_VERBOSE|DIR$|WORK_TREE$|INDEX_FILE$|CONFIG_COUNT$)/.test(key)) delete this.env[key]; this.busy = new Set(); }
@@ -34,7 +36,7 @@ class Git {
       changes.push({path:name,code,previous});
     }
     const counts=upstream.trim().split(/\s+/).map(Number);
-    return {repository:true,branch:branch.trim(),hasHead:!!head,changes, ahead:counts.length===2&&counts.every(Number.isFinite)?counts[0]:null,behind:counts.length===2&&counts.every(Number.isFinite)?counts[1]:null,hasOrigin:!!origin.trim(),gitlab:remoteIdentity(origin.trim())};
+    return {repository:true,branch:branch.trim(),hasHead:!!head,changes, ahead:counts.length===2&&counts.every(Number.isFinite)?counts[0]:null,behind:counts.length===2&&counts.every(Number.isFinite)?counts[1]:null,hasOrigin:!!origin.trim(),gitlab:remoteIdentity(origin.trim()),gitlabHost:remoteHost(origin.trim())===HOST};
   }
   async history(root) {
     await this.requireRoot(root);

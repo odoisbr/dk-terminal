@@ -2,15 +2,23 @@ type Project = { path: string; name: string; title?: string; isDk: boolean; file
 type Extension = { id: string; name: string; description: string; version: string; available: boolean; kind: 'terminal' | 'browser' };
 type RemoteProject = { id: number; name: string; path: string; branch: string };
 type GitChange = { path:string; code:string; previous:string|null };
-type GitStatus = { repository:false } | { repository:true; branch:string; hasHead:boolean; changes:GitChange[]; ahead:number|null; behind:number|null; hasOrigin:boolean; gitlab:string|null };
+type GitStatus = { repository:false } | { repository:true; branch:string; hasHead:boolean; changes:GitChange[]; ahead:number|null; behind:number|null; hasOrigin:boolean; gitlab:string|null; gitlabHost?:boolean };
+type GitlabNamespace = { id:number; fullPath:string; name:string; visibility:string };
+type GitlabPublishOptions = { name:string; path:string; namespaces:GitlabNamespace[]; defaultNamespace:number|null; visibilities:('private'|'internal')[]; local:{ repository:boolean; branch:string|null; hasHead:boolean; changes:number; origin:{ url:string; company:boolean }|null } };
+type GitlabPublishInput = { name:string; path:string; namespaceId:number; visibility:'private'|'internal'; description:string; commit:boolean; renameOrigin:boolean };
+type GitlabPublishPlan = { id:string; fullPath:string; webUrl:string; sshUrl:string; branch:string; steps:string[]; notes:string[] };
+type GitlabPublishResult = { webUrl:string; fullPath:string; branch:string; pushed:boolean; renamed:string|null; notes:string[]; error:string|null };
 type GitCommit = { hash:string; author:string; date:string; message:string };
 type GitBranch = {name:string;current:boolean;hash:string;upstream:string|null};
 type GitGraphCommit = GitCommit & {parents:string[];refs:string};
 type ToolStatus = { id: string; name: string; purpose: string; required: boolean; available: boolean; installed: boolean; version: string | null };
 type Bootstrap = { projects: Project[]; startupProject: Project | null; remoteProjects: {id:number;name:string;path:string}[]; kit: { path: string } | null; extensions: Extension[]; extensionErrors: string[]; platform: string; version: string };
-type ClaudePlugin = { status: 'installed' | 'missing' | 'disabled' | 'no-claude' | 'unavailable'; kit: { path: string } | null; activeKit: { path: string } | null; version?: string };
+type ClaudePlugin = { status: 'installed' | 'missing' | 'disabled' | 'no-claude' | 'unavailable'; kit: { path: string } | null; activeKit: { path: string } | null; version?: string; latestVersion?: string; updateAvailable?: boolean; scope?: string };
 type SessionInfo = { id: string; cwd: string; label: string; kind: 'action' | 'shell' | 'extension'; cwdFallback?: boolean };
 type TerminalSize = { cols: number; rows: number };
+type DetectedService = { pid: number; pgid: number; started: string; command: string; sessionId: string; sessionLabel: string; ports: number[]; urls: string[]; url: string | null };
+type DetectedServices = { items: DetectedService[]; supported: boolean };
+type DebugState = { enabled: boolean; forced: boolean; directory: string; file: string | null };
 type Service = { id: string; name: string; role?: 'frontend' | 'backend' | null; status: 'starting' | 'running' | 'stopping' | 'stopped' | 'failed'; pid: number | null; exitCode: number | null; url: string | null; log: string };
 type DependencyPlan = { ok: true; manager: string } | { ok: false; error: string; reason?: string };
 type DirectoryEntry = { name: string; relative: string; kind: 'directory' | 'file' | 'link' };
@@ -49,6 +57,9 @@ interface Window {
     gitlabLocalMatches(id:number,refresh?:boolean): Promise<{available:boolean;incomplete:boolean;paths:string[]}>;
     gitlabLocalProjects(ids:number[],refresh?:boolean): Promise<{available:boolean;incomplete:boolean;ids:number[]}>;
     gitlabOpenExisting(id:number,path:string): Promise<Project>;
+    gitlabPublishOptions(path:string): Promise<GitlabPublishOptions>;
+    gitlabPublishPlan(path:string,input:GitlabPublishInput): Promise<GitlabPublishPlan>;
+    gitlabPublish(path:string,planId:string): Promise<GitlabPublishResult>;
     readResources(): Promise<ResourceSnapshot>;
     optimizeApp(): Promise<boolean>;
     clearSystemCache(): Promise<{status:'cancelled'|'completed'}>;
@@ -60,6 +71,7 @@ interface Window {
     closeProjectSessions(path: string): Promise<{closed:number;chats:number;partial:boolean}>;
     checkClaudePlugin(path: string | null): Promise<ClaudePlugin>;
     installClaudePlugin(path: string | null): Promise<ClaudePlugin>;
+    updateClaudePlugin(path: string | null): Promise<ClaudePlugin>;
     revealProject(path: string): Promise<void>;
     listDirectory(path: string, relative?: string): Promise<DirectoryListing>;
     treeAction(path:string,relative:string,action:'reveal'|'open-system'|'copy-path'|'copy-name'|'share'):Promise<boolean>;
@@ -89,8 +101,10 @@ interface Window {
     createBrowserTab(path: string): Promise<string>;
     openBrowser(path: string, url: string, bounds: PreviewBounds, id: string): Promise<{ url: string; cancelled?: boolean }>;
     selectBrowser(path: string | null, id?: string): Promise<boolean>;
-    onBrowserRequest(callback: (event: { id: string; root: string; url: string }) => void): () => void;
+    onBrowserRequest(callback: (event: { id: string; root: string; url: string; title?: string }) => void): () => void;
     finishBrowserRequest(id: string, ok: boolean): Promise<void>;
+    copyPreviewInstructions(): Promise<boolean>;
+    writeAgentsGuide(path: string): Promise<{ changed: boolean; cancelled?: boolean; action?: 'create' | 'append' | 'update'; file: string }>;
     resizeBrowser(bounds: PreviewBounds): Promise<void>;
     setBrowserVisible(visible: boolean): Promise<void>;
     setBrowserFullscreen(enabled: boolean): Promise<boolean>;
@@ -116,5 +130,12 @@ interface Window {
     startService(path: string, id: string): Promise<Service>;
     stopService(path: string, id: string): Promise<Service>;
     onServiceChanged(callback: (event: { path: string; service: Service }) => void): () => void;
+    detectSessionServices(path: string): Promise<DetectedServices>;
+    terminateDetectedService(path: string, pid: number, started: string): Promise<{ status: 'cancelled' } | { status: 'terminated'; pid: number; group: number | null }>;
+    debugState(): Promise<DebugState>;
+    setDebugEnabled(enabled: boolean): Promise<DebugState>;
+    reportRendererLog(level: 'error' | 'warn' | 'info', message: string): Promise<boolean>;
+    exportDebugLogs(): Promise<{ file: string }>;
+    openDebugFolder(): Promise<boolean>;
   };
 }

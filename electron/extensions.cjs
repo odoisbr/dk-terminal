@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { executable } = require('./core.cjs');
+const { agentLaunchArgs, readGuide, codexConfigHasInstructions } = require('./agent-guide.cjs');
 
 const MANIFEST_LIMIT = 16 * 1024;
 const ASAR_HEADER_LIMIT = 4 * 1024 * 1024;
@@ -381,7 +382,12 @@ class Extensions {
     if (item.type === 'browser') throw new Error('Use o painel Browser para abrir a prévia.');
     const file = executable(item.command, this.env);
     if (!file) throw new Error(`${item.name} não foi encontrado. Instale a ferramenta oficial para usá-la aqui.`);
-    return { label: item.name, kind: 'extension', file, args: [...item.args] };
+    // Claude Code, Codex e Antigravity recebem o guia do SEA Dock por opção de
+    // linha de comando (agentGuide é definido pelo processo principal).
+    const guideFile = this.agentGuide || null;
+    const command = path.basename(item.command).toLowerCase();
+    const args = agentLaunchArgs(item.command, item.args, { guideFile, guideText: command === 'codex' ? readGuide(guideFile) : '', codexHasInstructions: command === 'codex' && codexConfigHasInstructions(this.env) });
+    return { label: item.name, kind: 'extension', file, args };
   }
   _stopWatchers() {
     clearTimeout(this.timer); this.timer = null;

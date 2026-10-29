@@ -13,91 +13,64 @@ import geminiIcon from '../assets/gemini.svg';
 import { renderOrchestration } from './orchestration';
 import { renderUsage } from './usage';
 import { Launcher } from './launcher';
+import { describeKit } from './kit-status';
 import { GitView } from './git-view';
 import { TreeMenu } from './tree-menu';
 import { createPluginsPanel } from './plugins';
 import { ViewRegistry } from './views';
 import { playSeaMotion } from './sea-motion.mjs';
 import './plugins.css';
+import { installDebugCapture } from './debug';
+import { DetectedServicesView } from './session-services';
+import { icon, setIconButton } from './icons';
+
+installDebugCapture();
 
 const startupMotion = playSeaMotion(document.querySelector<SVGSVGElement>('#sea-motion-stage'));
 
-const paths: Record<string, string> = {
-  home: '<path d="M3 11 12 3l9 8M5 10v10h14V10M9 20v-6h6v6"/>',
-  folder: '<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3Z"/>',
-  terminal: '<path d="m5 6 6 6-6 6m8 0h6"/>',
-  plus: '<path d="M12 5v14M5 12h14"/>',
-  arrow: '<path d="M5 12h14m-6-6 6 6-6 6"/>',
-  check: '<path d="m5 12 4 4L19 6"/>',
-  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
-  close: '<path d="m6 6 12 12M6 18 18 6"/>',
-  code: '<path d="m8 5-6 7 6 7m8-14 6 7-6 7m-3-16-2 18"/>',
-  settings: '<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="9" cy="18" r="2"/>',
-  scan: '<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 12h10"/>',
-  activity: '<path d="M2 12h5l3-8 4 16 3-8h5"/>',
-  file: '<path d="M14 3H5v18h14V8Zm0 0v6h5M8 13h8m-8 4h6"/>',
-  git: '<circle cx="6" cy="5" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7v10m2-6h4a6 6 0 0 0 6-2"/>',
-  chart: '<path d="M4 20h16M6 17v-5m5 5V7m5 10V4m4 13v-8"/>',
-  chevron: '<path d="m9 6 6 6-6 6"/>',
-  up: '<path d="m6 15 6-6 6 6"/>',
-  down: '<path d="m6 9 6 6 6-6"/>',
-  trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
-  play: '<path d="m8 4 12 8-12 8Z"/>',
-  stop: '<rect x="6" y="6" width="12" height="12" rx="1"/>',
-  panel: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
-  expand: '<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
-  restore: '<path d="M3 8h5V3m8 0v5h5M8 21v-5H3m18 0h-5v5"/>',
-  refresh: '<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 7a7 7 0 0 1 11.6-2L20 8M4 16l2.9 3A7 7 0 0 0 18.5 17"/>',
-  split: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/>',
-  splitDown: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/>',
-  detach: '<rect x="3" y="4" width="8" height="16" rx="1"/><path d="M15 8h6m-2-2 2 2-2 2M15 16h6m-2-2 2 2-2 2"/>',
-  single: '<rect x="3" y="4" width="18" height="16" rx="2"/>',
-  graph: '<rect x="3" y="8" width="5" height="7" rx="1"/><rect x="16" y="3" width="5" height="6" rx="1"/><rect x="16" y="15" width="5" height="6" rx="1"/><path d="M8 11h4V6h4m-4 5v7h4"/>',
-  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/>',
-};
-const icon = (name: string, extra = '') => `<svg class="icon ${extra}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.terminal}</svg>`;
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <aside class="sidebar">
     <div class="window-space" aria-hidden="true"></div>
     <div class="brand"><img class="brand-logo" src="${logoUrl}" alt="" /><div><strong>SEA Dock</strong><span>Seu espaço de trabalho</span></div><span class="beta">ALPHA</span></div>
     <div class="sea-signature" hidden><img class="sea-logo-wide" src="${seaLogo}" alt="SEA Tecnologia" /><img class="sea-logo-compact" src="${seaLogoCompact}" alt="SEA Tecnologia" /></div>
-    <button id="open-project" class="button open-button">${icon('plus')}<span>Abrir projeto</span><kbd>⌘ O</kbd></button>
-    <div class="section-label"><span>PROJETOS RECENTES</span><span id="project-count">0</span></div>
-    <nav id="project-list" aria-label="Projetos recentes"></nav>
-    <div class="sidebar-bottom"><div class="kit-summary"><span class="status-dot" id="kit-dot"></span><div><strong id="kit-label">Detectando plugin DK</strong><span id="kit-description">Verificando instalação do Claude</span></div></div><button id="install-dk-plugin" class="button kit-button" hidden>Instalar plugin DK no Claude</button><div id="system-resources" class="system-resources" tabindex="0" aria-label="Consumo da máquina sendo calculado"><button id="system-resources-toggle" class="system-resources-title" type="button" aria-expanded="true" aria-controls="system-resources-content"><span>MÁQUINA</span>${icon('down')}</button><div id="system-resources-content"><div class="system-resource"><span>CPU</span><strong id="system-cpu">—</strong></div><div class="system-meter"><span id="system-cpu-bar"></span></div><div class="system-resource"><span>Memória · inclui cache</span><strong id="system-memory">—</strong></div><div class="system-meter"><span id="system-memory-bar"></span></div><div class="system-resource"><span>Swap</span><strong id="system-swap">—</strong></div><div class="system-meter"><span id="system-swap-bar"></span></div><div class="resource-breakdown" aria-label="Detalhamento de memória"><div class="system-resource"><span>SEA Dock · RSS</span><strong id="system-dk-memory">—</strong></div><div class="system-resource"><span>Filhos detectados · RSS</span><strong id="system-child-memory">—</strong></div><div class="system-resource"><span>Outros processos · RSS</span><strong id="system-other-memory">—</strong></div><div class="system-resource"><span>Disponibilidade · estimada</span><strong id="system-available">—</strong></div><div class="system-resource"><span id="system-cache-label">Cache recuperável</span><strong id="system-cache">—</strong></div><div class="system-resource"><span>Pressão de memória</span><strong id="system-pressure">—</strong></div><small class="resource-breakdown-note">RSS soma páginas compartilhadas; valores não são parcelas exclusivas da memória da máquina.</small></div><button id="optimize-resources" class="button system-optimize" title="Limpar o cache do SEA Dock sem interromper projetos" aria-describedby="optimize-explanation">${icon('refresh')}Otimizar recursos</button><p id="optimize-explanation" class="system-optimize-help">Limpa apenas o cache do SEA Dock.</p><details id="mac-memory-tools" hidden><summary>Ferramentas avançadas do macOS</summary><button id="clear-system-cache" class="button system-optimize" title="Limpar cache de arquivos do macOS">Limpar cache do macOS</button><p class="system-optimize-help">Limpa cache de arquivos, não a memória dos aplicativos. Pode pedir senha e reduzir a velocidade temporariamente.</p><button id="open-activity-monitor" class="button system-optimize">Monitor de Atividade</button></details><div id="optimize-status" class="system-optimize-status" role="status" aria-live="polite"></div></div></div><div class="sidebar-footnote">LOCAL POR NATUREZA<span id="version">v—</span></div></div>
+    <button id="open-project" class="button open-button" title="Ir para o Início: abrir pasta, recentes ou GitLab">${icon('folderOpen')}<span>Abrir projeto</span></button>
+    <div class="section-label"><span>PROJETOS</span><span id="project-count">0</span></div>
+    <div class="project-filter" id="project-filter-box" hidden><label class="sr-only" for="project-filter">Filtrar projetos por nome</label>${icon('search')}<input id="project-filter" type="search" placeholder="Filtrar projetos" autocomplete="off" spellcheck="false" aria-controls="project-list" /></div>
+    <nav id="project-list" aria-label="Projetos"></nav>
+    <div class="sidebar-bottom"><div class="kit-summary"><span class="status-dot" id="kit-dot"></span><div><strong id="kit-label">Detectando plugin DK</strong><span id="kit-description">Verificando instalação do Claude</span></div></div><button id="install-dk-plugin" class="button kit-button" hidden>Instalar plugin DK no Claude</button><div id="system-resources" class="system-resources" aria-label="Consumo da máquina sendo calculado"><button id="system-resources-toggle" class="system-resources-title machine-compact" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="system-resources-content" title="Ver detalhes da máquina">${icon('cpu', 'machine-compact-icon')}<span class="machine-compact-label">Máquina</span><span class="machine-compact-meters" aria-hidden="true"><span class="machine-compact-meter"><small>CPU</small><span class="system-meter"><span id="system-cpu-mini"></span></span></span><span class="machine-compact-meter"><small>MEM</small><span class="system-meter"><span id="system-memory-mini"></span></span></span></span><span class="sr-only" id="system-compact-summary">Consumo da máquina sendo calculado</span>${icon('chevron', 'machine-compact-chevron')}</button><div id="system-resources-content" class="machine-popover" role="dialog" aria-label="Detalhes da máquina" tabindex="-1" hidden><div class="machine-popover-title">Máquina</div><div class="system-resource"><span>CPU</span><strong id="system-cpu">—</strong></div><div class="system-meter"><span id="system-cpu-bar"></span></div><div class="system-resource"><span>Memória · inclui cache</span><strong id="system-memory">—</strong></div><div class="system-meter"><span id="system-memory-bar"></span></div><div class="system-resource"><span>Swap</span><strong id="system-swap">—</strong></div><div class="system-meter"><span id="system-swap-bar"></span></div><div class="resource-breakdown" aria-label="Detalhamento de memória"><div class="system-resource"><span>SEA Dock · RSS</span><strong id="system-dk-memory">—</strong></div><div class="system-resource"><span>Filhos detectados · RSS</span><strong id="system-child-memory">—</strong></div><div class="system-resource"><span>Outros processos · RSS</span><strong id="system-other-memory">—</strong></div><div class="system-resource"><span>Disponibilidade · estimada</span><strong id="system-available">—</strong></div><div class="system-resource"><span id="system-cache-label">Cache recuperável</span><strong id="system-cache">—</strong></div><div class="system-resource"><span>Pressão de memória</span><strong id="system-pressure">—</strong></div><small class="resource-breakdown-note">RSS soma páginas compartilhadas; valores não são parcelas exclusivas da memória da máquina.</small></div><button id="optimize-resources" class="button system-optimize" title="Limpar o cache do SEA Dock sem interromper projetos" aria-describedby="optimize-explanation">${icon('zap')}Otimizar recursos</button><p id="optimize-explanation" class="system-optimize-help">Limpa apenas o cache do SEA Dock.</p><details id="mac-memory-tools" hidden><summary>Ferramentas avançadas do macOS</summary><button id="clear-system-cache" class="button system-optimize" title="Limpar cache de arquivos do macOS">Limpar cache do macOS</button><p class="system-optimize-help">Limpa cache de arquivos, não a memória dos aplicativos. Pode pedir senha e reduzir a velocidade temporariamente.</p><button id="open-activity-monitor" class="button system-optimize">Monitor de Atividade</button></details><div id="optimize-status" class="system-optimize-status" role="status" aria-live="polite"></div></div></div><div class="sidebar-footnote">LOCAL POR NATUREZA<span id="version">v—</span></div></div>
   </aside>
   <main class="workspace">
-    <header class="titlebar"><button id="toggle-sidebar" class="icon-button sidebar-toggle" aria-label="Recolher sidebar" aria-expanded="true" title="Recolher ou expandir sidebar">${icon('panel')}</button><span class="breadcrumb">Workspace ${icon('chevron')} <strong id="breadcrumb-project"><span id="project-title">Início</span></strong></span><div class="titlebar-actions"><button id="reveal-project" class="icon-button" aria-label="Abrir pasta do projeto" title="Abrir pasta do projeto" hidden>${icon('folder')}</button><button id="launcher-show" class="icon-button" aria-label="Página inicial" title="Página inicial">${icon('home')}</button><button id="profile-show" class="icon-button" aria-label="Perfil e configurações" title="Perfil e configurações">${icon('settings')}</button><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" title="Alternar tema SEA">Tema SEA</button><span class="local-badge"><span class="status-dot ready"></span>Ambiente local</span></div></header>
-    <div class="action-bar"><span class="action-label">AÇÕES DK</span><button class="button action" data-action="audit" disabled>${icon('scan')}Auditoria</button><button class="button action" data-action="validate" disabled>${icon('check')}Validar projeto</button><button class="button action" data-action="doctor" disabled>${icon('activity')}Diagnóstico</button><button class="button action" id="show-graph" disabled>${icon('graph')}Orquestração</button><span class="action-hint" id="action-hint">Instale ou ative o plugin DK para executar as ações.</span></div>
+    <header class="titlebar"><button id="toggle-sidebar" class="icon-button sidebar-toggle" aria-label="Recolher sidebar" aria-expanded="true" title="Recolher sidebar">${icon('sidebar')}</button><span class="breadcrumb">Workspace ${icon('chevron')} <strong id="breadcrumb-project"><span id="project-title">Início</span></strong></span><div class="titlebar-actions"><button id="reveal-project" class="icon-button" aria-label="Abrir pasta do projeto no Finder" title="Abrir pasta do projeto no Finder" hidden>${icon('reveal')}</button><button id="launcher-show" class="icon-button" aria-label="Página inicial" title="Página inicial">${icon('home')}</button><button id="profile-show" class="icon-button" aria-label="Perfil e configurações" title="Perfil e configurações">${icon('settings')}</button><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" title="Alternar tema SEA">Tema SEA</button><span class="local-badge"><span class="status-dot ready"></span>Ambiente local</span></div></header>
+    <div class="action-bar"><span class="action-label">AÇÕES DK</span><button class="button action" data-action="audit" disabled>${icon('fileSearch')}Auditoria</button><button class="button action" data-action="validate" disabled>${icon('checkCircle')}Validar projeto</button><button class="button action" data-action="doctor" disabled>${icon('activity')}Diagnóstico</button><button class="button action" id="show-graph" disabled>${icon('graph')}Orquestração</button><span class="action-hint" id="action-hint">Instale ou ative o plugin DK para executar as ações.</span></div>
     <div id="extension-bar" class="extension-bar" aria-label="Extensões de agentes" hidden></div>
     <div class="work-area">
       <section id="terminal-view" class="terminal-card" aria-label="Área de trabalho do projeto">
-        <div class="terminal-toolbar"><div class="workspace-tabs"><div id="tabs" role="tablist" aria-label="Guias do projeto"></div><div id="file-tabs"></div></div><div class="terminal-controls"><button id="single-terminal" class="icon-button" aria-label="Visualização única" title="Visualização única" hidden>${icon('single')}</button><button id="detach-pane" class="icon-button" aria-label="Separar painel ativo do split" title="Separar painel ativo do split" hidden>${icon('detach')}</button><button id="split-right" class="icon-button" aria-label="Dividir terminal à direita" title="Dividir à direita (⌘ D)" disabled>${icon('split')}</button><button id="split-down" class="icon-button" aria-label="Dividir terminal abaixo" title="Dividir abaixo (⌘ ⇧ D)" disabled>${icon('splitDown')}</button><button id="split-agent" class="icon-button" aria-label="Dividir com agente" title="Dividir com Claude, Codex ou outra ferramenta" aria-haspopup="menu" aria-expanded="false" disabled>${icon('activity')}</button><button id="launch-claude" class="icon-button agent-launch" aria-label="Abrir Claude Code" title="Abrir Claude Code" disabled><img src="${claudeIcon}" alt="" /></button><button id="launch-codex" class="icon-button agent-launch" aria-label="Abrir Codex" title="Abrir Codex" disabled><img src="${codexIcon}" alt="" /></button><button id="launch-antigravity" class="icon-button agent-launch" aria-label="Abrir Antigravity CLI" title="Abrir Antigravity CLI" hidden><img src="${antigravityIcon}" alt="" /></button><button id="launch-gemini" class="icon-button agent-launch" aria-label="Abrir Gemini CLI" title="Abrir Gemini CLI" hidden><img src="${geminiIcon}" alt="" /></button><button id="launch-dk" class="icon-button agent-launch" aria-label="Abrir DK CLI" title="Abrir DK CLI" hidden><img src="${logoUrl}" alt="" /></button><button id="open-browser" class="icon-button" aria-label="Visualizar protótipo" title="Visualizar protótipo" disabled>${icon('globe')}</button><span class="toolbar-divider" aria-hidden="true"></span><button id="expand-terminal" class="icon-button" aria-label="Expandir terminal" aria-pressed="false" title="Expandir terminal (⌘ ⇧ E)">${icon('expand')}</button><button id="search-toggle" class="icon-button" aria-label="Buscar no terminal" title="Buscar no terminal (⌘ F)" disabled>${icon('search')}</button><button id="new-session" class="icon-button" aria-label="Nova sessão" title="Nova sessão (⌘ T)" disabled>${icon('plus')}</button></div></div>
+        <div class="terminal-toolbar"><div class="workspace-tabs"><div id="tabs" role="tablist" aria-label="Guias do projeto"></div><div id="file-tabs"></div></div><div class="terminal-controls"><button id="single-terminal" class="icon-button" aria-label="Visualização única" title="Visualização única" hidden>${icon('single')}</button><button id="detach-pane" class="icon-button" aria-label="Separar painel ativo do split" title="Separar painel ativo do split" hidden>${icon('detach')}</button><button id="split-right" class="icon-button" aria-label="Dividir terminal à direita" title="Dividir à direita (⌘ D)" disabled>${icon('split')}</button><button id="split-down" class="icon-button" aria-label="Dividir terminal abaixo" title="Dividir abaixo (⌘ ⇧ D)" disabled>${icon('splitDown')}</button><button id="split-agent" class="icon-button" aria-label="Dividir com agente" title="Dividir com Claude, Codex ou outra ferramenta" aria-haspopup="menu" aria-expanded="false" disabled>${icon('sparkle')}</button><button id="launch-claude" class="icon-button agent-launch" aria-label="Abrir Claude Code" title="Abrir Claude Code" disabled><img src="${claudeIcon}" alt="" /></button><button id="launch-codex" class="icon-button agent-launch" aria-label="Abrir Codex" title="Abrir Codex" disabled><img src="${codexIcon}" alt="" /></button><button id="launch-antigravity" class="icon-button agent-launch" aria-label="Abrir Antigravity CLI" title="Abrir Antigravity CLI" hidden><img src="${antigravityIcon}" alt="" /></button><button id="launch-gemini" class="icon-button agent-launch" aria-label="Abrir Gemini CLI" title="Abrir Gemini CLI" hidden><img src="${geminiIcon}" alt="" /></button><button id="launch-dk" class="icon-button agent-launch" aria-label="Abrir DK CLI" title="Abrir DK CLI" hidden><img src="${logoUrl}" alt="" /></button><button id="open-browser" class="icon-button" aria-label="Visualizar protótipo" title="Visualizar protótipo" disabled>${icon('globe')}</button><span class="toolbar-divider" aria-hidden="true"></span><button id="expand-terminal" class="icon-button" aria-label="Expandir terminal" aria-pressed="false" title="Expandir terminal (⌘ ⇧ E)">${icon('expand')}</button><button id="search-toggle" class="icon-button" aria-label="Buscar no terminal" title="Buscar no terminal (⌘ F)" disabled>${icon('search')}</button><button id="new-session" class="icon-button" aria-label="Nova sessão de terminal" title="Nova sessão de terminal (⌘ T)" disabled>${icon('terminalPlus')}</button></div></div>
         <div id="terminal-workspace" class="terminal-workspace">
-        <div id="search-bar" hidden><label for="terminal-search" class="sr-only">Buscar no terminal</label><input id="terminal-search" placeholder="Buscar nesta sessão" autocomplete="off" /><button id="search-previous" class="icon-button" aria-label="Resultado anterior">${icon('up')}</button><button id="search-next" class="icon-button" aria-label="Próximo resultado">${icon('down')}</button><button id="search-close" class="icon-button" aria-label="Fechar busca">${icon('close')}</button></div>
-        <div class="terminal-content"><div id="welcome"><div class="welcome-symbol">${icon('terminal')}</div><span class="eyebrow">MENOS DISTÂNCIA ENTRE IDEIA E ENTREGA</span><h2>O projeto é o ponto de partida.</h2><p>Seu terminal, suas ferramentas e os comandos do DK.<br>Tudo no mesmo espaço, direto no seu computador.</p><button id="welcome-open" class="button primary">${icon('folder')}Abrir um projeto${icon('arrow')}</button><span class="welcome-hint">Selecione uma pasta para começar</span></div><div id="terminal-empty" hidden><span class="welcome-symbol small">${icon('terminal')}</span><h2>Espaço pronto.</h2><p>Abra um terminal quando precisar.</p><button id="empty-new" class="button primary">${icon('plus')}Nova sessão</button></div><div id="terminal-host"><section id="editor-view" class="editor-card" aria-label="Editor de arquivos" hidden><div id="editor-content"></div></section></div></div>
+        <div id="search-bar" hidden><label for="terminal-search" class="sr-only">Buscar no terminal</label><input id="terminal-search" placeholder="Buscar nesta sessão" autocomplete="off" /><button id="search-previous" class="icon-button" aria-label="Resultado anterior" title="Resultado anterior (⇧ ↵)">${icon('arrowUp')}</button><button id="search-next" class="icon-button" aria-label="Próximo resultado" title="Próximo resultado (↵)">${icon('arrowDown')}</button><button id="search-close" class="icon-button" aria-label="Fechar busca" title="Fechar busca (Esc)">${icon('close')}</button></div>
+        <div class="terminal-content"><div id="welcome"><div class="welcome-symbol">${icon('terminal')}</div><span class="eyebrow">MENOS DISTÂNCIA ENTRE IDEIA E ENTREGA</span><h2>O projeto é o ponto de partida.</h2><p>Seu terminal, suas ferramentas e os comandos do DK.<br>Tudo no mesmo espaço, direto no seu computador.</p><button id="welcome-open" class="button primary">${icon('folderOpen')}Abrir um projeto${icon('arrow')}</button><span class="welcome-hint">Selecione uma pasta para começar</span></div><div id="terminal-empty" hidden><span class="welcome-symbol small">${icon('terminal')}</span><h2>Espaço pronto.</h2><p>Abra um terminal quando precisar.</p><button id="empty-new" class="button primary">${icon('terminalPlus')}Nova sessão de terminal</button></div><div id="terminal-host"><section id="editor-view" class="editor-card" aria-label="Editor de arquivos" hidden><div id="editor-content"></div></section></div></div>
         <footer class="terminal-footer"><span><span class="status-dot" id="session-dot"></span><span id="session-state" role="status" aria-live="polite">Nenhuma sessão aberta</span></span><span id="session-dimensions">UTF-8</span></footer>
         </div>
-        <section id="browser-view" class="browser-card" role="tabpanel" aria-labelledby="browser-tab" aria-label="Browser do projeto" hidden><div class="auxiliary-toolbar"><strong>${icon('globe')}Browser</strong><button id="browser-fullscreen" class="icon-button" aria-label="Abrir browser em tela cheia" aria-pressed="false" title="Abrir browser em tela cheia">${icon('expand')}</button><button id="browser-back" class="button secondary">Voltar ao terminal</button></div><div class="browser-runtime"><label for="browser-service">Serviço</label><select id="browser-service" aria-label="Serviço para visualizar"></select><button id="browser-start" class="button primary">Executar projeto</button><button id="browser-stop" class="icon-button" aria-label="Desligar serviço da prévia" title="Desligar serviço" disabled>${icon('stop')}</button></div><form id="browser-navigation" class="browser-navigation"><label for="browser-address" class="sr-only">Endereço local da prévia</label><input id="browser-address" type="text" placeholder="http://localhost:5173" autocomplete="off" spellcheck="false" /><button type="submit" class="icon-button" aria-label="Abrir endereço local" title="Abrir ou recarregar endereço">${icon('arrow')}</button></form><div id="browser-canvas"><div id="browser-placeholder">Selecione um serviço ou informe o endereço local do projeto.</div></div><footer class="auxiliary-footer"><span id="browser-status">Projeto local · A página pode acessar a rede</span></footer></section>
+        <section id="browser-view" class="browser-card" role="tabpanel" aria-labelledby="browser-tab" aria-label="Browser do projeto" hidden><div class="auxiliary-toolbar"><strong>${icon('globe')}Browser</strong><button id="browser-fullscreen" class="icon-button" aria-label="Abrir browser em tela cheia" aria-pressed="false" title="Abrir browser em tela cheia">${icon('expand')}</button><button id="browser-copy-ai" class="button secondary" title="Copia o texto que ensina qualquer IA a usar dock-preview">${icon('copy')}Copiar instrução para IA</button><button id="browser-back" class="button secondary">Voltar ao terminal</button></div><div class="browser-runtime"><label for="browser-service">Serviço</label><select id="browser-service" aria-label="Serviço para visualizar"></select><button id="browser-start" class="button primary">Executar projeto</button><button id="browser-stop" class="icon-button" aria-label="Desligar serviço da prévia" title="Desligar serviço da prévia" disabled>${icon('stop')}</button></div><form id="browser-navigation" class="browser-navigation"><label for="browser-address" class="sr-only">Endereço local da prévia</label><input id="browser-address" type="text" placeholder="http://localhost:5173" autocomplete="off" spellcheck="false" /><button type="submit" class="icon-button" aria-label="Ir para o endereço" title="Ir para o endereço (↵)">${icon('arrow')}</button></form><div id="browser-canvas"><div id="browser-placeholder">Selecione um serviço ou informe o endereço local do projeto.</div></div><footer class="auxiliary-footer"><span id="browser-status">Projeto local · A página pode acessar a rede</span></footer></section>
       </section>
-      <section id="graph-view" class="graph-card" aria-label="Orquestração do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('graph')}Orquestração do DK</strong><button id="refresh-graph" class="icon-button" aria-label="Atualizar grafo">${icon('refresh')}</button><button id="graph-back" class="button secondary">Voltar ao terminal</button></div><div id="graph-content"></div><footer class="auxiliary-footer">Visualização dos registros locais do DK</footer></section>
-      <section id="action-view" class="action-card" aria-label="Resultado do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('scan')}Resultado do DK</strong><button id="cancel-action" class="button secondary" hidden>Interromper</button><button id="action-back" class="button secondary">Voltar ao terminal</button></div><div id="action-content" role="status" aria-live="polite"></div></section>
+      <section id="graph-view" class="graph-card" aria-label="Orquestração do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('graph')}Orquestração do DK</strong><button id="refresh-graph" class="icon-button" aria-label="Atualizar orquestração" title="Atualizar orquestração">${icon('refresh')}</button><button id="graph-back" class="button secondary">Voltar ao terminal</button></div><div id="graph-content"></div><footer class="auxiliary-footer">Visualização dos registros locais do DK</footer></section>
+      <section id="action-view" class="action-card" aria-label="Resultado do DK" hidden><div class="auxiliary-toolbar"><strong><span id="action-view-icon">${icon('activity')}</span>Resultado do DK</strong><button id="cancel-action" class="button secondary" hidden>Interromper</button><button id="action-back" class="button secondary">Voltar ao terminal</button></div><div id="action-content" role="status" aria-live="polite"></div></section>
       <section id="chat-view" class="chat-card" aria-label="Codex" hidden></section>
       <div class="project-inspector">
         <aside id="project-inspector-panel" class="context-panel" aria-label="Painel do projeto" hidden>
           <section id="panel-git" class="inspector-panel" aria-labelledby="tab-git" tabindex="0" hidden></section>
           <section id="panel-context" class="inspector-panel" aria-labelledby="tab-context" tabindex="0" hidden><div class="context-heading">${icon('code')}<h2>Contexto do projeto</h2></div><div id="context-empty"><p>Ao abrir uma pasta, você verá aqui a estrutura reconhecida pelo DK.</p><div class="context-illustration"><span>projeto.yml</span><span>.dk/projeto.json</span><span>.git/</span></div></div><div id="context-details" hidden><div class="context-label">PASTA ATIVA</div><strong id="context-name"></strong><span class="project-tag" id="context-kind"></span><div class="context-label files-label">ESTRUTURA RECONHECIDA</div><ul id="project-files"></ul><p class="context-note" id="context-note"></p></div><div class="context-tip"><span class="tip-number">01 / ESPAÇO LOCAL</span><p>Cada sessão fica na pasta em que foi aberta. Troque de projeto sem misturar seus terminais.</p></div></section>
-          <section id="panel-services" class="inspector-panel" aria-labelledby="tab-services" tabindex="0" hidden><p id="services-placeholder" class="context-note">Abra um projeto para acompanhar seus serviços.</p><div id="services-section" class="services-section" hidden><div class="section-label"><span>SERVIÇOS DO PROJETO</span><span id="service-count">0</span></div><div id="service-list"></div></div></section>
-          <section id="panel-files" class="inspector-panel" aria-labelledby="tab-files" tabindex="0" hidden><div class="tree-toolbar tree-project-heading"><span class="tree-project-symbol">${icon('folder')}</span><div class="tree-project-copy"><span>ARQUIVOS DO PROJETO</span><strong id="tree-project-name">Pasta do projeto</strong></div><button id="refresh-tree" class="icon-button" aria-label="Atualizar árvore de pastas" title="Atualizar árvore">${icon('refresh')}</button></div><p id="tree-placeholder" class="context-note">Abra um projeto para visualizar suas pastas e arquivos.</p><div id="folder-tree" aria-label="Pastas e arquivos do projeto"></div></section>
-          <section id="panel-usage" class="inspector-panel" aria-labelledby="tab-usage" tabindex="0" hidden><div class="tree-toolbar"><strong>Contas e uso</strong><button id="refresh-usage" class="icon-button" aria-label="Atualizar consumo" title="Consultar ferramentas oficiais">${icon('refresh')}</button></div><p id="usage-status" class="context-note"></p><div id="usage-content"></div></section>
+          <section id="panel-services" class="inspector-panel" aria-labelledby="tab-services" tabindex="0" hidden><p id="services-placeholder" class="context-note">Abra um projeto para acompanhar seus serviços.</p><div id="services-section" class="services-section" hidden><div class="section-label"><span>SERVIÇOS DO PROJETO</span><span id="service-count">0</span></div><div id="service-list"></div></div><div id="preview-ai" class="preview-ai" hidden><div class="section-label"><span>APRESENTAR COM IA</span></div><p class="context-note">Agentes abertos pelo SEA Dock mostram protótipos, telas e documentos no navegador do app com <code>dock-preview &lt;alvo&gt;</code>. Copie a instrução e cole no chat da IA ou no AGENTS.md, CLAUDE.md ou GEMINI.md do projeto.</p><button id="preview-ai-copy" class="button secondary preview-ai-copy" title="Copia o texto que ensina qualquer IA a usar dock-preview">${icon('copy')}Copiar instrução para IA</button><button id="agents-guide-write" class="button secondary agents-guide-write" title="Grava ou atualiza um bloco com o guia do SEA Dock no AGENTS.md da raiz do projeto, depois de confirmar">${icon('file')}Adicionar guia do SEA Dock ao projeto</button><p class="context-note agents-guide-note">Claude Code, Codex e Antigravity abertos pelo SEA Dock já recebem o guia sem gravar nada no projeto. Grave no AGENTS.md só se quiser que ele valha fora do app.</p></div></section>
+          <section id="panel-files" class="inspector-panel" aria-labelledby="tab-files" tabindex="0" hidden><div class="tree-toolbar tree-project-heading"><span class="tree-project-symbol">${icon('files')}</span><div class="tree-project-copy"><span>ARQUIVOS DO PROJETO</span><strong id="tree-project-name">Pasta do projeto</strong></div><button id="refresh-tree" class="icon-button" aria-label="Atualizar arquivos" title="Atualizar arquivos">${icon('refresh')}</button></div><p id="tree-placeholder" class="context-note">Abra um projeto para visualizar suas pastas e arquivos.</p><div id="folder-tree" aria-label="Pastas e arquivos do projeto"></div></section>
+          <section id="panel-usage" class="inspector-panel" aria-labelledby="tab-usage" tabindex="0" hidden><div class="tree-toolbar"><strong>Contas e uso</strong><button id="refresh-usage" class="icon-button" aria-label="Atualizar contas e uso" title="Atualizar contas e uso">${icon('refresh')}</button></div><p id="usage-status" class="context-note"></p><div id="usage-content"></div></section>
         </aside>
         <nav id="project-inspector-rail" class="inspector-rail" aria-label="Ferramentas do projeto">
-          <button id="tab-files" type="button" aria-label="Pasta" title="Pasta" aria-expanded="false" aria-controls="panel-files" data-panel="files">${icon('folder')}</button>
+          <button id="tab-files" type="button" aria-label="Arquivos do projeto" title="Arquivos do projeto" aria-expanded="false" aria-controls="panel-files" data-panel="files">${icon('files')}</button>
           <button id="tab-git" type="button" aria-label="Git" title="Git" aria-expanded="false" aria-controls="panel-git" data-panel="git">${icon('git')}</button>
-          <button id="tab-context" type="button" aria-label="Contexto" title="Contexto" aria-expanded="false" aria-controls="panel-context" data-panel="context">${icon('code')}</button>
-          <button id="tab-services" type="button" aria-label="Serviços" title="Serviços" aria-expanded="false" aria-controls="panel-services" data-panel="services">${icon('activity')}</button>
-          <button id="tab-usage" type="button" aria-label="Consumo" title="Consumo" aria-expanded="false" aria-controls="panel-usage" data-panel="usage">${icon('chart')}</button>
+          <button id="tab-context" type="button" aria-label="Contexto do projeto" title="Contexto do projeto" aria-expanded="false" aria-controls="panel-context" data-panel="context">${icon('code')}</button>
+          <button id="tab-services" type="button" aria-label="Serviços do projeto" title="Serviços do projeto" aria-expanded="false" aria-controls="panel-services" data-panel="services">${icon('server')}</button>
+          <button id="tab-usage" type="button" aria-label="Contas e uso" title="Contas e uso" aria-expanded="false" aria-controls="panel-usage" data-panel="usage">${icon('chart')}</button>
         </nav>
       </div>
     </div>
@@ -111,6 +84,7 @@ type Session = SessionInfo & { terminal: Terminal; fit: FitAddon; search?: Searc
 const sessions = new Map<string, Session>();
 let projects: Project[] = [], recentProjects: Project[] = [], remoteProjects: {id:number;name:string;path:string}[] = [], current: Project | null = null, activeId: string | null = null;
 let pluginStatus: ClaudePlugin['status'] | 'checking' = 'checking';
+let pluginInfo: Pick<ClaudePlugin, 'version' | 'latestVersion' | 'updateAvailable'> = {};
 let kit: Bootstrap['kit'] = null, busy = false, toastTimer: ReturnType<typeof setTimeout>;
 let opening = Promise.resolve();
 let agentOpening: { root: string; name: string } | null = null;
@@ -141,7 +115,7 @@ views.register('browser', [$('terminal-view'), $('browser-view')]);
 views.register('chat', [$('chat-view')]);
 views.register('action', [$('action-view')]);
 let focusedPane: 'terminal' | 'editor' = 'terminal';
-type BrowserTab = { id: string | null; ready: Promise<string | null> | null; url: string; wantedService: string; selectedService: string; waitingForService: boolean; status: string };
+type BrowserTab = { id: string | null; ready: Promise<string | null> | null; url: string; wantedService: string; selectedService: string; waitingForService: boolean; status: string; caption?: string };
 const browserTabs = new Map<string, BrowserTab>();
 let browserFullscreenActive = false, browserFullscreenDesired = false, browserFullscreenPending = false, browserFullscreenRecovery = false, browserFullscreenRequest = 0;
 let fileEditor: import('./editor').FileEditor | null = null;
@@ -157,6 +131,7 @@ const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, 
   } finally {changingBranches.delete(root);}
 }});
 const treeMenu = new TreeMenu({currentRoot:()=>current?.path||null,openFile:(root,name)=>openFile(root,name),notify});
+const detectedServices = new DetectedServicesView($('services-section'), { openPreview: (root, url) => openPreviewAddress(root, url), reloadDeclared: root => loadServices(root, () => current?.path === root), notify });
 let editorOpening: Promise<import('./editor').FileEditor> | null = null;
 let usageSnapshot: UsageSnapshot | null = null, usageLoading = false;
 let chatView: import('./chat').CodexChatView | null = null;
@@ -236,61 +211,97 @@ function rememberRecent(info: Project) {
 const run = (task: () => Promise<unknown>) => { task().catch(notify); };
 function renderKit() {
   $('kit-dot').classList.toggle('ready', !!kit);
-  $('kit-label').textContent = pluginStatus === 'installed' ? 'Plugin DK conectado' : kit ? 'Design Kit conectado' : 'Plugin DK indisponível';
-  $('kit-description').textContent = pluginStatus === 'missing' ? 'Plugin DK ausente no Claude' : pluginStatus === 'disabled' ? 'Plugin DK desativado no Claude' : pluginStatus === 'no-claude' ? 'Instale o Claude Code para usar o plugin' : pluginStatus === 'unavailable' ? 'Não foi possível verificar o plugin' : kit?.path || 'Verificando instalação do plugin DK';
-  button('install-dk-plugin').hidden = pluginStatus !== 'missing' && pluginStatus !== 'disabled';
-  button('install-dk-plugin').textContent = pluginStatus === 'disabled' ? 'Ativar plugin DK no Claude' : 'Instalar plugin DK no Claude';
-  $('kit-description').title = kit?.path || '';
+  const view = describeKit({ status: pluginStatus, ...pluginInfo, kitActive: !!kit }), control = button('install-dk-plugin');
+  $('kit-label').textContent = view.label;
+  $('kit-description').textContent = view.description;
+  control.dataset.pluginAction = view.action || '';
+  if (!control.disabled) { control.hidden = !view.action; control.textContent = view.actionLabel; }
+  $('kit-description').title = kit?.path ? `Pasta do kit: ${kit.path}` : '';
   $('action-hint').textContent = !kit ? 'Instale ou ative o plugin DK para executar as ações.' : !current ? 'Abra uma pasta para começar.' : 'Resultados renderizados · JSON disponível.';
   document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach(el => { el.disabled = !kit || !current || runningActions.has(current.path) || (el.dataset.action === 'validate' && !current.isDk); });
+}
+const PROJECT_FILTER_MIN = 8;
+const openedProjects = new Set<string>();
+let projectFilter = '';
+const normalizeProjectName = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+function isProjectOpen(path: string) {
+  if (current?.path === path || openedProjects.has(path)) return true;
+  for (const session of sessions.values()) if (session.cwd === path) return true;
+  return false;
+}
+function clearProjectFilter() {
+  if (!projectFilter && !$<HTMLInputElement>('project-filter').value) return;
+  projectFilter = ''; $<HTMLInputElement>('project-filter').value = ''; renderProjects();
 }
 function renderProjects() {
   const list = $('project-list');
   list.replaceChildren();
   $('project-count').textContent = String(projects.length);
+  const filterable = projects.length >= PROJECT_FILTER_MIN;
+  $('project-filter-box').hidden = !filterable;
+  if (!filterable && projectFilter) { projectFilter = ''; $<HTMLInputElement>('project-filter').value = ''; }
   if (!projects.length) {
     const hint = document.createElement('p'); hint.className = 'no-projects'; hint.textContent = 'Seus projetos aparecem aqui.'; list.append(hint);
+    return;
   }
-  for (const info of projects) {
-    const row = document.createElement('div'); row.className = `project-row${current?.path === info.path ? ' selected' : ''}`;
-    const select = document.createElement('button'); select.className = 'project-select'; select.title = info.title || info.name;
-    if (current?.path === info.path) select.setAttribute('aria-current', 'page');
-    select.innerHTML = `${icon('folder')}<span><strong></strong><small></small></span>`;
-    select.querySelector('strong')!.textContent = info.title || info.name;
-    select.querySelector('small')!.textContent = info.isDk ? 'Projeto DK' : 'Pasta de trabalho';
-    select.onclick = () => run(async () => {
-      const intent = beginProjectIntent(), snapshot = launcher.captureState();
-      const selected = await api.activateProject(info.path); rememberRecent(selected);
-      if (!launcher.isCurrent(snapshot)) return;
-      if (await activate(selected, intent)) launcher.completeOpen(snapshot, intent === projectIntent);
-    });
-    const forget = document.createElement('button'); forget.className = 'icon-button forget-project'; forget.title = 'Fechar projeto'; forget.setAttribute('aria-label', `Fechar projeto ${info.title || info.name}`); forget.innerHTML = icon('close');
-    forget.onclick = () => run(async () => {
-      if (closingProjects.has(info.path)) return;
-      closingProjects.add(info.path); forget.disabled = true;
-      try {
-      await opening;
-      if (editorOpening && !fileEditor) await editorOpening;
-      if (fileEditor && !await fileEditor.closeProject(info.path)) return;
-      const result = await api.closeProjectSessions(info.path);
-      for (const [id, session] of [...sessions]) if (session.cwd === info.path) {
-        clearTimeout(session.ackTimer); session.ackPending = 0; session.terminal.dispose(); session.element.remove(); sessions.delete(id); idleSnoozed.delete(id);
-      }
-      lastActive.delete(info.path); projectWorkspaceViews.delete(info.path); paneGroups.delete(info.path); browserTabs.delete(info.path); renderIdleNotice();
-      projects = projects.filter(project => project.path !== info.path);
-      if (current?.path === info.path) {
-        current = null; activeId = null;
-        fileEditor?.setProject('');
-        selectMainView('terminal');
-        renderProject(); focusSession(null, false);
-        selectPanel(null); await loadRootTree();
-        launcher.show('home');
-        if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.');
-      } else { renderProjects(); if (!current) launcher.show('home'); if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.'); }
-      } finally { closingProjects.delete(info.path); forget.disabled = false; }
-    });
-    row.append(select, forget); list.append(row);
+  const query = normalizeProjectName(projectFilter);
+  const visible = query ? projects.filter(info => normalizeProjectName(info.title || info.name).includes(query)) : projects;
+  if (!visible.length) {
+    const hint = document.createElement('p'); hint.className = 'no-projects'; hint.textContent = 'Nenhum projeto com esse nome. Pressione Esc para limpar o filtro.'; list.append(hint);
+    return;
   }
+  const open = visible.filter(info => isProjectOpen(info.path));
+  const recent = visible.filter(info => !isProjectOpen(info.path)).reverse();
+  for (const [label, group] of [['Abertos', open], ['Recentes', recent]] as const) {
+    if (!group.length) continue;
+    const heading = document.createElement('p'); heading.className = 'project-group-label'; heading.textContent = label;
+    list.append(heading);
+    for (const info of group) list.append(createProjectRow(info));
+  }
+}
+function createProjectRow(info: Project) {
+  const isSelected = current?.path === info.path, kind = info.isDk ? 'Projeto DK' : 'Pasta de trabalho';
+  const row = document.createElement('div'); row.className = `project-row${isSelected ? ' selected' : ' compact'}`;
+  row.dataset.kind = info.isDk ? 'dk' : 'folder';
+  const select = document.createElement('button'); select.className = 'project-select'; select.title = info.title || info.name;
+  select.setAttribute('aria-description', kind);
+  if (isSelected) select.setAttribute('aria-current', 'page');
+  select.innerHTML = isSelected ? `${icon('project')}<span><strong></strong><small></small></span>` : `${icon('project')}<span><strong></strong></span>${info.isDk ? '<em class="project-kind" aria-hidden="true">DK</em>' : ''}`;
+  select.querySelector('strong')!.textContent = info.title || info.name;
+  const small = select.querySelector('small'); if (small) small.textContent = kind;
+  select.onclick = () => run(async () => {
+    const intent = beginProjectIntent(), snapshot = launcher.captureState();
+    const selected = await api.activateProject(info.path); rememberRecent(selected);
+    if (!launcher.isCurrent(snapshot)) return;
+    if (await activate(selected, intent)) launcher.completeOpen(snapshot, intent === projectIntent);
+  });
+  const forget = document.createElement('button'); forget.className = 'icon-button forget-project'; setIconButton(forget, 'close', `Fechar projeto ${info.title || info.name}`);
+  forget.onclick = () => run(async () => {
+    if (closingProjects.has(info.path)) return;
+    closingProjects.add(info.path); forget.disabled = true;
+    try {
+    await opening;
+    if (editorOpening && !fileEditor) await editorOpening;
+    if (fileEditor && !await fileEditor.closeProject(info.path)) return;
+    const result = await api.closeProjectSessions(info.path);
+    for (const [id, session] of [...sessions]) if (session.cwd === info.path) {
+      clearTimeout(session.ackTimer); session.ackPending = 0; session.terminal.dispose(); session.element.remove(); sessions.delete(id); idleSnoozed.delete(id);
+    }
+    lastActive.delete(info.path); projectWorkspaceViews.delete(info.path); paneGroups.delete(info.path); browserTabs.delete(info.path); renderIdleNotice();
+    projects = projects.filter(project => project.path !== info.path); openedProjects.delete(info.path);
+    if (current?.path === info.path) {
+      current = null; activeId = null;
+      fileEditor?.setProject('');
+      selectMainView('terminal');
+      renderProject(); focusSession(null, false);
+      selectPanel(null); await loadRootTree();
+      launcher.show('home');
+      if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.');
+    } else { renderProjects(); if (!current) launcher.show('home'); if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.'); }
+    } finally { closingProjects.delete(info.path); forget.disabled = false; }
+  });
+  row.append(select, forget);
+  return row;
 }
 function renderProject() {
   const label = current?.title || current?.name || 'Início';
@@ -298,7 +309,7 @@ function renderProject() {
   $('breadcrumb-project').dataset.projectPath = current?.path || '';
   $('breadcrumb-project').title = label;
   const reveal = button('reveal-project'); reveal.hidden = !current;
-  reveal.title = current ? `Abrir pasta: ${current.path}` : 'Abrir pasta do projeto';
+  reveal.title = current ? `Abrir no Finder: ${current.path}` : 'Abrir pasta do projeto no Finder';
   if (current) reveal.setAttribute('aria-description', `Pasta: ${current.path}`); else reveal.removeAttribute('aria-description');
   button('new-session').disabled = !current;
   button('show-graph').disabled = !current;
@@ -311,7 +322,7 @@ function renderProject() {
     const files = $('project-files'); files.replaceChildren();
     for (const file of current.files) {
       const li = document.createElement('li'); li.className = file.present ? 'present' : 'absent';
-      li.innerHTML = `${icon('file')}<span></span><small></small>`;
+      li.innerHTML = `${icon(/(^|\/)\.git$|\/$/.test(file.name) ? 'folder' : 'file')}<span></span><small></small>`;
       li.querySelector('span')!.textContent = file.name;
       li.querySelector('small')!.textContent = file.present ? 'Encontrado' : 'Ausente';
       files.append(li);
@@ -354,15 +365,19 @@ function renderPreviewAction() {
   const running = services.some(item => item.status === 'running' && isPreviewService(item));
   const staticPreview = !services.some(item => item.id !== 'static:preview' && isPreviewService(item)) && services.some(item => item.id === 'static:preview' && item.status !== 'stopping');
   const control = button('open-browser'); control.disabled = !available || (!running && !staticPreview);
-  control.title = control.disabled ? 'Inicie um serviço de front-end para visualizar o protótipo' : staticPreview && !running ? 'Iniciar prévia estática' : 'Visualizar protótipo';
+  const label = staticPreview && !running ? 'Iniciar prévia estática' : 'Visualizar protótipo';
+  control.setAttribute('aria-label', label);
+  control.title = control.disabled ? 'Inicie um serviço de front-end para visualizar o protótipo' : label;
 }
 function isPreviewService(service: Service) {
   if (service.role) return service.role === 'frontend';
   return /^(?:dev|start|serve|preview|web|site|frontend|front|client|prototipo)(?::(?:web|frontend|front|client|site))?$/i.test(service.name);
 }
 function renderServices() {
+  detectedServices.update(current?.path ?? null, selectedPanel === 'services');
   $('services-section').hidden = !current;
   $('services-placeholder').hidden = !!current;
+  $('preview-ai').hidden = !current;
   const list = $('service-list'); list.replaceChildren();
   const items = current ? projectServices.get(current.path) || [] : [];
   $('service-count').textContent = String(items.filter(s => ['running', 'starting', 'stopping'].includes(s.status)).length);
@@ -455,6 +470,7 @@ function selectPanel(panel: InspectorPanel | null, loadFiles = true) {
     $(`panel-${control.dataset.panel}`).hidden = !selected;
   });
   if (panel === 'services') renderServices();
+  if (panel !== 'services') detectedServices.update(current?.path ?? null, false);
   if (panel === 'usage') run(() => loadUsage());
   if (panel === 'git') void gitView.refresh();
   if (loadFiles && panel === 'files' && current?.path !== treeProject) run(loadRootTree);
@@ -601,6 +617,7 @@ async function runDkAction(action: string) {
   const root = current.path;
   runningActions.add(root); renderKit();
   selectMainView('action');
+  $('action-view-icon').innerHTML = icon(action === 'audit' ? 'fileSearch' : action === 'validate' ? 'checkCircle' : 'activity');
   $('action-content').textContent = 'Executando a ação do DK…';
   button('cancel-action').hidden = false;
   try {
@@ -754,9 +771,30 @@ async function openBrowserView(requestedService?: string) {
   if (candidate) await startBrowserService(root, candidate, expected);
   else setBrowserStatus(root, expected, services.length ? 'Escolha o serviço do protótipo ou informe um endereço local.' : 'Nenhum serviço encontrado. Informe um endereço local para visualizar o projeto.');
 }
+// Abre na prévia um servidor detectado numa sessão, sem passar por um serviço declarado.
+async function openPreviewAddress(root: string, url: string) {
+  if (current?.path !== root || closingProjects.has(root)) throw new Error('Abra o projeto correspondente antes de visualizar o servidor.');
+  let tab = browserTabs.get(root);
+  if (!tab) {
+    tab = { id: null, ready: null, url: '', wantedService: '', selectedService: '', waitingForService: false, status: 'Carregando prévia…' };
+    browserTabs.set(root, tab);
+    tab.ready = prepareBrowserTab(root, tab);
+  }
+  const expected = tab;
+  selectMainView('browser');
+  try { if (!await expected.ready) return; }
+  catch (error) {
+    if (browserTabs.get(root) === expected) { browserTabs.delete(root); if (current?.path === root && mainView === 'browser') selectMainView(workspaceView); else renderTabs(); }
+    throw error;
+  }
+  if (browserTabs.get(root) !== expected || current?.path !== root) return;
+  expected.wantedService = ''; expected.selectedService = ''; expected.waitingForService = false;
+  if (mainView === 'browser') renderBrowserServices('');
+  await navigatePreview(root, url, expected);
+}
 async function startBrowserService(root: string, service: Service, tab = browserTabs.get(root)) {
   if (!tab || browserTabs.get(root) !== tab) return;
-  tab.wantedService = service.id; tab.selectedService = service.id;
+  tab.wantedService = service.id; tab.selectedService = service.id; tab.caption = undefined;
   tab.waitingForService = service.status !== 'running' || !service.url;
   if (service.status === 'running' && service.url) { if (tab.url !== service.url) await navigatePreview(root, service.url, tab); return; }
   if (service.status === 'running' || service.status === 'starting') {
@@ -855,10 +893,14 @@ function renderTabs() {
     const selected = mainView !== 'browser' && activeId === session.id;
     const tab = document.createElement('div'); tab.className = `tab${selected ? ' active' : ''}`;
     const select = document.createElement('button'); select.className = 'tab-select'; select.role = 'tab'; select.id = `tab-${session.id}`; select.setAttribute('aria-selected', String(selected)); select.setAttribute('aria-controls', `pane-${session.id}`);
-    select.innerHTML = icon(session.kind === 'shell' ? 'terminal' : session.exited ? 'check' : 'activity');
+    // O tipo da sessão define o ícone; o estado (encerrada, com erro) vem de classe e texto, nunca de outro desenho.
+    const failed = session.exited && session.exitCode !== undefined && session.exitCode !== 0;
+    select.innerHTML = icon(session.kind === 'extension' ? 'sparkle' : 'terminal');
+    select.classList.toggle('exited', session.exited); select.classList.toggle('failed', failed);
+    select.title = session.exited ? `${session.label} · ${failed ? `encerrada com erro (código ${session.exitCode})` : 'encerrada'}` : session.label;
     const text = document.createElement('span'); text.textContent = session.label;
     select.append(text); select.onclick = () => { if (mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView); focusedPane = 'terminal'; focusSession(session.id); };
-    const close = document.createElement('button'); close.className = 'icon-button tab-close'; close.setAttribute('aria-label', `Fechar ${session.label}`); close.innerHTML = icon('close'); close.onclick = () => run(() => closeSession(session.id));
+    const close = document.createElement('button'); close.className = 'icon-button tab-close'; setIconButton(close, 'close', `Fechar ${session.label}`); close.onclick = () => run(() => closeSession(session.id));
     tab.append(select, close); list.append(tab);
   }
   if (current && browserTabs.has(current.path)) {
@@ -892,7 +934,7 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   appliedProjectIntent = intent;
   const generation = ++activationGeneration;
   const projectChanged = current?.path !== info.path;
-  current = info;
+  current = info; openedProjects.add(info.path);
   const valid = () => generation === activationGeneration && current?.path === info.path && !closingProjects.has(info.path);
   const projectIndex = projects.findIndex(p => p.path === info.path);
   if (projectIndex >= 0) projects[projectIndex] = info;
@@ -1084,6 +1126,7 @@ api.onBrowserRequest(event => {
       }
       if (browserTabs.get(root) !== expected || current?.path !== root) throw new Error('Abra o projeto correspondente antes de visualizar o protótipo.');
       expected.wantedService = ''; expected.selectedService = ''; expected.waitingForService = false;
+      expected.caption = event.title || undefined;
       if (mainView === 'browser') renderBrowserServices('');
       await navigatePreview(root, event.url, expected);
       ok = current?.path === root && mainView === 'browser' && browserTabs.get(root) === expected && expected.url === event.url;
@@ -1093,7 +1136,7 @@ api.onBrowserRequest(event => {
 });
 api.onBrowserChanged(event => {
   const tab = browserTabs.get(event.path); if (!tab || tab.id !== event.id) return;
-  setBrowserStatus(event.path, tab, event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : 'Projeto local · A página pode acessar a rede');
+  setBrowserStatus(event.path, tab, event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : `${tab.caption ? `${tab.caption} · ` : ''}Projeto local · A página pode acessar a rede`);
   if (event.url) {
     tab.url = event.url;
     if (current?.path === event.path && mainView === 'browser') $<HTMLInputElement>('browser-address').value = event.url;
@@ -1122,17 +1165,29 @@ api.onMenu(action => {
   if (action === 'split-right') run(() => splitTerminal('right'));
   if (action === 'split-down') run(() => splitTerminal('down'));
 });
-button('open-project').onclick = button('welcome-open').onclick = () => run(openProject);
+button('welcome-open').onclick = () => run(openProject);
+button('open-project').onclick = () => launcher.show('home');
 async function refreshClaudePlugin() {
   const root = current?.path || null;
   const result = await api.checkClaudePlugin(root);
   if ((current?.path || null) !== root) return;
-  pluginStatus = result.status; kit = result.activeKit; renderKit();
+  applyClaudePlugin(result);
+}
+function applyClaudePlugin(result: ClaudePlugin) {
+  pluginStatus = result.status; kit = result.activeKit;
+  pluginInfo = { version: result.version, latestVersion: result.latestVersion, updateAvailable: result.updateAvailable };
+  renderKit();
 }
 button('install-dk-plugin').onclick = () => run(async () => {
-  const control = button('install-dk-plugin'); control.disabled = true; control.textContent = 'Instalando plugin DK…';
-  try { const result = await api.installClaudePlugin(current?.path || null); pluginStatus = result.status; kit = result.activeKit; renderKit(); }
-  finally { control.disabled = false; renderKit(); }
+  const control = button('install-dk-plugin'), updating = control.dataset.pluginAction === 'update';
+  control.disabled = true; control.setAttribute('aria-busy', 'true');
+  control.textContent = updating ? 'Atualizando plugin DK…' : control.dataset.pluginAction === 'enable' ? 'Ativando plugin DK…' : 'Instalando plugin DK…';
+  try {
+    const result = await (updating ? api.updateClaudePlugin(current?.path || null) : api.installClaudePlugin(current?.path || null));
+    control.disabled = false; applyClaudePlugin(result);
+    if (updating) notify(`Plugin DK atualizado para v${(result.version || '').replace(/^v/, '')}. Reinicie as sessões do Claude para aplicar.`);
+  }
+  finally { control.disabled = false; control.removeAttribute('aria-busy'); renderKit(); }
 });
 button('reveal-project').onclick = () => { if (current) run(() => api.revealProject(current!.path)); };
 button('new-session').onclick = button('empty-new').onclick = () => run(() => newSession());
@@ -1181,6 +1236,23 @@ button('action-back').onclick = () => selectMainView(workspaceView);
 button('cancel-action').onclick = () => { if (current) run(() => api.cancelAction(current!.path)); };
 button('refresh-usage').onclick = () => run(() => loadUsage(true));
 button('browser-back').onclick = () => selectMainView(workspaceView);
+async function copyPreviewInstructions() {
+  await api.copyPreviewInstructions();
+  notify('Instrução copiada. Cole no chat da IA ou no AGENTS.md, CLAUDE.md ou GEMINI.md do projeto.');
+}
+button('browser-copy-ai').onclick = () => run(copyPreviewInstructions);
+button('preview-ai-copy').onclick = () => run(copyPreviewInstructions);
+async function writeAgentsGuide() {
+  if (!current) return;
+  const control = button('agents-guide-write');
+  control.disabled = true;
+  try {
+    const result = await api.writeAgentsGuide(current.path);
+    if (result.cancelled) return;
+    notify(!result.changed ? 'O AGENTS.md do projeto já tem o guia do SEA Dock atualizado.' : result.action === 'create' ? 'AGENTS.md criado com o guia do SEA Dock.' : 'Guia do SEA Dock gravado no AGENTS.md; o resto do arquivo foi preservado.');
+  } finally { control.disabled = false; }
+}
+button('agents-guide-write').onclick = () => run(writeAgentsGuide);
 button('browser-fullscreen').onclick = () => run(() => setBrowserFullscreen(!browserFullscreenDesired && !browserFullscreenRecovery));
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented || event.key !== 'Escape' || mainView !== 'browser' || !$('launcher').hidden) return;
@@ -1197,7 +1269,7 @@ $('browser-service').onchange = () => {
 $('browser-navigation').onsubmit = event => {
   event.preventDefault(); if (!current) return;
   const root = current.path, tab = browserTabs.get(root); if (!tab) return;
-  tab.wantedService = ''; tab.waitingForService = false; run(() => navigatePreview(root, $<HTMLInputElement>('browser-address').value.trim(), tab));
+  tab.wantedService = ''; tab.waitingForService = false; tab.caption = undefined; run(() => navigatePreview(root, $<HTMLInputElement>('browser-address').value.trim(), tab));
 };
 button('browser-start').onclick = () => run(async () => {
   if (!current) return;
@@ -1233,7 +1305,10 @@ function sidebar(collapsed: boolean) {
   document.body.classList.toggle('sidebar-collapsed', collapsed);
   button('toggle-sidebar').setAttribute('aria-expanded', String(!collapsed));
   button('toggle-sidebar').setAttribute('aria-label', collapsed ? 'Expandir sidebar' : 'Recolher sidebar');
+  button('toggle-sidebar').title = collapsed ? 'Expandir sidebar' : 'Recolher sidebar';
   try { localStorage.setItem('sidebarCollapsed', String(collapsed)); } catch {}
+  if (collapsed) clearProjectFilter();
+  positionMachinePopover();
   requestAnimationFrame(fitActive);
   schedulePreviewResize();
 }
@@ -1260,14 +1335,69 @@ button('theme-toggle').onclick = () => setSeaTheme(!document.body.classList.cont
 try { setSeaTheme(localStorage.getItem('seaTheme') !== 'false'); } catch { setSeaTheme(true); }
 try { const saved = localStorage.getItem('glassTransparency'); setGlassTransparency(saved === null ? 12 : Number(saved)); } catch { setGlassTransparency(12); }
 try { setGlassAppearance(localStorage.getItem('glassAppearance') === 'true'); } catch { setGlassAppearance(false); }
-function setSystemResourcesCollapsed(collapsed: boolean) {
-  $('system-resources-content').hidden = collapsed;
-  const control = button('system-resources-toggle'); control.setAttribute('aria-expanded', String(!collapsed));
-  control.querySelector('svg')!.classList.toggle('collapsed', collapsed);
-  try { localStorage.setItem('systemResourcesCollapsed', String(collapsed)); } catch {}
+// Detalhes da máquina: popover ancorado na linha compacta da sidebar. Fica no
+// <body> porque o vidro da sidebar (backdrop-filter) prende elementos fixos.
+const machinePopover = $('system-resources-content');
+document.body.append(machinePopover);
+function positionMachinePopover() {
+  if (machinePopover.hidden) return;
+  const anchor = button('system-resources-toggle').getBoundingClientRect();
+  const sidebarBox = document.querySelector('.sidebar')!.getBoundingClientRect();
+  const margin = 8, collapsed = document.body.classList.contains('sidebar-collapsed');
+  const width = collapsed ? 280 : Math.max(220, sidebarBox.width - margin * 2);
+  const left = collapsed ? sidebarBox.right + margin : sidebarBox.left + margin;
+  machinePopover.style.width = `${width}px`;
+  machinePopover.style.left = `${Math.max(margin, Math.min(left, innerWidth - width - margin))}px`;
+  if (collapsed) {
+    // Ao lado do ícone, alinhado pela base e limitado à janela.
+    machinePopover.style.maxHeight = `${innerHeight - margin * 2}px`;
+    const height = machinePopover.offsetHeight;
+    machinePopover.style.top = `${Math.max(margin, Math.min(anchor.bottom - height, innerHeight - height - margin))}px`;
+  } else {
+    // Acima da linha compacta, sem nunca sair da janela.
+    const available = Math.max(160, anchor.top - margin * 2);
+    machinePopover.style.maxHeight = `${available}px`;
+    const height = machinePopover.offsetHeight;
+    machinePopover.style.top = `${Math.max(margin, anchor.top - margin - height)}px`;
+  }
 }
-button('system-resources-toggle').onclick = () => setSystemResourcesCollapsed(!$('system-resources-content').hidden);
-try { setSystemResourcesCollapsed(localStorage.getItem('systemResourcesCollapsed') === 'true'); } catch { setSystemResourcesCollapsed(false); }
+function setMachinePopoverOpen(open: boolean, restoreFocus = false) {
+  const control = button('system-resources-toggle');
+  if (open === !machinePopover.hidden) return;
+  machinePopover.hidden = !open;
+  control.setAttribute('aria-expanded', String(open));
+  $('system-resources').classList.toggle('open', open);
+  if (open) { positionMachinePopover(); machinePopover.focus({ preventScroll: true }); }
+  else if (restoreFocus) control.focus();
+  syncBrowserVisibility();
+}
+const machinePopoverCoversPreview = () => !machinePopover.hidden && document.body.classList.contains('sidebar-collapsed');
+button('system-resources-toggle').onclick = () => setMachinePopoverOpen(machinePopover.hidden === true);
+machinePopover.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setMachinePopoverOpen(false, true); } });
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && !machinePopover.hidden) { event.preventDefault(); setMachinePopoverOpen(false, true); } });
+document.addEventListener('pointerdown', event => {
+  if (machinePopover.hidden || !(event.target instanceof Node)) return;
+  if (machinePopover.contains(event.target) || button('system-resources-toggle').contains(event.target)) return;
+  setMachinePopoverOpen(false);
+}, true);
+machinePopover.addEventListener('focusout', () => {
+  // Diálogos nativos (senha do macOS) tiram o foco da janela; o popover continua aberto.
+  setTimeout(() => {
+    if (machinePopover.hidden || !document.hasFocus()) return;
+    // Botão desabilitado durante a otimização devolve o foco ao body: não fecha.
+    const focused = document.activeElement;
+    if (!focused || focused === document.body || machinePopover.contains(focused) || button('system-resources-toggle').contains(focused)) return;
+    setMachinePopoverOpen(false);
+  });
+});
+window.addEventListener('resize', positionMachinePopover);
+try { localStorage.removeItem('systemResourcesCollapsed'); } catch {}
+$<HTMLInputElement>('project-filter').addEventListener('input', event => { projectFilter = (event.target as HTMLInputElement).value; renderProjects(); });
+$<HTMLInputElement>('project-filter').addEventListener('keydown', event => {
+  if (event.key === 'Escape' && $<HTMLInputElement>('project-filter').value) { event.preventDefault(); event.stopPropagation(); clearProjectFilter(); }
+  else if (event.key === 'Enter') { event.preventDefault(); document.querySelector<HTMLButtonElement>('#project-list .project-select')?.click(); }
+  else if (event.key === 'ArrowDown') { event.preventDefault(); document.querySelector<HTMLButtonElement>('#project-list .project-select')?.focus(); }
+});
 button('toggle-sidebar').onclick = () => sidebar(!document.body.classList.contains('sidebar-collapsed'));
 try { sidebar(localStorage.getItem('sidebarCollapsed') === 'true'); } catch {}
 button('search-close').onclick = () => toggleSearch(false);
@@ -1362,17 +1492,26 @@ function renderResources(data: ResourceSnapshot) {
   $('system-cpu-bar').classList.toggle('high', machine.cpuPercent != null && machine.cpuPercent >= 80);
   const memoryPercent = machine.memoryUsedKiB == null || !machine.memoryTotalKiB ? 0 : machine.memoryUsedKiB / machine.memoryTotalKiB * 100;
   $('system-memory-bar').style.width = `${Math.max(0, Math.min(100, memoryPercent))}%`;
+  renderMachineCompact(machine.cpuPercent, machine.memoryUsedKiB == null || !machine.memoryTotalKiB ? null : memoryPercent, systemCpu, systemMemory);
   const description = 'Máquina inteira: CPU média de todos os núcleos. Memória não livre inclui cache e não equivale à pressão de memória. RSS é uma soma aproximada por processo e pode contar páginas compartilhadas várias vezes; não é uma divisão exata da memória física. No macOS, purgável cobre apenas uma parte do cache recuperável e disponibilidade não é pressão. No Linux, a pressão PSI indica a porcentagem média de tempo com alguma tarefa esperando memória nos últimos 10 segundos. Swap mostra uso e espaço atualmente alocado.';
   $('system-resources').title = description;
   $('system-resources').setAttribute('aria-label', `${description} CPU ${systemCpu}; memória não livre ${systemMemory}; swap ${systemSwap}.`);
   $('resource-indicator').setAttribute('aria-label', `SEA Dock: CPU ${formatCpu(data.app.cpuPercent)}, RAM RSS ${formatMemory(data.app.memoryKiB)}. Processos filhos e outros processos estão no detalhamento da máquina.`);
+}
+function renderMachineCompact(cpu: number | null, memory: number | null, cpuText: string, memoryText: string) {
+  const clamp = (value: number | null) => value == null || !Number.isFinite(value) ? 0 : Math.max(0, Math.min(100, value));
+  $('system-cpu-mini').style.width = `${clamp(cpu)}%`; $('system-cpu-mini').classList.toggle('high', cpu != null && cpu >= 80);
+  $('system-memory-mini').style.width = `${clamp(memory)}%`; $('system-memory-mini').classList.toggle('high', memory != null && memory >= 90);
+  const summary = cpuText === '—' && memoryText === '—' ? 'Consumo da máquina indisponível' : `Máquina: CPU ${cpuText}, memória ${memoryText}`;
+  $('system-compact-summary').textContent = summary;
+  button('system-resources-toggle').title = `${summary}. Clique para ver detalhes.`;
 }
 async function refreshResources() {
   clearTimeout(resourceTimer);
   if (document.visibilityState !== 'visible' || resourceBusy) return;
   resourceBusy = true;
   try { const data = await api.readResources(); renderResources(data); }
-  catch { $('resource-cpu').textContent = '—'; $('resource-memory').textContent = '—'; $('resource-scope').textContent = 'SEA Dock'; $('resource-indicator').title = 'Consumo de recursos indisponível.'; $('resource-indicator').setAttribute('aria-label', 'Consumo de recursos indisponível.'); for(const id of ['system-cpu','system-memory','system-swap','system-dk-memory','system-child-memory','system-other-memory','system-available','system-cache','system-pressure']) $(id).textContent='—'; $('system-cpu-bar').style.width = $('system-memory-bar').style.width = $('system-swap-bar').style.width = '0%'; $('system-cpu-bar').classList.remove('high'); $('system-resources').title = 'Consumo da máquina indisponível.'; $('system-resources').setAttribute('aria-label', 'Consumo da máquina indisponível.'); }
+  catch { $('resource-cpu').textContent = '—'; $('resource-memory').textContent = '—'; $('resource-scope').textContent = 'SEA Dock'; $('resource-indicator').title = 'Consumo de recursos indisponível.'; $('resource-indicator').setAttribute('aria-label', 'Consumo de recursos indisponível.'); for(const id of ['system-cpu','system-memory','system-swap','system-dk-memory','system-child-memory','system-other-memory','system-available','system-cache','system-pressure']) $(id).textContent='—'; $('system-cpu-bar').style.width = $('system-memory-bar').style.width = $('system-swap-bar').style.width = '0%'; $('system-cpu-bar').classList.remove('high'); renderMachineCompact(null, null, '—', '—'); $('system-resources').title = 'Consumo da máquina indisponível.'; $('system-resources').setAttribute('aria-label', 'Consumo da máquina indisponível.'); }
   finally {
     resourceBusy = false;
     if (document.visibilityState === 'visible') {
@@ -1396,7 +1535,7 @@ window.addEventListener('resize', schedulePreviewResize);
 // existing view while the launcher is open, retaining its page and session.
 let browserPreviewVisible = true;
 const syncBrowserVisibility = () => {
-  const visible = $('launcher').hidden === true;
+  const visible = $('launcher').hidden === true && !machinePopoverCoversPreview();
   if (visible === browserPreviewVisible) return;
   browserPreviewVisible = visible;
   api.setBrowserVisible(visible).catch(notify);

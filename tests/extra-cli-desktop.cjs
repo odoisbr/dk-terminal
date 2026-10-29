@@ -3,9 +3,11 @@ const { _electron: electron }=require('playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),temp=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'dk-cli-icons-'))),project=path.join(temp,'Projeto'),bin=path.join(temp,'bin');fs.mkdirSync(project);fs.mkdirSync(bin);
 for(const cmd of ['agy','gemini','dk'])fs.writeFileSync(path.join(bin,cmd),`#!/bin/sh\nprintf '${cmd} simulated\\n'\n`,{mode:0o755});
+// HOME isolado: o app procura CLIs também em pastas conhecidas da home (~/.local/bin…).
+const home=path.join(temp,'home');fs.mkdirSync(home);
 const shell=path.join(temp,'shell');fs.writeFileSync(shell,`#!/bin/sh\nif [ "$1" = "-lc" ]; then printf '\\000%s\\000' "$PATH"; else exec /bin/zsh -f; fi\n`,{mode:0o755});let app;
 (async()=>{try{
- app=await electron.launch({executablePath:process.env.DK_TERMINAL_EXECUTABLE||undefined,args:process.env.DK_TERMINAL_EXECUTABLE?[]:[root],env:{...process.env,SHELL:shell,PATH:`${bin}:/usr/bin:/bin:/usr/sbin:/sbin`,DK_TERMINAL_TEST:'1',DK_TERMINAL_TEST_PROJECT:project,DK_TERMINAL_DATA_DIR:path.join(temp,'profile')}});
+ app=await electron.launch({executablePath:process.env.DK_TERMINAL_EXECUTABLE||undefined,args:process.env.DK_TERMINAL_EXECUTABLE?[]:[root],env:{...process.env,HOME:home,SHELL:shell,PATH:`${bin}:/usr/bin:/bin:/usr/sbin:/sbin`,DK_TERMINAL_TEST:'1',DK_TERMINAL_TEST_PROJECT:project,DK_TERMINAL_DATA_DIR:path.join(temp,'profile')}});
  const page=await app.firstWindow();await page.locator('#startup-loading').waitFor({state:'detached'});
  if(process.env.DK_TERMINAL_EXECUTABLE){await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});},project);await page.locator('#launcher-open-local').click();}else await page.locator('.project-select').click();
  await startProjectTerminal(page);
@@ -28,8 +30,12 @@ const shell=path.join(temp,'shell');fs.writeFileSync(shell,`#!/bin/sh\nif [ "$1"
  }
  assert.equal(await page.locator('#extension-bar').isVisible(),false);
  await app.close();app=null;for(const cmd of ['agy','gemini','dk'])fs.unlinkSync(path.join(bin,cmd));
- app=await electron.launch({executablePath:process.env.DK_TERMINAL_EXECUTABLE||undefined,args:process.env.DK_TERMINAL_EXECUTABLE?[]:[root],env:{...process.env,SHELL:shell,PATH:`${bin}:/usr/bin:/bin:/usr/sbin:/sbin`,DK_TERMINAL_TEST:'1',DK_TERMINAL_TEST_PROJECT:project,DK_TERMINAL_DATA_DIR:path.join(temp,'profile')}});
+ app=await electron.launch({executablePath:process.env.DK_TERMINAL_EXECUTABLE||undefined,args:process.env.DK_TERMINAL_EXECUTABLE?[]:[root],env:{...process.env,HOME:home,SHELL:shell,PATH:`${bin}:/usr/bin:/bin:/usr/sbin:/sbin`,DK_TERMINAL_TEST:'1',DK_TERMINAL_TEST_PROJECT:project,DK_TERMINAL_DATA_DIR:path.join(temp,'profile')}});
  const reopened=await app.firstWindow();await reopened.locator('#startup-loading').waitFor({state:'detached'});await reopened.locator('.project-select').click();
- for(const id of ['antigravity','gemini','dk'])assert.equal(await reopened.locator(`#launch-${id}`).isVisible(),false);
+ // Pastas de sistema (/opt/homebrew/bin, /usr/local/bin) também são consultadas: uma CLI
+ // instalada de verdade nelas deve continuar visível; só as simuladas somem.
+ const command={antigravity:'agy',gemini:'gemini',dk:'dk'};
+ const installed=cmd=>['/opt/homebrew/bin','/usr/local/bin'].some(dir=>{try{fs.accessSync(path.join(dir,cmd),fs.constants.X_OK);return true;}catch{return false;}});
+ for(const id of ['antigravity','gemini','dk'])assert.equal(await reopened.locator(`#launch-${id}`).isVisible(),installed(command[id]),`${id}: visibilidade depende de instalação real`);
  console.log('✓ Ícones opcionais abrem CLIs simuladas, integram split e somem quando indisponíveis');
 }finally{if(app)await app.close();fs.rmSync(temp,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1});

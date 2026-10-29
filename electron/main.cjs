@@ -4,7 +4,10 @@ const os = require('node:os');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const { readState, writeState, projectInfo, kitInfo, loginEnvironment, knownToolDirectories, extendPath, actionSpec, folderForFile, directory, executable } = require('./core.cjs');
-const { bundledToolsPath, withBundledTools } = require('./bundled-tools.cjs');
+const { bundledToolsPath, bundledDockToolsPath, withBundledTools } = require('./bundled-tools.cjs');
+const { FilePreviews } = require('./file-preview.cjs');
+const { PREVIEW_INSTRUCTIONS } = require('./preview-instructions.cjs');
+const { agentGuidePath, readGuide, agentGuideEnvironment, codexConfigHasInstructions, upsertGuideBlock, readProjectAgents, writeProjectAgents } = require('./agent-guide.cjs');
 const { dependencyPlan, detectPackageManager } = require('./dependency-cache.cjs');
 const { Terminals } = require('./terminals.cjs');
 const { Services } = require('./services.cjs');
@@ -20,13 +23,16 @@ const { Usage } = require('./usage.cjs');
 const { CodexChat } = require('./codex-chat.cjs');
 const { Actions } = require('./actions.cjs');
 const { ResourceMonitor } = require('./resources.cjs');
-const { ClaudePluginMonitor, installClaudePlugin } = require('./claude-plugin.cjs');
+const { ClaudePluginMonitor, installClaudePlugin, updateClaudePlugin } = require('./claude-plugin.cjs');
 const { Integrations } = require('./integrations.cjs');
 const { LocalRepositories } = require('./local-repositories.cjs');
 const { clearMachineFileCache } = require('./machine-cache.cjs');
 const { Git } = require('./git.cjs');
+const { GitlabPublisher } = require('./gitlab-publish.cjs');
 const { windowIcon } = require('./app-icon.cjs');
 const dockCli = require('./dock-cli.cjs');
+const { DebugLog, captureConsole, formatArgs } = require('./debug-log.cjs');
+const { SessionServices } = require('./session-services.cjs');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'dk-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 const testing = process.env.DK_TERMINAL_TEST === '1' && !app.isPackaged;
@@ -51,6 +57,32 @@ if (testing && process.env.DK_TERMINAL_TEST_DATA) app.setPath('userData', proces
 // the same profile cannot create independent writers for its private stores.
 fs.mkdirSync(app.getPath('userData'), { recursive: true });
 app.setPath('userData', fs.realpathSync(app.getPath('userData')));
+// Modo debug: --sea-dock-debug, SEA_DOCK_DEBUG=1 ou a preferência salva em Perfil e configurações.
+// O Electron recusa --debug na inicialização (opção antiga do Node), por isso a opção tem prefixo.
+// Toda linha passa por redação antes do disco; entrada e saída de terminais nunca são gravadas.
+const debugLog = new DebugLog({
+  directory: path.join(app.getPath('userData'), 'logs'),
+  settingsFile: path.join(app.getPath('userData'), 'debug.json'),
+  forced: process.argv.includes('--sea-dock-debug') || process.env.SEA_DOCK_DEBUG === '1',
+  homes: [os.homedir(), (() => { try { return fs.realpathSync(os.homedir()); } catch { return null; } })()],
+  secrets: () => previewBridge ? [...previewBridge.tokens.values()] : [],
+  header: () => ({ app: app.getVersion(), macOS: process.platform === 'darwin' && typeof process.getSystemVersion === 'function' ? process.getSystemVersion() : null, sistema: `${process.platform} ${os.release()}`, arch: process.arch, electron: process.versions.electron, node: process.versions.node, chrome: process.versions.chrome }),
+});
+const originalConsole = captureConsole(debugLog);
+process.on('uncaughtExceptionMonitor', error => { debugLog.error('main', `Exceção não tratada: ${formatArgs([error])}`); });
+process.on('unhandledRejection', reason => {
+  originalConsole.error('Promessa rejeitada sem tratamento:', reason);
+  debugLog.error('main', `Promessa rejeitada sem tratamento (unhandledRejection): ${formatArgs([reason])}`);
+});
+const rendererLogWindow = { start: 0, count: 0 };
+function rendererLog(level, message) {
+  if (!['error', 'warn', 'info'].includes(level) || typeof message !== 'string') throw new Error('Registro de diagnóstico inválido.');
+  if (!debugLog.enabled) return false;
+  const now = Date.now();
+  if (now - rendererLogWindow.start > 60000) { rendererLogWindow.start = now; rendererLogWindow.count = 0; }
+  if (++rendererLogWindow.count > 120) return false;
+  return debugLog.write(level, 'renderer', message.slice(0, 16 * 1024));
+}
 function launchFiles(argv, cwd, skip = process.defaultApp ? 2 : 1) {
   return argv.slice(skip).filter(value => typeof value === 'string' && value && value.length <= 8192 && !value.startsWith('-') && !value.includes('\0'))
     .slice(0, 32).flatMap(value => {
@@ -61,7 +93,10 @@ function launchFiles(argv, cwd, skip = process.defaultApp ? 2 : 1) {
 const initialFiles = launchFiles(process.argv, process.cwd());
 const primaryInstance = app.requestSingleInstanceLock({ files: initialFiles });
 if (!primaryInstance) app.quit();
+let filePreviews;
+let sessionServices;
 let window, terminals, services, extensions, orchestration, preview, previewBridge, browserFullscreen, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
+let gitlabPublisher;
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false, windowClosing = false, windowCleanupDone = false;
 const selected = new Set();
 const closingProjects = new Set();
@@ -122,7 +157,10 @@ function handle(channel, handler) {
       if(windowClosing && ['terminal:create','terminal:split','terminal:start','chat:send','service:start','action:run','plugin:execute'].includes(channel)) throw new Error('O aplicativo está encerrando as sessões.');
       return { ok: true, value: await handler(...args) };
     }
-    catch (error) { return { ok: false, error: error.message || 'Não foi possível concluir a ação.' }; }
+    catch (error) {
+      debugLog.write('warn', 'ipc', `${channel} falhou: ${error?.message || error}`);
+      return { ok: false, error: error.message || 'Não foi possível concluir a ação.' };
+    }
   });
 }
 function project(root) {
@@ -135,6 +173,7 @@ function browserProject(root) {
   return info;
 }
 function closeProjectBrowser(root) {
+  filePreviews?.close(root);
   return preview.closeProject(root);
 }
 function hasDirtyFilesInProject(root) {
@@ -161,10 +200,13 @@ function remember(root) {
   closedPluginProjects.delete(info.path);
   if (!config.projects.includes(info.path)) config.projects = [...config.projects, info.path].slice(-12);
   save();
+  debugLog.event('projeto', `Projeto aberto: ${info.path}`);
   return info;
 }
 let bundledTools = null, environmentRefreshAt = 0, environmentRefreshing = false;
-function detectedEnvironment(base) { return withBundledTools(extendPath(base, knownToolDirectories()), bundledTools); }
+let dockTools = null;
+let agentGuide = null; // dock-tools/agents/AGENTS.md: guia do SEA Dock para agentes de IA.
+function detectedEnvironment(base) { return withBundledTools(withBundledTools(extendPath(base, knownToolDirectories()), bundledTools), dockTools); }
 function applyEnvironment(next) {
   env = next;
   for (const owner of [integrations, localRepositories, terminals, services, extensions, usage, codexChat, actions]) if (owner) owner.env = env;
@@ -339,6 +381,19 @@ function registerHandlers() {
     const base=directory(selection.filePaths[0]);
     return remember(await integrations.materialize(id,base));
   });
+  // Criar projeto no GitLab SEA a partir da pasta aberta. Só cria a partir de
+  // um plano revisado pela pessoa (id de uso único devolvido por publish-plan).
+  handle('gitlab:publish-options', root => gitlabPublisher.options(project(root).path));
+  handle('gitlab:publish-plan', (root, input) => {
+    const info = project(root);
+    if (input?.commit === true && hasDirtyFilesInProject(info.path)) throw new Error('Salve os arquivos abertos no editor antes de criar a primeira versão.');
+    return gitlabPublisher.plan(info.path, input);
+  });
+  handle('gitlab:publish', (root, planId) => {
+    const info = project(root);
+    if (typeof planId !== 'string' || planId.length > 64) throw new Error('Revise os dados antes de criar o projeto.');
+    return gitlabPublisher.publish(info.path, planId);
+  });
   handle('app:optimize', async () => { if (!window || window.isDestroyed()) throw new Error('Janela indisponível.'); await window.webContents.session.clearCache(); return true; });
   handle('app:clear-system-cache', async () => {
     if (machineCacheBusy) throw new Error('A limpeza já está em andamento.');
@@ -362,6 +417,7 @@ function registerHandlers() {
   };
   handle('kit:plugin-check', async root => applyPlugin(await pluginMonitor.check(env, root ? project(root).path : null)));
   handle('kit:plugin-install', async root => { pluginMonitor.invalidate(); try { return applyPlugin(await installClaudePlugin(env, root ? project(root).path : null)); } finally { pluginMonitor.invalidate(); } });
+  handle('kit:plugin-update', async root => { pluginMonitor.invalidate(); try { return applyPlugin(await updateClaudePlugin(env, root ? project(root).path : null)); } finally { pluginMonitor.invalidate(); } });
   handle('project:select', async () => {
     const result = await dialog.showOpenDialog(window, { title: 'Abrir projeto ou pasta', properties: ['openDirectory'] });
     return result.canceled ? null : remember(result.filePaths[0]);
@@ -410,6 +466,8 @@ function registerHandlers() {
     return approved ? terminals.create(approved.info, approved.spec) : null;
   });
   handle('browser:request-result', (id, ok) => previewBridge.finish(id, ok));
+  handle('preview:copy-instructions', () => { clipboard.writeText(PREVIEW_INSTRUCTIONS); return true; });
+  handle('agents:write-project', root => writeAgentsGuide(root));
   handle('browser:create', root => preview.create(browserProject(root).path));
   handle('browser:open', (root, url, bounds, id) => preview.open(window, browserProject(root).path, url, bounds, id));
   handle('browser:select', (root, id) => preview.select(root === null ? null : browserProject(root).path, id));
@@ -445,6 +503,7 @@ function registerHandlers() {
       previewBridge.revoke(info.path);
       closedPluginProjects.add(info.path);
       extensions.closeProject(info.path);
+      debugLog.event('projeto', `Projeto fechado: ${info.path} · ${result.closed} sessões${result.partial || browserResult.partial ? ' · limpeza parcial' : ''}`);
       return { ...result, partial: result.partial || browserResult.partial, chats };
     } finally { closingProjects.delete(info.path); }
   });
@@ -517,10 +576,63 @@ function registerHandlers() {
   handle('service:list', root => services.list(project(root).path));
   handle('service:start', (root, id) => services.start(project(root).path, id));
   handle('service:stop', (root, id) => services.stop(project(root).path, id));
+  handle('service:detect', root => sessionServices.detect(project(root).path));
+  handle('service:terminate-detected', async (root, pid, started) => {
+    const info = project(root), owner = window;
+    if (!Number.isSafeInteger(pid) || pid <= 1 || typeof started !== 'string' || started.length > 64) throw new Error('Processo inválido.');
+    if (!owner || owner.isDestroyed() || windowClosing) throw new Error('A janela está sendo encerrada.');
+    const detected = (await sessionServices.detect(info.path)).items.find(item => item.pid === pid && item.started === started);
+    if (!detected) throw new Error('O processo já foi encerrado ou não pertence às sessões deste projeto.');
+    const answer = await dialog.showMessageBox(owner, {
+      type: 'warning', message: 'Encerrar processo iniciado na sessão?',
+      detail: `Comando: ${detected.command}\nPID: ${pid}\nPorta${detected.ports.length > 1 ? 's' : ''}: ${detected.ports.join(', ')}\nSessão: ${detected.sessionLabel}\n\nVocê iniciou este processo num terminal do SEA Dock. Ele e os processos do mesmo grupo recebem um pedido de encerramento (SIGTERM). Trabalho não salvo nele pode ser perdido.`,
+      buttons: ['Cancelar', 'Encerrar processo'], defaultId: 0, cancelId: 0, noLink: true,
+    });
+    if (answer.response !== 1) return { status: 'cancelled' };
+    const result = await sessionServices.terminate(info.path, pid, started);
+    debugLog.event('serviço', `Processo detectado encerrado: PID ${pid}${result.group ? ` · grupo ${result.group}` : ''} · ${detected.command}`);
+    return { status: 'terminated', pid, group: result.group };
+  });
+  handle('debug:state', () => debugLog.state());
+  handle('debug:set', enabled => debugLog.setEnabled(enabled));
+  handle('debug:renderer', (level, message) => rendererLog(level, message));
+  handle('debug:export', async () => {
+    const destination = testing ? path.join(app.getPath('userData'), 'exports') : app.getPath('downloads');
+    const target = await debugLog.exportTo(destination);
+    debugLog.event('debug', `Logs exportados: ${target}`);
+    if (!testing) shell.showItemInFolder(target);
+    return { file: debugLog.redact(target) };
+  });
+  handle('debug:open-folder', async () => {
+    fs.mkdirSync(debugLog.directory, { recursive: true, mode: 0o700 });
+    if (testing) return true;
+    const error = await shell.openPath(debugLog.directory);
+    if (error) throw new Error(error);
+    return true;
+  });
+}
+// Ação explícita: grava ou atualiza só o bloco do SEA Dock no AGENTS.md do projeto,
+// depois de mostrar o conteúdo e pedir confirmação. Nunca é chamada automaticamente.
+async function writeAgentsGuide(root) {
+  const info = project(root);
+  const guide = readGuide(agentGuide);
+  if (!guide.trim()) throw new Error('O guia do SEA Dock não foi encontrado nesta instalação. Reinstale o SEA Dock.');
+  const before = readProjectAgents(info.path);
+  const plan = upsertGuideBlock(before.text, guide);
+  if (!plan.changed) return { changed: false, file: before.file };
+  if (!window || window.isDestroyed() || windowClosing) throw new Error('A janela está sendo encerrada.');
+  const where = plan.action === 'create' ? 'O arquivo será criado com o bloco abaixo.' : plan.action === 'update' ? 'O bloco do SEA Dock será substituído; o resto do arquivo fica igual.' : 'O bloco abaixo será acrescentado ao fim; o resto do arquivo fica igual.';
+  const result = await dialog.showMessageBox(window, { type: 'question', message: plan.action === 'create' ? 'Criar AGENTS.md com o guia do SEA Dock?' : 'Atualizar o guia do SEA Dock no AGENTS.md?', detail: `Arquivo: ${before.file}\n${where}\n\n${plan.block}`, buttons: ['Gravar no AGENTS.md', 'Cancelar'], defaultId: 0, cancelId: 1, noLink: true });
+  if (result.response !== 0) return { changed: false, cancelled: true, file: before.file };
+  const after = readProjectAgents(info.path);
+  if (after.text !== before.text) throw new Error('O AGENTS.md mudou durante a confirmação. Tente novamente.');
+  writeProjectAgents(info.path, plan.content, before.mode ?? 0o644);
+  debugLog.event('projeto', `Guia do SEA Dock gravado no AGENTS.md: ${info.path}`);
+  return { changed: true, action: plan.action, file: before.file };
 }
 function createWindow() {
   allowClose = false; dirtyFiles = []; windowClosing = false; windowCleanupDone = false;
-  codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event), previewEnvironment: root => previewBridge.environment(root) });
+  codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event), previewEnvironment: root => ({ ...previewBridge.environment(root), ...agentGuideEnvironment(agentGuide) }), developerInstructions: base => codexConfigHasInstructions(base) ? '' : readGuide(agentGuide) });
   window = new BrowserWindow({
     width: 1440, height: 920, minWidth: 940, minHeight: 620, backgroundColor: '#101214',
     title: 'SEA Dock', icon: windowIcon(app.getAppPath()), titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -538,6 +650,7 @@ function createWindow() {
     void preview.closeAll(); preview.setVisible(true);
     void browserFullscreen?.set(false).catch(() => {});
   });
+  window.webContents.on('render-process-gone', (_event, details) => { debugLog.error('renderer', `Processo da interface encerrado: ${details?.reason} · código ${details?.exitCode}`); });
   window.once('ready-to-show', () => window.show());
   window.on('focus', () => { void refreshEnvironment(); });
   window.on('close', event => {
@@ -576,7 +689,7 @@ function createWindow() {
   });
   window.on('closed', () => {
     browserFullscreen?.dispose(); browserFullscreen = null;
-    previewBridge.revokeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
+    previewBridge.revokeAll(); filePreviews.closeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
     const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
     if(reopen){focusRequested=false;const files=pendingFiles.splice(0);if(files.length)openFiles(files);else createWindow();focusWindow();}
   });
@@ -618,6 +731,8 @@ function menu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 if (primaryInstance) app.whenReady().then(async () => {
+  debugLog.event('app', `SEA Dock iniciado${debugLog.forced ? ' com modo debug pela linha de comando' : ''}.`);
+  app.on('child-process-gone', (_event, details) => { debugLog.error('app', `Processo auxiliar encerrado: ${details?.type} · ${details?.reason} · código ${details?.exitCode}`); });
   if (process.platform === 'darwin' && !app.isPackaged) app.dock.setIcon(windowIcon(app.getAppPath()));
   const dist = path.resolve(__dirname, '..', 'dist');
   protocol.handle('dk-app', request => {
@@ -629,11 +744,15 @@ if (primaryInstance) app.whenReady().then(async () => {
   stateFile = path.join(app.getPath('userData'), 'settings.json');
   config = readState(stateFile);
   bundledTools = bundledToolsPath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
+  dockTools = bundledDockToolsPath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
+  agentGuide = agentGuidePath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
   env = detectedEnvironment({ ...process.env });
-  previewBridge = new PreviewBridge(request => { if (!window || window.isDestroyed() || !selected.has(request.root)) throw new Error('Projeto indisponível.'); send('browser:request', request); });
+  filePreviews = new FilePreviews();
+  previewBridge = new PreviewBridge(request => { if (!window || window.isDestroyed() || !selected.has(request.root)) throw new Error('Projeto indisponível.'); send('browser:request', request); }, { resolvePath: (root, target) => { if (!selected.has(root)) throw Object.assign(new Error('O projeto desta sessão não está aberto no SEA Dock. Abra o projeto e repita.'), { status: 409 }); return filePreviews.url(root, target); } });
   try { await previewBridge.start(); } catch (error) { console.error("Prévia integrada indisponível:", error.message); }
-  terminals = new Terminals(send, env, root => previewBridge.environment(root));
-  services = new Services(event => send('service:changed', event), env);
+  terminals = new Terminals(send, env, root => ({ ...previewBridge.environment(root), ...agentGuideEnvironment(agentGuide) }), (level, message) => debugLog.write(level, 'sessão', message));
+  services = new Services(event => send('service:changed', event), env, (level, message) => debugLog.write(level, 'serviço', message));
+  sessionServices = new SessionServices({ roots: root => terminals.projectRoots(root) });
   orchestration = new Orchestration(event => send('graph:changed', event));
   preview = new PreviewBrowser(event => send('browser:changed', event), () => {
     if (!browserFullscreen?.active && !browserFullscreen?.requested && !browserFullscreen?.needsRestore) return false;
@@ -644,9 +763,12 @@ if (primaryInstance) app.whenReady().then(async () => {
   actions = new Actions({ env });
   integrations = new Integrations(env);
   git = new Git(env);
+  // Reads the current environment on each call and shares the Git busy guard.
+  gitlabPublisher = new GitlabPublisher(() => env, undefined, git.busy);
   localRepositories = new LocalRepositories('/Volumes/SEA', env);
   resources = new ResourceMonitor(() => app.getAppMetrics(), { getTerminals: () => [...terminals.resourceRoots(), ...(codexChat?.resourceRoots() || [])] });
   extensions = new Extensions([path.join(app.getAppPath(), 'extensions'), path.join(app.getPath('userData'), 'extensions')], env, event => send('plugin:changed', event));
+  extensions.agentGuide = agentGuide;
   registerHandlers(); menu(); createWindow();
   app.on('activate', () => { if (!window) createWindow(); });
   applyEnvironment(detectedEnvironment(await loginEnvironment()));
@@ -663,4 +785,5 @@ if (primaryInstance) app.whenReady().then(async () => {
 }).catch(error => { dialog.showErrorBox('SEA Dock', error.message); app.quit(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
-app.on('will-quit', () => { previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });
+app.on('will-quit', () => { debugLog.event('app', 'SEA Dock encerrando.'); });
+app.on('will-quit', () => { filePreviews?.closeAll(); previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });

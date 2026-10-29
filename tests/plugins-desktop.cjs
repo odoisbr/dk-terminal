@@ -103,7 +103,7 @@ let app;
         return { label: button.getAttribute('aria-label'), left: rect.left, top: rect.top, bottom: rect.bottom };
       });
     });
-    assert.deepEqual(tabs.map(tab => tab.label), ['Pasta', 'Git', 'Contexto', 'Serviços', 'Consumo']);
+    assert.deepEqual(tabs.map(tab => tab.label), ['Arquivos do projeto', 'Git', 'Contexto do projeto', 'Serviços do projeto', 'Contas e uso']);
     assert.ok(tabs.every((tab, index) => Math.abs(tab.left - tabs[0].left) < 2 && (index === 0 || tab.top >= tabs[index - 1].bottom - 1)), 'Os cinco ícones devem permanecer em uma coluna vertical.');
     await page.locator('#tab-files').focus();
     await page.keyboard.press('ArrowRight');
@@ -309,6 +309,7 @@ let app;
 
     await page.locator('#launcher-close').click();
     await page.locator('#open-project').click();
+    await page.locator('#launcher-open-local').click();
     await page.locator('.project-select[title="Projeto Exemplo B"]').waitFor();
     await showSettings(page);
     const secondCard = panel.getByTestId('plugin-card').filter({ hasText: 'Plugin do projeto B' });

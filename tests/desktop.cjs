@@ -78,7 +78,7 @@ async function main() {
   assert.notEqual(await page.locator('#system-cpu').innerText(), '—');
   assert.match(await page.locator('#system-memory').innerText(), /\//);
   if (process.platform === 'darwin' || process.platform === 'linux') { assert.ok(resource.system.swap); assert.match(await page.locator('#system-swap').innerText(), /\//); }
-  assert.equal(await page.locator('.inspector-rail button').first().getAttribute('aria-label'), 'Pasta');
+  assert.equal(await page.locator('.inspector-rail button').first().getAttribute('aria-label'), 'Arquivos do projeto');
   assert.match(await page.locator('#resource-indicator').getAttribute('title'),/Terminais|terminais/);
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(940,620));
   await page.waitForTimeout(150);
@@ -106,8 +106,10 @@ async function main() {
   await page.evaluate(async id=>window.dk.writeTerminal(id, 'printf "\\nDK_PERSIST=%s:%s\\n" "${CLAUDE_CODE_CHILD_SESSION-unset}" "$CLAUDE_CODE_FORCE_SESSION_PERSISTENCE"\r'),id);
   await page.waitForFunction(id=>(window.__output[id]||'').includes('DK_PERSIST=unset:1\r\n'),id);
   checkpoint('PTY remove marcador herdado e habilita persistência de histórico do Claude');
+  await page.locator('#system-resources-toggle').click();
   await page.getByRole('button',{name:'Otimizar recursos'}).click();
   await page.getByRole('status').filter({hasText:'Caches temporários do SEA Dock limpos.'}).waitFor();
+  await page.keyboard.press('Escape');
   assert.equal(await page.locator('.terminal-pane[data-ready="true"]').count(),1);
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(940,620));
   await page.waitForTimeout(150);
@@ -183,6 +185,7 @@ async function main() {
   checkpoint('Separar split mantém sessões ativas e preserva o grupo dos demais painéis');
   await application.evaluate(({ dialog }, other) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [other] }); }, other);
   await page.locator('#open-project').click();
+  await page.locator('#launcher-open-local').click();
   await page.waitForFunction(() => document.querySelector('#project-title').textContent === 'Outro projeto');
   assert.equal(await page.locator('#breadcrumb-project').innerText(), 'Outro projeto');
   await startProjectTerminal(page);
@@ -262,8 +265,10 @@ async function main() {
   await page.waitForFunction(() => document.querySelector('.service-address')?.textContent.startsWith('http://127.0.0.1:'));
   const serviceUrl = await page.locator('.service-address').textContent();
   assert.equal(await (await fetch(serviceUrl)).text(), 'DK_PREVIEW_OK');
+  await page.locator('#system-resources-toggle').click();
   await page.getByRole('button',{name:'Otimizar recursos'}).click();
   await page.getByRole('status').filter({hasText:'Caches temporários do SEA Dock limpos.'}).waitFor();
+  await page.keyboard.press('Escape');
   assert.equal(await (await fetch(serviceUrl)).text(), 'DK_PREVIEW_OK');
   assert.equal(await page.locator('#browser-view').isVisible(), true);
   await page.waitForFunction(()=>document.querySelector('#browser-address').value.startsWith('http://127.0.0.1:'));

@@ -43,7 +43,9 @@ O [estudo do browser e suas evidências](docs/rea-browser/README.md) detalham a 
 
 O rodapé mostra CPU e RAM dos processos do SEA Dock. Passe o cursor sobre os indicadores para ver também os processos filhos detectados, incluindo terminais, agentes e serviços. O consumo de CPU é aproximado: 100% representa um núcleo e o total pode ultrapassar 100%. A RAM é uma soma de memória residente e pode incluir páginas compartilhadas. A leitura é atualizada a cada 10 segundos enquanto a janela está visível; processos que se desvinculam do aplicativo podem não ser detectados. Quando não for possível consultar os filhos, o detalhamento informa essa limitação.
 
-Serviços são iniciados somente por uma ação do usuário. O aplicativo acompanha os processos que ele próprio iniciou. Comandos abertos diretamente em um terminal ou em outro aplicativo não são descobertos automaticamente. Ao desligar um serviço, o aplicativo encerra seu grupo de processos; ao fechar a janela, também encerra os serviços gerenciados. A inicialização não instala dependências do projeto.
+Serviços são iniciados somente por uma ação do usuário. O aplicativo acompanha os processos que ele próprio iniciou. Comandos abertos em outro aplicativo não são descobertos; os abertos num terminal do SEA Dock aparecem à parte, como descrito abaixo. Ao desligar um serviço, o aplicativo encerra seu grupo de processos; ao fechar a janela, também encerra os serviços gerenciados. A inicialização não instala dependências do projeto.
+
+Servidores iniciados por você num terminal do SEA Dock, como um `npm run dev` digitado, aparecem em **Serviços → Detectados nas sessões**. O aplicativo percorre a árvore de processos de cada terminal do projeto ativo e lista os que escutam numa porta TCP (`ps` e `lsof`, sem shell), com comando resumido, PID, porta e endereço `http://127.0.0.1:<porta>`. **Abrir na prévia** usa a guia de navegador do projeto; **Encerrar** pede confirmação e envia `SIGTERM` ao grupo do processo, ou só ao processo quando o grupo é o do próprio shell, que continua aberto. O botão **Atualizar** refaz a descoberta e relê os serviços declarados; com a guia visível, a lista também se atualiza ao abri-la e a cada 10 segundos. Processos de outros projetos, de outros aplicativos ou do sistema não aparecem. A detecção funciona no macOS e no Linux.
 
 Quando há `index.html` na raiz, **Serviços → Prévia estática** abre HTML, CSS e JavaScript diretamente, sem instalar pacotes nem criar terminal. O servidor local não lista diretórios nem entrega arquivos ocultos ou `node_modules`; outros aplicativos locais ainda podem acessar os arquivos servidos. Ele não compila JSX, TypeScript ou projetos que dependam de um servidor de framework ou backend. Nesses casos, use o serviço próprio do projeto.
 
@@ -167,6 +169,8 @@ npm run test:editor
 npm run test:launcher
 npm run test:browser:tabs
 npm run test:browser:fullscreen
+npm run test:dock-preview
+npm run test:agents-guide
 npm run test:inspector
 npm run test:project:sessions
 npm run test:project:race
@@ -179,6 +183,12 @@ npm run test:all  # suíte completa, incluindo interface gráfica e regressões 
 Os testes desktop abrem um Electron real com pastas temporárias e verificam o shell, os painéis, o editor visual, Markdown, Mermaid, split e a fronteira entre interface e processo principal. Com `DK_ROOT=/caminho/do/dk npm run test:desktop`, também executa auditoria e diagnóstico reais. Captura de tela e relatório ficam em `artifacts/`. A compilação é verificada pelo TypeScript.
 
 O teste de tela cheia simula, por padrão, os eventos de janela para funcionar em ambientes sem foco gráfico; a prévia, seu posicionamento e o serviço de teste são reais. Em uma sessão gráfica interativa, use `DK_FULLSCREEN_NATIVE=1 npm run test:browser:fullscreen` para verificar a transição nativa. Caso o envio automatizado de teclas não alcance a prévia, use `DK_FULLSCREEN_MANUAL_ESCAPE=1 DK_FULLSCREEN_WAIT_FOCUS=1 npm run test:browser:fullscreen` e siga as instruções de foco e Escape exibidas no terminal.
+
+## Modo debug
+
+Para enviar logs ao suporte, ligue **Modo debug** em **Perfil e configurações → Diagnóstico**. A preferência fica em `debug.json`, na pasta de dados do aplicativo. Para uma única execução, abra o aplicativo com `SEA_DOCK_DEBUG=1` ou com a opção `--sea-dock-debug`; o Electron recusa `--debug` na inicialização, por ser uma opção antiga do Node. Com o modo ligado, o rodapé mostra **DEBUG** e o aplicativo grava em `<pasta de dados>/logs/sea-dock-<data>.log`, com no máximo cinco arquivos de até 5 MiB cada. O cabeçalho registra a versão do aplicativo, do macOS, a arquitetura e as versões de Electron, Node e Chromium. São registrados `console.*` do processo principal, exceções e promessas rejeitadas sem tratamento, falhas de IPC com canal e mensagem, erros da interface (`window.onerror`, `unhandledrejection`, `console.error` e `console.warn`, por um canal IPC autorizado) e eventos de ciclo de vida: abrir e fechar projeto, iniciar e parar serviço, criar, iniciar e fechar sessão, e falhas ao iniciar processos, com comando e código.
+
+Antes de gravar, cada linha passa por redação: `Bearer`/`Basic`, `sea_pat_`, `glpat-`, `ghp_` e afins, `sk-`, o token da prévia, valores de variáveis cujo nome contém TOKEN, SECRET, PASSWORD, KEY, AUTH ou CREDENTIAL, senhas em URLs, e a pasta pessoal trocada por `~`. O que é digitado nos terminais e a saída deles nunca são gravados. **Exportar logs** gera um `.zip` com `ditto` na pasta Downloads e o mostra no Finder; **Abrir pasta de logs** abre a pasta. Desligar o modo para a gravação; os arquivos já gravados ficam na pasta até serem apagados.
 
 ## Abrir com SEA Dock no Finder
 
@@ -203,6 +213,57 @@ No macOS, coloque o aplicativo empacotado em uma pasta permanente, como `~/Appli
 Use `dock .` para abrir a pasta atual, ou `dock 'pasta com espaços' 'outra pasta'`. Um arquivo abre a pasta que o contém, como na ação do Finder; o arquivo em si não é aberto no editor. Se o aplicativo já estiver aberto, a solicitação é encaminhada a ele. `dock` sem argumentos usa a pasta atual; o limite é 32 caminhos existentes por solicitação.
 
 O comando guarda o caminho da cópia instalada. Se o aplicativo for movido ou removido, o terminal informa o problema. Para apontar para a nova localização, abra a cópia atual, escolha **SEA Dock → Remover comando dock do terminal** e instale novamente. A remoção preserva arquivos que não forem o comando original do SEA Dock ou que tenham sido editados. A instalação e a remoção dessa integração ainda não estão disponíveis no Windows e no Linux.
+
+## Apresentar telas com IA: `dock-preview`
+
+Toda sessão aberta pelo SEA Dock (terminal, Claude Code, Codex, Gemini CLI, Antigravity ou uma pessoa digitando) tem o comando `dock-preview`, que abre um protótipo, uma tela, uma imagem ou um documento do projeto no navegador interno do app. Nada precisa ser instalado: o comando vem no pacote, em `Resources/dock-tools/bin` (no desenvolvimento, `dock-tools/bin`), entra no fim do `PATH` das sessões e roda com o runtime do próprio SEA Dock como Node, sem depender de Python ou do Node do usuário.
+
+```sh
+dock-preview http://localhost:5173              # servidor local em execução
+dock-preview prototipo/index.html --titulo "Home"
+dock-preview telas/                             # index.html da pasta ou galeria dos arquivos
+dock-preview docs/visao.md                      # Markdown apresentado como página
+```
+
+- **Alvo**: endereço local (`localhost`, `127.0.0.1` ou `[::1]`, com ou sem `http://`) ou arquivo ou pasta dentro do projeto da sessão. HTML, imagens (png, jpg, svg, gif, webp), PDF e Markdown são apresentados; uma pasta abre o seu `index.html` ou uma galeria dos arquivos apresentáveis. Caminhos relativos partem da pasta atual.
+- **Saída**: uma linha, `OK: …` com o endereço aberto ou `ERRO: …` dizendo o que fazer (projeto não selecionado, arquivo fora do projeto, servidor local parado, sessão antiga depois de reiniciar o app). Códigos de saída: 0 sucesso, 1 recusa ou falha, 2 uso incorreto, 3 fora de uma sessão do SEA Dock.
+- **Segurança**: o pedido usa a mesma ponte da prévia do plugin DK (`dk-visualizar`), com token por projeto injetado só nas sessões daquele projeto e aceito apenas em `127.0.0.1`. Endereços externos são recusados. Arquivos são servidos por um servidor local por projeto, aberto sob demanda e encerrado ao fechar o projeto, atrás de um prefixo aleatório no endereço; cada pedido revalida o caminho real, recusa links simbólicos que saiam da raiz, arquivos ocultos e `node_modules`. Markdown e galerias são gerados sem HTML do autor e com política de conteúdo que bloqueia scripts. Como na prévia estática, caminhos absolutos a partir da raiz do site (`/assets/…`) não funcionam numa página servida de subpasta; use caminhos relativos ou o servidor do projeto.
+- **Nome**: o comando se chama `dock-preview`, e não `dock preview`, porque o `dock` instalado pelo menu fica em `~/.local/bin`, que costuma vir antes das ferramentas do app no `PATH` de login; nele, `dock preview` seria lido como “abrir a pasta preview”. Mudar o script do `dock` também invalidaria a conferência de integridade das cópias já instaladas. Um nome próprio funciona igual em qualquer sessão.
+
+### Instrução para colar na IA
+
+O botão **Copiar instrução para IA**, na guia **Serviços** do projeto e na barra do navegador, copia o texto abaixo. Cole no chat da IA ou, se quiser que valha sempre, no `AGENTS.md`, `CLAUDE.md` ou `GEMINI.md` do projeto. O app só grava o `AGENTS.md` pela ação explícita descrita em [Guia para IAs](#guia-para-ias-agentsmd).
+
+```markdown
+## Apresentar telas no SEA Dock
+
+Quando precisar mostrar um protótipo, uma tela, uma imagem ou um documento para a pessoa, abra no navegador interno do SEA Dock rodando no terminal:
+
+    dock-preview <alvo> [--titulo "Texto"]
+
+- <alvo> é um endereço local (http://localhost:5173, 127.0.0.1:3000) ou um arquivo ou pasta do projeto (prototipo/index.html, telas/, tela.png, docs/visao.md). Caminhos relativos partem da pasta atual.
+- A saída é uma linha: OK: quando abriu, ou ERRO: seguido do que fazer. Siga a orientação do erro antes de tentar de novo.
+- Só abre endereços locais e arquivos dentro do projeto. Para um servidor de desenvolvimento, inicie-o antes e passe o endereço.
+- Se o comando não existir, a sessão não foi aberta pelo SEA Dock: informe o caminho do arquivo à pessoa em vez de abrir.
+```
+
+## Guia para IAs (AGENTS.md)
+
+O guia dos recursos do SEA Dock para agentes de IA fica em `dock-tools/agents/AGENTS.md` (no pacote, `Resources/dock-tools/agents/AGENTS.md`). Ele diz quando usar `dock-preview` (todo pedido de abrir, mostrar ou apresentar protótipo, tela, página, mockup, HTML ou resultado visual), aponta `sea help`, explica os serviços detectados nas sessões e os limites (só localhost, só arquivos do projeto, nunca imprimir tokens). É entregue sem gravar nada no projeto nem na configuração da pessoa:
+
+| CLI | Como recebe o guia |
+| --- | --- |
+| Claude Code (`claude`) | `--append-system-prompt-file <guia>`, acrescentado ao prompt de sistema padrão. |
+| Codex (`codex`, terminal) | `-c developer_instructions="<guia>"`, só para aquela execução; `CODEX_HOME` não muda. |
+| Codex (painel de conversa) | `developerInstructions` em `thread/start` e `thread/resume` do `codex app-server`. |
+| Antigravity (`agy`) | `--add-dir <pasta do guia>`; o Antigravity lê `AGENTS.md` das pastas do espaço de trabalho. |
+| Gemini CLI, DK CLI e outras extensões | Não recebem automaticamente; use `dock-agents` ou a gravação no projeto. |
+
+Vale para os ícones da barra, o menu de divisão com agente e extensões do usuário que chamem esses comandos. As opções entram antes dos argumentos já declarados, que são preservados; se a pessoa já passou a mesma opção (`--append-system-prompt[-file]`, `--system-prompt[-file]`, `-c developer_instructions=…`, o mesmo `--add-dir`), nada é acrescentado. Se o `config.toml` do Codex já define `developer_instructions` na raiz, o app não o sobrepõe. Plugins v2 não são alterados, porque a confirmação mostra os argumentos exatos.
+
+Todas as sessões exportam `SEA_DOCK_AGENTS_MD=<caminho do guia>` e têm o comando `dock-agents`, que imprime o guia. Quando a pessoa digita `claude` ou `codex` direto no terminal, a CLI não recebe o guia: nenhuma delas lê instruções de uma variável de ambiente, e cobrir esse caso exigiria trocar o comando ou mexer na configuração da pessoa. Peça à IA para rodar `dock-agents`, ou grave o guia no projeto.
+
+**Adicionar guia do SEA Dock ao projeto**, na guia **Serviços** (seção Apresentar com IA), grava o guia no `AGENTS.md` da raiz do projeto, entre `<!-- sea-dock:inicio -->` e `<!-- sea-dock:fim -->`. Antes, mostra o arquivo e o bloco e pede confirmação. Cria o arquivo se não existir, acrescenta o bloco ao fim ou substitui só o bloco anterior; o resto do arquivo fica igual. Marcadores incompletos ou repetidos, link simbólico e arquivo acima de 1 MiB são recusados. Nunca é feito automaticamente.
 
 ## Estrutura
 
@@ -247,7 +308,9 @@ O botão **Tema SEA** ativa ou desativa a identidade visual SEA e guarda a prefe
 
 ## Início, contas e projetos remotos
 
-A tela inicial reúne separadamente projetos recentes locais e remotos. Fechar um projeto na barra lateral encerra seus terminais e conversas de agentes, preserva o histórico e pergunta sobre arquivos não salvos. Os serviços iniciados pela guia Serviços são gerenciados separadamente e continuam ativos até serem desligados. Projetos do grupo `design` e seus subgrupos no GitLab SEA abrem em modo de consulta, com a árvore, arquivos de texto UTF-8 e imagens PNG, JPEG, GIF ou WebP da branch padrão, sem criar uma cópia local. Para editar ou executar, use **Preparar cópia local**, escolha a pasta de destino e aguarde a criação da cópia pelo GitLab CLI; uma pasta existente não é sobrescrita. A leitura remota requer rede e uma conta GitLab com acesso ao projeto. A lista destaca projetos com cópia encontrada no volume SEA e, ao abrir um projeto remoto, oferece essas pastas locais cujo Git `origin` corresponde ao projeto. A busca ignora pastas ocultas, dependências e saídas de build; pode ser parcial em volumes grandes e oferece continuar a busca.
+A tela inicial reúne separadamente projetos recentes locais e remotos. Fechar um projeto na barra lateral encerra seus terminais e conversas de agentes, preserva o histórico e pergunta sobre arquivos não salvos. Os serviços iniciados pela guia Serviços são gerenciados separadamente e continuam ativos até serem desligados. Projetos do grupo `design` e seus subgrupos no GitLab SEA abrem em modo de consulta, com a árvore, arquivos de texto UTF-8 e imagens PNG, JPEG, GIF ou WebP da branch padrão, sem criar uma cópia local. Para editar ou executar, use **Preparar cópia local**, escolha a pasta de destino e aguarde a cópia pelo Git, via SSH (padrão da empresa) ou, sem chave SSH, por HTTPS com credencial já salva no Git; uma pasta existente não é sobrescrita e uma falha diz o que fazer. A leitura remota requer rede e uma conta GitLab com acesso ao projeto. A lista destaca projetos com cópia encontrada no volume SEA e, ao abrir um projeto remoto, oferece essas pastas locais cujo Git `origin` corresponde ao projeto. A busca ignora pastas ocultas, dependências e saídas de build; pode ser parcial em volumes grandes e oferece continuar a busca.
+
+Uma pasta aberta que ainda não está no GitLab SEA (sem Git, sem remoto ou com remoto de outro servidor) mostra **Criar projeto no GitLab SEA** na guia Git. O formulário pede nome, caminho (sugerido a partir da pasta), grupo de destino (`design` por padrão, mais os subgrupos em que a conta pode criar projetos), visibilidade (privado por padrão) e descrição opcional. A revisão lista o que vai acontecer e não altera nada; só **Criar e publicar** executa: inicia o Git se preciso, cria a primeira versão apenas se pedida (recusa `node_modules` ou `.env` fora do `.gitignore`), cria o projeto com `glab api projects -X POST` (argumentos separados, sem shell e sem o app tocar no token), renomeia um `origin` existente para `anterior` só com autorização, adiciona o `origin` SSH e envia a branch atual. Falhas dizem o que fazer, como `glab auth login --hostname gitlab.seatecnologia.com.br`, caminho já usado ou falta de permissão no grupo.
 
 Em **Perfil e configurações**, escolha tema, efeito de vidro e nível de transparência (opcionais e persistentes), sidebar, tamanho da fonte, histórico do terminal e parâmetros dos avisos de inatividade. O tema SEA é padrão para novas instalações; uma preferência anterior continua sendo respeitada. O cursor fica estático por padrão para reduzir o uso de CPU; a opção **Cursor piscando** permite ativar a animação e é persistida. A tela verifica SEA CLI, Claude, Codex (opcional), Python, pnpm, Node.js, Git e GitLab CLI. A consulta ocorre na abertura do aplicativo, pois a distribuição atual é um aplicativo empacotado e não um instalador. Não instala ferramentas automaticamente.
 
