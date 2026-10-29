@@ -31,10 +31,12 @@ function canonicalFile(file) {
 
 /** One short-lived official app-server process per active turn; no credentials or config overrides. */
 class CodexChat {
-  constructor({ env = process.env, storeFile, emit = () => {}, previewEnvironment = () => ({}) }) {
+  constructor({ env = process.env, storeFile, emit = () => {}, previewEnvironment = () => ({}), developerInstructions = () => '' }) {
     if (typeof storeFile !== 'string' || !path.isAbsolute(storeFile)) throw new Error('O histórico do Codex precisa de uma pasta privada.');
     this.env = env;
     this.previewEnvironment = previewEnvironment;
+    // Guia do SEA Dock enviado como developerInstructions do app-server (string vazia: nada é enviado).
+    this.developerInstructions = developerInstructions;
     this.storeFile = canonicalFile(storeFile);
     this.emit = emit;
     this.sessions = new Map();
@@ -228,9 +230,12 @@ class CodexChat {
       await this._rpc(worker, 'initialize', { clientInfo: { name: 'dk_terminal', title: 'SEA Dock', version } });
       if (worker.canceled) throw new Error('Conversa interrompida.');
       this._write(worker, { method: 'initialized' });
+      let instructions = '';
+      try { instructions = String(this.developerInstructions(env) || ''); } catch {}
+      const extra = instructions.trim() ? { developerInstructions: instructions } : {};
       const thread = session.vendorThreadId
-        ? await this._rpc(worker, 'thread/resume', { threadId: session.vendorThreadId, cwd: session.root, excludeTurns: true })
-        : await this._rpc(worker, 'thread/start', { cwd: session.root });
+        ? await this._rpc(worker, 'thread/resume', { threadId: session.vendorThreadId, cwd: session.root, excludeTurns: true, ...extra })
+        : await this._rpc(worker, 'thread/start', { cwd: session.root, ...extra });
       if (!thread?.thread || typeof thread.thread.id !== 'string') throw new Error('O Codex não retornou uma conversa válida.');
       session.vendorThreadId = thread.thread.id;
       if (typeof thread.model === 'string') session.model = bounded(thread.model, 200);

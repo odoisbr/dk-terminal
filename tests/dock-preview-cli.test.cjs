@@ -99,7 +99,7 @@ test('o script sh usa o runtime do aplicativo empacotado como Node, sem herdar N
   const runtime = path.join(contents, 'MacOS', 'SEA Dock');
   fs.writeFileSync(runtime, '#!/bin/sh\nprintf "%s|%s|%s|%s\\n" "$ELECTRON_RUN_AS_NODE" "${NODE_OPTIONS-unset}" "$1" "$2"\n'); fs.chmodSync(runtime, 0o755);
   const output = await new Promise((resolve, reject) => execFile(path.join(bin, 'dock-preview'), ['telas/'], { env: { PATH: '/usr/bin:/bin', NODE_OPTIONS: '--require /tmp/x.js' } }, (error, stdout) => error ? reject(error) : resolve(stdout)));
-  assert.equal(output.trim(), `1||${bin}/../dock-preview.cjs|telas/`);
+  assert.equal(output.trim(), `1|unset|${bin}/../dock-preview.cjs|telas/`);
   fs.rmSync(runtime);
   const missing = await new Promise(resolve => execFile(path.join(bin, 'dock-preview'), ['x'], { env: { PATH: '/usr/bin:/bin' } }, (error, _out, stderr) => resolve({ code: error?.code, stderr })));
   assert.equal(missing.code, 1);

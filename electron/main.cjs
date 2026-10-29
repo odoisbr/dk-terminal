@@ -7,6 +7,7 @@ const { readState, writeState, projectInfo, kitInfo, loginEnvironment, knownTool
 const { bundledToolsPath, bundledDockToolsPath, withBundledTools } = require('./bundled-tools.cjs');
 const { FilePreviews } = require('./file-preview.cjs');
 const { PREVIEW_INSTRUCTIONS } = require('./preview-instructions.cjs');
+const { agentGuidePath, readGuide, agentGuideEnvironment, codexConfigHasInstructions, upsertGuideBlock, readProjectAgents, writeProjectAgents } = require('./agent-guide.cjs');
 const { dependencyPlan, detectPackageManager } = require('./dependency-cache.cjs');
 const { Terminals } = require('./terminals.cjs');
 const { Services } = require('./services.cjs');
@@ -204,6 +205,7 @@ function remember(root) {
 }
 let bundledTools = null, environmentRefreshAt = 0, environmentRefreshing = false;
 let dockTools = null;
+let agentGuide = null; // dock-tools/agents/AGENTS.md: guia do SEA Dock para agentes de IA.
 function detectedEnvironment(base) { return withBundledTools(withBundledTools(extendPath(base, knownToolDirectories()), bundledTools), dockTools); }
 function applyEnvironment(next) {
   env = next;
@@ -465,6 +467,7 @@ function registerHandlers() {
   });
   handle('browser:request-result', (id, ok) => previewBridge.finish(id, ok));
   handle('preview:copy-instructions', () => { clipboard.writeText(PREVIEW_INSTRUCTIONS); return true; });
+  handle('agents:write-project', root => writeAgentsGuide(root));
   handle('browser:create', root => preview.create(browserProject(root).path));
   handle('browser:open', (root, url, bounds, id) => preview.open(window, browserProject(root).path, url, bounds, id));
   handle('browser:select', (root, id) => preview.select(root === null ? null : browserProject(root).path, id));
@@ -608,9 +611,28 @@ function registerHandlers() {
     return true;
   });
 }
+// Ação explícita: grava ou atualiza só o bloco do SEA Dock no AGENTS.md do projeto,
+// depois de mostrar o conteúdo e pedir confirmação. Nunca é chamada automaticamente.
+async function writeAgentsGuide(root) {
+  const info = project(root);
+  const guide = readGuide(agentGuide);
+  if (!guide.trim()) throw new Error('O guia do SEA Dock não foi encontrado nesta instalação. Reinstale o SEA Dock.');
+  const before = readProjectAgents(info.path);
+  const plan = upsertGuideBlock(before.text, guide);
+  if (!plan.changed) return { changed: false, file: before.file };
+  if (!window || window.isDestroyed() || windowClosing) throw new Error('A janela está sendo encerrada.');
+  const where = plan.action === 'create' ? 'O arquivo será criado com o bloco abaixo.' : plan.action === 'update' ? 'O bloco do SEA Dock será substituído; o resto do arquivo fica igual.' : 'O bloco abaixo será acrescentado ao fim; o resto do arquivo fica igual.';
+  const result = await dialog.showMessageBox(window, { type: 'question', message: plan.action === 'create' ? 'Criar AGENTS.md com o guia do SEA Dock?' : 'Atualizar o guia do SEA Dock no AGENTS.md?', detail: `Arquivo: ${before.file}\n${where}\n\n${plan.block}`, buttons: ['Gravar no AGENTS.md', 'Cancelar'], defaultId: 0, cancelId: 1, noLink: true });
+  if (result.response !== 0) return { changed: false, cancelled: true, file: before.file };
+  const after = readProjectAgents(info.path);
+  if (after.text !== before.text) throw new Error('O AGENTS.md mudou durante a confirmação. Tente novamente.');
+  writeProjectAgents(info.path, plan.content, before.mode ?? 0o644);
+  debugLog.event('projeto', `Guia do SEA Dock gravado no AGENTS.md: ${info.path}`);
+  return { changed: true, action: plan.action, file: before.file };
+}
 function createWindow() {
   allowClose = false; dirtyFiles = []; windowClosing = false; windowCleanupDone = false;
-  codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event), previewEnvironment: root => previewBridge.environment(root) });
+  codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event), previewEnvironment: root => ({ ...previewBridge.environment(root), ...agentGuideEnvironment(agentGuide) }), developerInstructions: base => codexConfigHasInstructions(base) ? '' : readGuide(agentGuide) });
   window = new BrowserWindow({
     width: 1440, height: 920, minWidth: 940, minHeight: 620, backgroundColor: '#101214',
     title: 'SEA Dock', icon: windowIcon(app.getAppPath()), titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -723,11 +745,12 @@ if (primaryInstance) app.whenReady().then(async () => {
   config = readState(stateFile);
   bundledTools = bundledToolsPath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
   dockTools = bundledDockToolsPath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
+  agentGuide = agentGuidePath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, appPath: app.getAppPath() });
   env = detectedEnvironment({ ...process.env });
   filePreviews = new FilePreviews();
   previewBridge = new PreviewBridge(request => { if (!window || window.isDestroyed() || !selected.has(request.root)) throw new Error('Projeto indisponível.'); send('browser:request', request); }, { resolvePath: (root, target) => { if (!selected.has(root)) throw Object.assign(new Error('O projeto desta sessão não está aberto no SEA Dock. Abra o projeto e repita.'), { status: 409 }); return filePreviews.url(root, target); } });
   try { await previewBridge.start(); } catch (error) { console.error("Prévia integrada indisponível:", error.message); }
-  terminals = new Terminals(send, env, root => previewBridge.environment(root), (level, message) => debugLog.write(level, 'sessão', message));
+  terminals = new Terminals(send, env, root => ({ ...previewBridge.environment(root), ...agentGuideEnvironment(agentGuide) }), (level, message) => debugLog.write(level, 'sessão', message));
   services = new Services(event => send('service:changed', event), env, (level, message) => debugLog.write(level, 'serviço', message));
   sessionServices = new SessionServices({ roots: root => terminals.projectRoots(root) });
   orchestration = new Orchestration(event => send('graph:changed', event));
@@ -745,6 +768,7 @@ if (primaryInstance) app.whenReady().then(async () => {
   localRepositories = new LocalRepositories('/Volumes/SEA', env);
   resources = new ResourceMonitor(() => app.getAppMetrics(), { getTerminals: () => [...terminals.resourceRoots(), ...(codexChat?.resourceRoots() || [])] });
   extensions = new Extensions([path.join(app.getAppPath(), 'extensions'), path.join(app.getPath('userData'), 'extensions')], env, event => send('plugin:changed', event));
+  extensions.agentGuide = agentGuide;
   registerHandlers(); menu(); createWindow();
   app.on('activate', () => { if (!window) createWindow(); });
   applyEnvironment(detectedEnvironment(await loginEnvironment()));

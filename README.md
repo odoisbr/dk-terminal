@@ -170,6 +170,7 @@ npm run test:launcher
 npm run test:browser:tabs
 npm run test:browser:fullscreen
 npm run test:dock-preview
+npm run test:agents-guide
 npm run test:inspector
 npm run test:project:sessions
 npm run test:project:race
@@ -231,7 +232,7 @@ dock-preview docs/visao.md                      # Markdown apresentado como pág
 
 ### Instrução para colar na IA
 
-O botão **Copiar instrução para IA**, na guia **Serviços** do projeto e na barra do navegador, copia o texto abaixo. Cole no chat da IA ou, se quiser que valha sempre, no `AGENTS.md`, `CLAUDE.md` ou `GEMINI.md` do projeto; o app não grava esses arquivos.
+O botão **Copiar instrução para IA**, na guia **Serviços** do projeto e na barra do navegador, copia o texto abaixo. Cole no chat da IA ou, se quiser que valha sempre, no `AGENTS.md`, `CLAUDE.md` ou `GEMINI.md` do projeto. O app só grava o `AGENTS.md` pela ação explícita descrita em [Guia para IAs](#guia-para-ias-agentsmd).
 
 ```markdown
 ## Apresentar telas no SEA Dock
@@ -245,6 +246,24 @@ Quando precisar mostrar um protótipo, uma tela, uma imagem ou um documento para
 - Só abre endereços locais e arquivos dentro do projeto. Para um servidor de desenvolvimento, inicie-o antes e passe o endereço.
 - Se o comando não existir, a sessão não foi aberta pelo SEA Dock: informe o caminho do arquivo à pessoa em vez de abrir.
 ```
+
+## Guia para IAs (AGENTS.md)
+
+O guia dos recursos do SEA Dock para agentes de IA fica em `dock-tools/agents/AGENTS.md` (no pacote, `Resources/dock-tools/agents/AGENTS.md`). Ele diz quando usar `dock-preview` (todo pedido de abrir, mostrar ou apresentar protótipo, tela, página, mockup, HTML ou resultado visual), aponta `sea help`, explica os serviços detectados nas sessões e os limites (só localhost, só arquivos do projeto, nunca imprimir tokens). É entregue sem gravar nada no projeto nem na configuração da pessoa:
+
+| CLI | Como recebe o guia |
+| --- | --- |
+| Claude Code (`claude`) | `--append-system-prompt-file <guia>`, acrescentado ao prompt de sistema padrão. |
+| Codex (`codex`, terminal) | `-c developer_instructions="<guia>"`, só para aquela execução; `CODEX_HOME` não muda. |
+| Codex (painel de conversa) | `developerInstructions` em `thread/start` e `thread/resume` do `codex app-server`. |
+| Antigravity (`agy`) | `--add-dir <pasta do guia>`; o Antigravity lê `AGENTS.md` das pastas do espaço de trabalho. |
+| Gemini CLI, DK CLI e outras extensões | Não recebem automaticamente; use `dock-agents` ou a gravação no projeto. |
+
+Vale para os ícones da barra, o menu de divisão com agente e extensões do usuário que chamem esses comandos. As opções entram antes dos argumentos já declarados, que são preservados; se a pessoa já passou a mesma opção (`--append-system-prompt[-file]`, `--system-prompt[-file]`, `-c developer_instructions=…`, o mesmo `--add-dir`), nada é acrescentado. Se o `config.toml` do Codex já define `developer_instructions` na raiz, o app não o sobrepõe. Plugins v2 não são alterados, porque a confirmação mostra os argumentos exatos.
+
+Todas as sessões exportam `SEA_DOCK_AGENTS_MD=<caminho do guia>` e têm o comando `dock-agents`, que imprime o guia. Quando a pessoa digita `claude` ou `codex` direto no terminal, a CLI não recebe o guia: nenhuma delas lê instruções de uma variável de ambiente, e cobrir esse caso exigiria trocar o comando ou mexer na configuração da pessoa. Peça à IA para rodar `dock-agents`, ou grave o guia no projeto.
+
+**Adicionar guia do SEA Dock ao projeto**, na guia **Serviços** (seção Apresentar com IA), grava o guia no `AGENTS.md` da raiz do projeto, entre `<!-- sea-dock:inicio -->` e `<!-- sea-dock:fim -->`. Antes, mostra o arquivo e o bloco e pede confirmação. Cria o arquivo se não existir, acrescenta o bloco ao fim ou substitui só o bloco anterior; o resto do arquivo fica igual. Marcadores incompletos ou repetidos, link simbólico e arquivo acima de 1 MiB são recusados. Nunca é feito automaticamente.
 
 ## Estrutura
 

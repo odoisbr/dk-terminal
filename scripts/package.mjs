@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const seaCli = path.join(root, 'vendor', 'sea-cli');
 const extraResource = fs.existsSync(path.join(seaCli, 'bin', 'sea')) ? [seaCli] : [];
 if (!extraResource.length) console.warn('[package] vendor/sea-cli ausente: o pacote sai sem o sea CLI (rode scripts/vendor-sea-cli.sh).');
-// Comandos do SEA Dock para as sessões (dock-preview) entram em Resources/dock-tools, fora do asar.
+// Comandos do SEA Dock para as sessões (dock-preview, dock-agents) e o guia agents/AGENTS.md entram em Resources/dock-tools, fora do asar.
 extraResource.push(path.join(root, 'dock-tools'));
 const outputs = await packager({
   dir: root, name: 'SEA Dock', out: path.join(root, 'release'), overwrite: true,

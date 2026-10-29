@@ -19,4 +19,7 @@ if [ -z "$_dock_runtime" ] || [ ! -f "$_dock_script" ]; then
   printf '%s\n' 'ERRO: instalação do SEA Dock incompleta (runtime do dock-preview não encontrado). Reinstale o SEA Dock.' >&2
   exit 1
 fi
-ELECTRON_RUN_AS_NODE=1 NODE_OPTIONS= exec "$_dock_runtime" "$_dock_script" "$@"
+# NODE_OPTIONS sai do ambiente (unset, não vazio): no app assinado com hardened
+# runtime, a variável presente, mesmo vazia, faz o Electron avisar no stderr.
+unset NODE_OPTIONS
+ELECTRON_RUN_AS_NODE=1 exec "$_dock_runtime" "$_dock_script" "$@"

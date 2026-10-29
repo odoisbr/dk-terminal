@@ -1,0 +1,12 @@
+#!/bin/sh
+# SEA Dock: imprime o guia dos recursos do app para agentes de IA (AGENTS.md).
+# Só lê um arquivo do pacote; não usa o runtime do app, Node nem NODE_OPTIONS.
+unset NODE_OPTIONS
+_dock_here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 1
+_dock_guide="$_dock_here/../agents/AGENTS.md"
+if [ ! -f "$_dock_guide" ] && [ -n "$SEA_DOCK_AGENTS_MD" ]; then _dock_guide=$SEA_DOCK_AGENTS_MD; fi
+if [ ! -f "$_dock_guide" ]; then
+  printf '%s\n' 'ERRO: guia do SEA Dock não encontrado (instalação incompleta). Reinstale o SEA Dock.' >&2
+  exit 1
+fi
+exec cat -- "$_dock_guide"

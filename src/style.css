@@ -650,6 +650,8 @@ body.appearance-glass {
 .preview-ai .context-note { padding-top: 0; }
 .preview-ai code { font: 10px 'SFMono-Regular',Menlo,monospace; color: #d8e4d2; }
 .preview-ai-copy { width: 100%; height: 44px; justify-content: center; margin-top: 8px; }
+.agents-guide-write { width: 100%; min-height: 44px; justify-content: center; margin-top: 8px; }
+.agents-guide-note { padding-bottom: 0; }
 #browser-copy-ai { white-space: nowrap; }
 
 

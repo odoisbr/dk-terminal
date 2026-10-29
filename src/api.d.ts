@@ -104,6 +104,7 @@ interface Window {
     onBrowserRequest(callback: (event: { id: string; root: string; url: string; title?: string }) => void): () => void;
     finishBrowserRequest(id: string, ok: boolean): Promise<void>;
     copyPreviewInstructions(): Promise<boolean>;
+    writeAgentsGuide(path: string): Promise<{ changed: boolean; cancelled?: boolean; action?: 'create' | 'append' | 'update'; file: string }>;
     resizeBrowser(bounds: PreviewBounds): Promise<void>;
     setBrowserVisible(visible: boolean): Promise<void>;
     setBrowserFullscreen(enabled: boolean): Promise<boolean>;
