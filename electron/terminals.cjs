@@ -8,7 +8,7 @@ const { terminalEnvironment } = require('./terminal-environment.cjs');
 const { stopTerminalTree } = require('./session-processes.cjs');
 
 class Terminals {
-  constructor(send, env) { this.send = send; this.env = env; this.sessions = new Map(); }
+  constructor(send, env, previewEnvironment = () => ({})) { this.send = send; this.env = env; this.previewEnvironment = previewEnvironment; this.sessions = new Map(); }
 
   create(project, spec = null, workingDirectory = project.path, cwdFallback = false) {
     if (this.sessions.size >= 16) throw new Error('Feche uma sessão antes de abrir outra. O limite é 16.');
@@ -64,7 +64,7 @@ class Terminals {
     const { cols, rows } = dimensions(size);
     if (session.state !== 'pending') throw new Error('Sessão já iniciada.');
     const spec = session.spec || shellSpec(this.env);
-    const env = terminalEnvironment(this.env);
+    const env = { ...terminalEnvironment(this.env), ...this.previewEnvironment(session.cwd) };
     try {
       session.pty = pty.spawn(spec.file, spec.args, { name: 'xterm-256color', cols, rows, cwd: session.workingDirectory, env });
       session.state = 'running';

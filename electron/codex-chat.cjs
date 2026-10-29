@@ -29,9 +29,10 @@ function canonicalFile(file) {
 
 /** One short-lived official app-server process per active turn; no credentials or config overrides. */
 class CodexChat {
-  constructor({ env = process.env, storeFile, emit = () => {} }) {
+  constructor({ env = process.env, storeFile, emit = () => {}, previewEnvironment = () => ({}) }) {
     if (typeof storeFile !== 'string' || !path.isAbsolute(storeFile)) throw new Error('O histórico do Codex precisa de uma pasta privada.');
     this.env = env;
+    this.previewEnvironment = previewEnvironment;
     this.storeFile = canonicalFile(storeFile);
     this.emit = emit;
     this.sessions = new Map();
@@ -194,6 +195,8 @@ class CodexChat {
     let outcome = 'failed';
     try {
       const env = { ...this.env };
+      for (const key of Object.keys(env)) if (key.startsWith('DK_TERMINAL_')) delete env[key];
+      Object.assign(env, this.previewEnvironment(session.root));
       delete env.ELECTRON_RUN_AS_NODE;
       const child = worker.child = spawn(worker.binary, ['app-server', '--listen', 'stdio://'], {
         cwd: session.root, env, stdio: ['pipe', 'pipe', 'ignore'], detached: process.platform !== 'win32', windowsHide: true,

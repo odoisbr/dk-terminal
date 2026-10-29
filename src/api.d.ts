@@ -80,6 +80,8 @@ interface Window {
     watchOrchestrations(path: string | null): Promise<void>;
     onOrchestrationChanged(callback: (event: { path: string }) => void): () => void;
     openBrowser(path: string, url: string, bounds: PreviewBounds): Promise<{ url: string }>;
+    onBrowserRequest(callback: (event: { id: string; root: string; url: string }) => void): () => void;
+    finishBrowserRequest(id: string, ok: boolean): Promise<void>;
     resizeBrowser(bounds: PreviewBounds): Promise<void>;
     closeBrowser(): Promise<void>;
     onBrowserChanged(callback: (event: { path: string; loading: boolean; url?: string; title?: string; error?: string }) => void): () => void;
