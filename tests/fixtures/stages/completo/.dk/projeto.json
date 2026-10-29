@@ -1,0 +1,15 @@
+{
+  "contexto": "demanda",
+  "prototipo": {
+    "pasta": "interface/prototipo",
+    "design_system": {
+      "pacote": "ds-sintetico",
+      "versao": "1.0.0",
+      "caminho": "interface/design-system",
+      "carga": [
+        "base.css"
+      ],
+      "modo": "vendorizado"
+    }
+  }
+}

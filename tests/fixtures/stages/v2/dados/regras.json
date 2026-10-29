@@ -1,0 +1,10 @@
+[
+  {
+    "id": "BR-001",
+    "title": "Objetivo: perfil de usuário no escopo",
+    "sources": [
+      "SRC-001"
+    ],
+    "status": "aprovada"
+  }
+]

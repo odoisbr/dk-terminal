@@ -20,6 +20,9 @@ import { createPluginsPanel } from './plugins';
 import { ViewRegistry } from './views';
 import { playSeaMotion } from './sea-motion.mjs';
 import './plugins.css';
+import { createCatalogPanel } from './catalog';
+import { createStageBar } from './stages';
+import './stages.css';
 import { installDebugCapture } from './debug';
 import { DetectedServicesView } from './session-services';
 import { icon, setIconButton } from './icons';
@@ -43,6 +46,7 @@ app.innerHTML = `
   <main class="workspace">
     <header class="titlebar"><button id="toggle-sidebar" class="icon-button sidebar-toggle" aria-label="Recolher sidebar" aria-expanded="true" title="Recolher sidebar">${icon('sidebar')}</button><span class="breadcrumb">Workspace ${icon('chevron')} <strong id="breadcrumb-project"><span id="project-title">Início</span></strong></span><div class="titlebar-actions"><button id="reveal-project" class="icon-button" aria-label="Abrir pasta do projeto no Finder" title="Abrir pasta do projeto no Finder" hidden>${icon('reveal')}</button><button id="launcher-show" class="icon-button" aria-label="Página inicial" title="Página inicial">${icon('home')}</button><button id="profile-show" class="icon-button" aria-label="Perfil e configurações" title="Perfil e configurações">${icon('settings')}</button><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" title="Alternar tema SEA">Tema SEA</button><span class="local-badge"><span class="status-dot ready"></span>Ambiente local</span></div></header>
     <div class="action-bar"><span class="action-label">AÇÕES DK</span><button class="button action" data-action="audit" disabled>${icon('fileSearch')}Auditoria</button><button class="button action" data-action="validate" disabled>${icon('checkCircle')}Validar projeto</button><button class="button action" data-action="doctor" disabled>${icon('activity')}Diagnóstico</button><button class="button action" id="show-graph" disabled>${icon('graph')}Orquestração</button><span class="action-hint" id="action-hint">Instale ou ative o plugin DK para executar as ações.</span></div>
+    <div id="stage-bar" class="stage-bar" aria-label="Etapas do DK" hidden></div>
     <div id="extension-bar" class="extension-bar" aria-label="Extensões de agentes" hidden></div>
     <div class="work-area">
       <section id="terminal-view" class="terminal-card" aria-label="Área de trabalho do projeto">
@@ -209,6 +213,8 @@ function rememberRecent(info: Project) {
   launcher.refreshRecents();
 }
 const run = (task: () => Promise<unknown>) => { task().catch(notify); };
+const stageBar = createStageBar($('stage-bar'), { readStages: api.readStages, listCatalog: api.listCatalog, readCatalog: api.readCatalogEntry, stopWatching: api.stopWatchingStages, runAction: (root, action) => current?.path === root ? runDkAction(action) : api.runAction(root, action), notify });
+const catalogPanel = stageBar.attachCatalog(createCatalogPanel(stageBar.catalogHost, { listCatalog: api.listCatalog, readCatalog: api.readCatalogEntry, notify, onClose: () => stageBar.closeCatalog(true) }));
 function renderKit() {
   $('kit-dot').classList.toggle('ready', !!kit);
   const view = describeKit({ status: pluginStatus, ...pluginInfo, kitActive: !!kit }), control = button('install-dk-plugin');
@@ -219,6 +225,7 @@ function renderKit() {
   $('kit-description').title = kit?.path ? `Pasta do kit: ${kit.path}` : '';
   $('action-hint').textContent = !kit ? 'Instale ou ative o plugin DK para executar as ações.' : !current ? 'Abra uma pasta para começar.' : 'Resultados renderizados · JSON disponível.';
   document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach(el => { el.disabled = !kit || !current || runningActions.has(current.path) || (el.dataset.action === 'validate' && !current.isDk); });
+  if (typeof stageBar !== 'undefined') stageBar.setKit(!!kit);
 }
 const PROJECT_FILTER_MIN = 8;
 const openedProjects = new Set<string>();
@@ -292,6 +299,7 @@ function createProjectRow(info: Project) {
     if (current?.path === info.path) {
       current = null; activeId = null;
       void pluginsPanel?.setProject(null);
+      if (typeof stageBar !== 'undefined') void stageBar.setProject(null); if (typeof catalogPanel !== 'undefined') void catalogPanel.setProject(null);
       fileEditor?.setProject('');
       selectMainView('terminal');
       renderProject(); focusSession(null, false);
@@ -945,6 +953,7 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   if (projectIndex >= 0) projects[projectIndex] = info;
   else projects = [...projects, info].slice(-12);
   if (pluginsPanel) run(() => pluginsPanel!.setProject(info.path, info.title || info.name));
+  if (typeof stageBar !== 'undefined') stageBar.setProject(info.path, info.isDk).catch(notify); if (typeof catalogPanel !== 'undefined') catalogPanel.setProject(info.isDk ? info.path : null).catch(notify);
   fileEditor?.setProject(info.path);
   if (projectChanged) workspaceView = projectWorkspaceViews.get(info.path) === 'editor' && hasCurrentEditor() ? 'editor' : 'terminal';
   syncTreeSelection();
@@ -1109,6 +1118,8 @@ api.onChatEvent(event => { if (idleId === event.sessionId) { idleSnapshot = null
 api.onProjectOpened(info => run(async () => { const intent = beginProjectIntent(), snapshot = launcher.captureState(); if (await activate(info, intent)) launcher.completeOpen(snapshot, intent === projectIntent); }));
 api.onOrchestrationChanged(({ path }) => { if (current?.path === path && mainView === 'graph') run(loadGraph); });
 api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.setProject(path, current?.title || current?.name)); });
+api.onStagesChanged(({ path }) => { if (current?.path === path) run(() => stageBar.reload()); });
+api.onCatalogChanged(({ path }) => { if (current?.path === path) run(() => catalogPanel.reload()); });
 api.onExtensionsChanged(list => { installedExtensions = list; renderExtensions(); });
 api.onBrowserRequest(event => {
   void (async () => {

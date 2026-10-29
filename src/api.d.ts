@@ -33,6 +33,21 @@ type UsageSnapshot = { checkedAt: number; providers: ProviderUsage[] };
 type ResourcePart = { cpuPercent: number | null; memoryKiB: number | null; processCount: number };
 type ResourceSnapshot = { app: ResourcePart; children: ResourcePart | null; otherProcesses: ResourcePart | null; total: { cpuPercent: number | null; memoryKiB: number | null }; system: { cpuPercent: number | null; memoryUsedKiB: number | null; memoryTotalKiB: number | null; swap: { usedKiB: number; totalKiB: number } | null; availablePercent:number|null; cache:{memoryKiB:number;kind:'estimate'|'purgeable'}|null; pressure:{kind:'linux-psi';someAvg10:number}|null }; sessions: { id: string; pid?:number; kind: 'terminal' | 'codex'; root?: string; memoryKiB: number; lastActivity: number }[]; sampledAt: number };
 type DkActionResult = { action: string; label: string; root: string; code: number | null; data: unknown; output: string; stderr: string; startedAt: string; finishedAt: string; jsonParsed?: boolean; timedOut?: boolean; cancelled?: boolean; truncated?: boolean; cleanupPartial?: boolean; status?: string; signal?: string | null };
+type StageId = 'levantar' | 'entender' | 'entregar' | 'prototipar';
+type StageState = 'concluido' | 'pendente' | 'indisponivel';
+type StageFix = { kind: 'action'; action: 'entender' } | { kind: 'skill'; skill: string };
+type StageCriterion = { id: string; descricao: string; estado: StageState; motivo: string; fonte: { arquivo: string; regra: string }; detalhes: string[]; fix: StageFix; aplica_se: boolean };
+type StageSnapshot = { id: StageId; nome: string; skill: string; ordem: number; estado: StageState; liberada: boolean; bloqueio: string | null; criterios: StageCriterion[] };
+type StagesSnapshot = {
+  root: string; isDk: boolean; formato: 'v2' | 'v1-pt' | 'legacyEN' | 'ausente'; esquema: 'canonico' | 'dk' | 'ausente';
+  kit: { path: string; version?: string } | null; declarado: { fase_atual?: unknown; fases_concluidas?: unknown };
+  computedAt: string; stages: StageSnapshot[]; errors: string[]; watching: boolean;
+};
+type CatalogFrontmatter = { name?: string; description?: string; 'argument-hint'?: string; 'allowed-tools'?: string | string[]; 'forma-da-saida'?: string; parser: 'yaml' | 'regex' };
+type CatalogEntry = { id: string; name: string; title: string; description: string; stage: StageId | 'audit' | 'handoff' | 'git' | ''; gate: boolean; path: string; bytes: number; mtimeMs: number; frontmatter: CatalogFrontmatter; errors: string[] };
+type Catalog = { id: string; kind: 'skills' | 'design-systems'; origin: { type: 'kit' | 'project' | 'plugin'; label: string; pluginId?: string }; root: string; entries: CatalogEntry[]; errors: string[]; truncated: boolean };
+type CatalogList = { root: string; kit: { path: string; version?: string } | null; catalogs: Catalog[]; errors: string[]; watching: boolean };
+type CatalogRead = { catalogId: string; entryId: string; frontmatter: CatalogFrontmatter; text: string; bytes: number };
 interface Window {
   dk: {
     bootstrap(): Promise<Bootstrap>;
@@ -99,6 +114,12 @@ interface Window {
     executePlugin(path: string, pluginId: string, actionId: string, revision: string): Promise<SessionInfo | null>;
     onPluginsChanged(callback: (event: { path: string }) => void): () => void;
     onExtensionsChanged(callback: (extensions: Extension[]) => void): () => void;
+    listCatalog(path: string, refresh?: boolean): Promise<CatalogList>;
+    readCatalogEntry(path: string, catalogId: string, entryId: string): Promise<CatalogRead>;
+    readStages(path: string, refresh?: boolean): Promise<StagesSnapshot>;
+    stopWatchingStages(): Promise<void>;
+    onStagesChanged(callback: (event: { path: string }) => void): () => void;
+    onCatalogChanged(callback: (event: { path: string }) => void): () => void;
     createBrowserTab(path: string): Promise<string>;
     openBrowser(path: string, url: string, bounds: PreviewBounds, id: string): Promise<{ url: string; cancelled?: boolean }>;
     selectBrowser(path: string | null, id?: string): Promise<boolean>;

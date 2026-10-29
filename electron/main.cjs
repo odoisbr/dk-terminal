@@ -12,6 +12,8 @@ const { dependencyPlan, detectPackageManager } = require('./dependency-cache.cjs
 const { Terminals } = require('./terminals.cjs');
 const { Services } = require('./services.cjs');
 const { Extensions } = require('./extensions.cjs');
+const { Catalogs } = require('./catalogs.cjs');
+const { Stages } = require('./stages.cjs');
 const { listDirectory } = require('./file-tree.cjs');
 const { treeAction } = require('./tree-actions.cjs');
 const { Orchestration } = require('./orchestration.cjs');
@@ -106,6 +108,7 @@ const closedPluginProjects = new Set();
 const pendingPluginPrompts = new Set();
 const pluginProjectIdentities = new Map();
 const pluginProjectGenerations = new Map();
+let catalogs, stages;
 let kit = null;
 const pluginMonitor = new ClaudePluginMonitor();
 let prepared = false, finishBoot, startupProject = null;
@@ -419,8 +422,8 @@ function registerHandlers() {
     return { ...result, activeKit: kit ? { path: kit.path } : null };
   };
   handle('kit:plugin-check', async root => applyPlugin(await pluginMonitor.check(env, root ? project(root).path : null)));
-  handle('kit:plugin-install', async root => { pluginMonitor.invalidate(); try { return applyPlugin(await installClaudePlugin(env, root ? project(root).path : null)); } finally { pluginMonitor.invalidate(); } });
-  handle('kit:plugin-update', async root => { pluginMonitor.invalidate(); try { return applyPlugin(await updateClaudePlugin(env, root ? project(root).path : null)); } finally { pluginMonitor.invalidate(); } });
+  handle('kit:plugin-install', async root => { pluginMonitor.invalidate(); try { return applyPlugin(await installClaudePlugin(env, root ? project(root).path : null)); } finally { pluginMonitor.invalidate(); catalogs.close(); stages.close(); } });
+  handle('kit:plugin-update', async root => { pluginMonitor.invalidate(); try { return applyPlugin(await updateClaudePlugin(env, root ? project(root).path : null)); } finally { pluginMonitor.invalidate(); catalogs.close(); stages.close(); } });
   handle('project:select', async () => {
     const result = await dialog.showOpenDialog(window, { title: 'Abrir projeto ou pasta', properties: ['openDirectory'] });
     return result.canceled ? null : remember(result.filePaths[0]);
@@ -466,6 +469,46 @@ function registerHandlers() {
   handle('plugin:list', root => extensions.listPlugins(root === null ? null : pluginProject(root).path, pluginProjectIdentities.get(root)));
   handle('plugin:reload', root => extensions.reloadPlugins(root === null ? null : pluginProject(root).path, pluginProjectIdentities.get(root)));
   handle('plugin:stop-watching', () => { extensions.close(); });
+  // Recheck authorization after asynchronous reads, including a close/reopen
+  // of the same path. Modules cancel their own pending work on close().
+  const readProjectData = async (root, host, read) => {
+    const info = pluginProject(root), owner = window, generation = pluginProjectGenerations.get(root);
+    const current = () => {
+      pluginProject(root);
+      if (window !== owner || owner.isDestroyed() || windowClosing || pluginProjectGenerations.get(root) !== generation) throw new Error('O projeto ou a janela mudou; tente novamente.');
+    };
+    current();
+    const value = await read(info, current);
+    try { current(); } catch (error) { host.closeProject(info.path); throw error; }
+    return value;
+  };
+  const listCatalog = (root, refresh = false) => {
+    if (typeof refresh !== 'boolean') throw new Error('Opção de atualização inválida.');
+    return readProjectData(root, catalogs, async (info, current) => {
+      const activeKit = kit && kitInfo(kit.path), epoch = catalogs.epoch;
+      await extensions.listPlugins(info.path, pluginProjectIdentities.get(info.path));
+      current();
+      // stop-watching, kit updates and window cleanup must not restart a read.
+      if (catalogs.epoch !== epoch) throw new Error('Catálogos alterados durante a leitura; tente novamente.');
+      return catalogs.list(info.path, { kit: activeKit, plugins: extensions.records, refresh });
+    });
+  };
+  handle('catalog:list', listCatalog);
+  handle('catalog:read', (root, catalogId, entryId) => {
+    // Validate before pluginProject(), which already accesses the filesystem.
+    if (typeof catalogId !== 'string' || catalogId.length > 128 || !/^(?:kit-skills|project-design|plugin:[a-z0-9][a-z0-9-]{0,63}\/[a-z0-9][a-z0-9-]{0,63})$/.test(catalogId)) throw new Error('Catálogo não encontrado.');
+    if (typeof entryId !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(entryId)) throw new Error('Item do catálogo não encontrado.');
+    return readProjectData(root, catalogs, async (info, current) => {
+      await listCatalog(info.path);
+      current();
+      return catalogs.read(info.path, catalogId, entryId);
+    });
+  });
+  handle('stages:read', (root, refresh = false) => {
+    if (typeof refresh !== 'boolean') throw new Error('Opção de atualização inválida.');
+    return readProjectData(root, stages, info => stages.read(info.path, { kitPath: (kit && kitInfo(kit.path))?.path || null, refresh }));
+  });
+  handle('stages:stop-watching', () => { stages.close(); catalogs.close(); });
   handle('plugin:execute', async (root, pluginId, actionId, revision) => {
     // The native confirmation dialog is the boundary against a compromised
     // renderer. The active-project checks only keep application state coherent.
@@ -495,6 +538,7 @@ function registerHandlers() {
     if (activeProjectRoot === root) activeProjectRoot = null;
     closedPluginProjects.add(root);
     extensions.closeProject(root);
+    catalogs?.closeProject(root); stages?.closeProject(root);
     const closingBrowser = closeProjectBrowser(info.path);
     config.projects = config.projects.filter(p => p !== root);
     save();
@@ -513,6 +557,7 @@ function registerHandlers() {
       previewBridge.revoke(info.path);
       closedPluginProjects.add(info.path);
       extensions.closeProject(info.path);
+      catalogs?.closeProject(info.path); stages?.closeProject(info.path);
       debugLog.event('projeto', `Projeto fechado: ${info.path} · ${result.closed} sessões${result.partial || browserResult.partial ? ' · limpeza parcial' : ''}`);
       // Keep the active selection on failure; closingProjects already blocks execution.
       if (activeProjectRoot === info.path) activeProjectRoot = null;
@@ -660,7 +705,7 @@ function createWindow() {
   window.webContents.session.setPermissionCheckHandler(() => false);
   window.webContents.on('render-process-gone', () => {
     activeProjectRoot = null;
-    extensions.close(); void terminals.closeAllAndWait().catch(() => {});
+    extensions.close(); catalogs.close(); stages.close(); void terminals.closeAllAndWait().catch(() => {});
     void preview.closeAll(); preview.setVisible(true);
     void browserFullscreen?.set(false).catch(() => {});
   });
@@ -703,7 +748,7 @@ function createWindow() {
   });
   window.on('closed', () => {
     browserFullscreen?.dispose(); browserFullscreen = null;
-    previewBridge.revokeAll(); filePreviews.closeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
+    previewBridge.revokeAll(); filePreviews.closeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); catalogs.close(); stages.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
     const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
     if(reopen){focusRequested=false;const files=pendingFiles.splice(0);if(files.length)openFiles(files);else createWindow();focusWindow();}
   });
@@ -781,7 +826,9 @@ if (primaryInstance) app.whenReady().then(async () => {
   gitlabPublisher = new GitlabPublisher(() => env, undefined, git.busy);
   localRepositories = new LocalRepositories('/Volumes/SEA', env);
   resources = new ResourceMonitor(() => app.getAppMetrics(), { getTerminals: () => [...terminals.resourceRoots(), ...(codexChat?.resourceRoots() || [])] });
-  extensions = new Extensions([path.join(app.getAppPath(), 'extensions'), path.join(app.getPath('userData'), 'extensions')], env, event => send('plugin:changed', event));
+  catalogs = new Catalogs(event => send('catalog:changed', event));
+  stages = new Stages(event => send('stages:changed', event));
+  extensions = new Extensions([path.join(app.getAppPath(), 'extensions'), path.join(app.getPath('userData'), 'extensions')], env, event => { send('plugin:changed', event); catalogs.invalidate(event.path); });
   extensions.agentGuide = agentGuide;
   registerHandlers(); menu(); createWindow();
   app.on('activate', () => { if (!window) createWindow(); });
@@ -800,4 +847,4 @@ if (primaryInstance) app.whenReady().then(async () => {
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
 app.on('will-quit', () => { debugLog.event('app', 'SEA Dock encerrando.'); });
-app.on('will-quit', () => { filePreviews?.closeAll(); previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });
+app.on('will-quit', () => { filePreviews?.closeAll(); previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); catalogs?.close(); stages?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });

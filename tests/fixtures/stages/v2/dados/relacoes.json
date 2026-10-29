@@ -1,0 +1,7 @@
+[
+  {
+    "from": "RF-001",
+    "to": "BR-001",
+    "relation": "implementa_regra"
+  }
+]

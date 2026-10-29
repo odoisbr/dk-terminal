@@ -1,0 +1,10 @@
+[
+  {
+    "id": "SRC-001",
+    "title": "Briefing do cliente — cadastro e credenciamento",
+    "type": "briefing-cliente",
+    "path": "0-apoio/cliente/briefing.md",
+    "created_at": "2026-08-14T14:00:00+00:00",
+    "metadata": {}
+  }
+]
