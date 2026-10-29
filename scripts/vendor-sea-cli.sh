@@ -89,7 +89,7 @@ cat > "$OUT/bin/sea" <<'SH'
 here=$(cd "$(dirname "$0")/.." && pwd)
 unset RUBYOPT RUBYLIB GEM_SPEC_CACHE BUNDLE_GEMFILE BUNDLER_SETUP
 export GEM_HOME="$here/gems" GEM_PATH="$here/gems"
-exec "$here/ruby/bin/ruby" --disable-gems=bundler "$here/gems/bin/sea" "$@"
+exec "$here/ruby/bin/ruby" "$here/gems/bin/sea" "$@"
 SH
 chmod 755 "$OUT/bin/sea"
 
