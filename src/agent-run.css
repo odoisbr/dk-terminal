@@ -1,0 +1,980 @@
+/* Tarefas com Claude (runner M2) */
+#launch-agent.agent-task-launch {
+  width: auto;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  margin-bottom: -2px;
+  padding: 0 9px;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+#launch-agent.agent-task-launch img {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+#launch-agent.agent-task-launch:not(:disabled):hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.dk-agent {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  background: var(--terminal, #101214);
+  color: var(--text, #e1e6e8);
+  font: 13px/1.55 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  unicode-bidi: isolate;
+}
+
+.theme-sea .dk-agent {
+  background: #14252b;
+}
+
+.dk-agent *,
+.dk-agent *::before,
+.dk-agent *::after {
+  box-sizing: border-box;
+}
+
+.dk-agent button,
+.dk-agent select,
+.dk-agent input,
+.dk-agent textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.dk-agent button,
+.dk-agent select,
+.dk-agent input[type="text"] {
+  min-width: 32px;
+  min-height: 32px;
+  max-width: 100%;
+  border: 1px solid var(--line, #323a3f);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--base, #1b2023) 76%, var(--terminal, #101214));
+}
+
+.dk-agent button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.dk-agent button:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--base));
+}
+
+.dk-agent button:disabled,
+.dk-agent select:disabled,
+.dk-agent textarea:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+.dk-agent button:focus-visible,
+.dk-agent select:focus-visible,
+.dk-agent input:focus-visible,
+.dk-agent textarea:focus-visible,
+.dk-agent summary:focus-visible {
+  outline: 2px solid var(--accent, #dff793);
+  outline-offset: 2px;
+}
+
+.dk-agent-btn-icon,
+.dk-agent-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.dk-agent-btn-icon .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.dk-agent-glyph {
+  color: var(--accent);
+}
+
+.dk-agent-glyph .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.dk-agent-icon-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex: none;
+}
+
+.dk-agent-icon-btn .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Cabeçalho e barra de capacidade */
+.dk-agent-top {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--base) 86%, var(--terminal));
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.dk-agent-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 9px 14px;
+  min-width: 0;
+}
+
+.dk-agent-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.dk-agent-picker {
+  flex: 1 1 150px;
+  min-width: 0;
+  max-width: 340px;
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+}
+
+.dk-agent-capability {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+  padding: 7px 14px 9px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+  font-size: 11px;
+  line-height: 1.45;
+  min-width: 0;
+}
+
+.dk-agent-cap-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 10.5px;
+  font-weight: 600;
+  flex: none;
+}
+
+.dk-agent-cap-badge.is-ready {
+  border-color: color-mix(in srgb, #8ad6a6 45%, var(--line));
+  color: #9de0b5;
+  background: color-mix(in srgb, #8ad6a6 12%, transparent);
+}
+
+.dk-agent-cap-badge.is-unavailable {
+  border-color: color-mix(in srgb, #ee9788 48%, var(--line));
+  color: #f3aea2;
+  background: color-mix(in srgb, #ee9788 12%, transparent);
+}
+
+.dk-agent-cap-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.dk-agent-cap-reason {
+  color: var(--text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-unconfirmed {
+  color: #e6c687;
+  font-size: 10.5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-terminal-btn {
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  color: var(--accent);
+}
+
+/* Área central rolável: avisos, prévia do prompt, seletor de arquivos e stream */
+.dk-agent-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 14px clamp(12px, 3vw, 36px);
+  scrollbar-width: thin;
+}
+
+.dk-agent-inner {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dk-agent-banner {
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, #e6c07b 48%, var(--line));
+  border-left: 3px solid #e6c07b;
+  border-radius: 8px;
+  background: color-mix(in srgb, #e6c07b 10%, var(--base));
+  color: var(--text);
+  font-size: 11.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-banner p {
+  margin: 0;
+}
+
+.dk-agent-banner p + p {
+  margin-top: 4px;
+}
+
+.dk-agent-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dk-agent-empty {
+  max-width: 540px;
+  margin: clamp(12px, 5vh, 48px) auto;
+  padding: 18px 14px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.dk-agent-empty strong {
+  display: block;
+  margin: 8px 0 6px;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.dk-agent-empty p {
+  margin: 6px 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* Mensagens e itens do stream */
+.dk-agent-message {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--base) 65%, var(--terminal));
+  min-width: 0;
+  overflow-wrap: anywhere;
+  unicode-bidi: isolate;
+}
+
+.dk-agent-message-user {
+  background: color-mix(in srgb, var(--accent) 6%, var(--base));
+}
+
+.dk-agent-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.dk-agent-content {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* Ferramentas (<details> tool_use / tool_result) */
+.dk-agent-tool {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--base) 56%, var(--terminal));
+  overflow: hidden;
+  min-width: 0;
+}
+
+.dk-agent-tool > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.dk-agent-tool > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dk-agent-chevron {
+  display: inline-flex;
+  color: var(--muted);
+  transition: transform .14s;
+}
+
+.dk-agent-chevron .icon {
+  width: 13px;
+  height: 13px;
+}
+
+details[open] > summary > .dk-agent-chevron {
+  transform: rotate(90deg);
+}
+
+.dk-agent-tool-bytes {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dk-agent-tool-status {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dk-agent-tool-status.is-error {
+  color: #f09e90;
+}
+
+.dk-agent-tool pre,
+.dk-agent-approval pre,
+.dk-agent-preview pre {
+  margin: 0;
+  padding: 10px 12px;
+  max-width: 100%;
+  max-height: 280px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font: 11.5px/1.6 'SFMono-Regular', Menlo, Consolas, monospace;
+  background: color-mix(in srgb, #000 32%, var(--terminal));
+  color: var(--text);
+  unicode-bidi: isolate;
+}
+
+.dk-agent-tool-input {
+  border-top: 1px solid var(--line);
+}
+
+.dk-agent-tool-output {
+  border-top: 1px solid var(--line);
+}
+
+.dk-agent-tool-output.is-error {
+  color: #f4b2a7;
+}
+
+.dk-agent-tool-note {
+  margin: 0;
+  padding: 6px 12px;
+  border-top: 1px solid var(--line);
+  color: #e6c687;
+  font-size: 10.5px;
+}
+
+/* Cartões de aprovação (tool e prazo) */
+.dk-agent-approval {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, #d8b56d 58%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, #d8b56d 9%, var(--base));
+  min-width: 0;
+  overflow-wrap: anywhere;
+  unicode-bidi: isolate;
+}
+
+.dk-agent-approval-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dk-agent-approval-desc,
+.dk-agent-approval-meta,
+.dk-agent-approval-resolved {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-approval-meta code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #000 30%, transparent);
+  font: 11px/1.45 'SFMono-Regular', Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-approval-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dk-agent-field-label {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.dk-agent-approval pre {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.dk-agent-approval-input > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dk-agent-approval-input > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dk-agent-approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.dk-agent-allow {
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--line)) !important;
+  color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 11%, transparent) !important;
+}
+
+.dk-agent-deny {
+  border-color: color-mix(in srgb, #ee9788 50%, var(--line)) !important;
+  color: #f3aea2 !important;
+}
+
+.dk-agent-approval-resolved {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Erros do protocolo / execução */
+.dk-agent-error {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, #ee9788 52%, var(--line));
+  border-left: 3px solid #ee9788;
+  border-radius: 8px;
+  background: color-mix(in srgb, #ee9788 10%, var(--base));
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-error strong {
+  display: block;
+  font-size: 11px;
+  color: #f3aea2;
+  margin-bottom: 3px;
+}
+
+.dk-agent-error p {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Painéis auxiliares: Ver prompt e Seletor de arquivos */
+.dk-agent-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--base) 86%, var(--terminal));
+  min-width: 0;
+}
+
+.dk-agent-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dk-agent-drawer-meta {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dk-agent-layers {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.dk-agent-layer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--terminal) 60%, var(--base));
+  font-size: 11px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-layer code {
+  color: var(--muted);
+  font: 10.5px/1.4 'SFMono-Regular', Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-layer-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dk-agent-layer-badge.is-presente {
+  color: #9de0b5;
+  border-color: color-mix(in srgb, #8ad6a6 45%, var(--line));
+}
+
+.dk-agent-layer-badge.is-truncado {
+  color: #e6c687;
+  border-color: color-mix(in srgb, #e6c687 50%, var(--line));
+}
+
+.dk-agent-layer-badge.is-ausente {
+  color: var(--muted);
+}
+
+.dk-agent-layer-bytes {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dk-agent-layer-reason {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-preview-raw > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.dk-agent-preview-raw > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Seletor de arquivos relativos */
+.dk-agent-file-manual {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dk-agent-file-input {
+  flex: 1 1 160px;
+  min-width: 32px;
+  padding: 5px 9px;
+  font: 11.5px/1.4 'SFMono-Regular', Menlo, Consolas, monospace !important;
+}
+
+.dk-agent-tree {
+  max-height: 190px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.dk-agent-tree ul {
+  margin: 0 0 0 14px;
+  padding: 0 0 0 6px;
+  list-style: none;
+  border-left: 1px solid var(--line);
+}
+
+.dk-agent-tree-dir,
+.dk-agent-tree-file {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 6px;
+  border-color: transparent !important;
+  border-radius: 6px;
+  background: transparent !important;
+  font-size: 11.5px;
+  text-align: left;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-tree-dir:hover,
+.dk-agent-tree-file:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent) !important;
+}
+
+.dk-agent-tree-dir[aria-expanded="true"] > .dk-agent-chevron {
+  transform: rotate(90deg);
+}
+
+.dk-agent-check {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--muted);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: background .12s, border-color .12s;
+}
+
+[aria-checked="true"] > .dk-agent-check,
+[aria-pressed="true"] > .dk-agent-check {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+[aria-checked="true"] > .dk-agent-check::after,
+[aria-pressed="true"] > .dk-agent-check::after {
+  content: '';
+  width: 7px;
+  height: 4px;
+  border-left: 2px solid #13231b;
+  border-bottom: 2px solid #13231b;
+  transform: translateY(-1px) rotate(-45deg);
+}
+
+.dk-agent-tree-file code {
+  font: 11px/1.4 'SFMono-Regular', Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+/* Rodapé: status, usage e formulário */
+.dk-agent-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--base) 88%, var(--terminal));
+  padding: 9px clamp(12px, 3vw, 36px) 12px;
+  min-width: 0;
+}
+
+.dk-agent-footer-inner {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dk-agent-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-height: 22px;
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.dk-agent-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+  animation: dk-agent-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes dk-agent-pulse {
+  50% { opacity: .3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dk-agent-dot { animation: none; }
+}
+
+.dk-agent-usage {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.dk-agent-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--terminal) 70%, var(--base));
+  min-width: 0;
+}
+
+.dk-agent-form:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+}
+
+.dk-agent-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.dk-agent-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dk-agent-field > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .03em;
+}
+
+.dk-agent-field select,
+.dk-agent-field input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.dk-agent-field input[readonly] {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--terminal) 80%, transparent);
+}
+
+.dk-agent-files-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dk-agent-file-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.dk-agent-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 2px 3px 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--base) 70%, transparent);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.dk-agent-file-chip code {
+  font: 10.5px/1.3 'SFMono-Regular', Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.dk-agent-textarea {
+  width: 100%;
+  min-width: 32px;
+  min-height: 52px;
+  max-height: 150px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  resize: vertical;
+  line-height: 1.55;
+  outline: none !important;
+}
+
+.dk-agent-textarea::placeholder {
+  color: var(--muted);
+}
+
+.dk-agent-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dk-agent-resume-toggle {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dk-agent-resume-toggle[aria-pressed="true"] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+
+.dk-agent-submit {
+  margin-left: auto;
+  background: var(--accent) !important;
+  border-color: transparent !important;
+  color: #13231b !important;
+  font-weight: 600 !important;
+}
+
+.dk-agent-stop {
+  margin-left: auto;
+  border-color: color-mix(in srgb, #ee9788 55%, var(--line)) !important;
+  color: #f3aea2 !important;
+}
+
+@media (max-width: 960px) {
+  .dk-agent-header {
+    padding: 8px 10px;
+  }
+  .dk-agent-capability {
+    padding: 6px 10px 8px;
+  }
+  .dk-agent-picker {
+    max-width: 100%;
+  }
+  .dk-agent-scroll {
+    padding: 10px;
+  }
+  .dk-agent-footer {
+    padding: 8px 10px 10px;
+  }
+}

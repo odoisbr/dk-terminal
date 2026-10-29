@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "coordenacao": "COORD-PLUGINS-M2",
+  "pacotes": [
+    {
+      "id": "a",
+      "arquivos": [
+        "electron/agent-run.cjs",
+        "tests/agent-run.test.cjs",
+        "tests/fixtures/agent-run/fake-claude.cjs",
+        "tests/fixtures/agent-run/claude-help.txt"
+      ]
+    },
+    {
+      "id": "b",
+      "arquivos": [
+        "electron/prompt-compose.cjs",
+        "tests/prompt-compose.test.cjs"
+      ]
+    },
+    {
+      "id": "c",
+      "arquivos": [
+        "electron/main.cjs",
+        "electron/preload.cjs",
+        "src/api.d.ts",
+        "electron/codex-chat.cjs",
+        "tests/m2-canais.test.cjs"
+      ]
+    },
+    {
+      "id": "d",
+      "arquivos": [
+        "src/agent-run.ts",
+        "src/agent-run.css",
+        "src/main.ts",
+        "src/stages.ts"
+      ]
+    },
+    {
+      "id": "e",
+      "arquivos": [
+        "tests/agent-run-desktop.cjs",
+        "package.json"
+      ]
+    },
+    {
+      "id": "f",
+      "arquivos": [
+        "README.md",
+        "docs/planejamento/m2-rodada-manual.md"
+      ]
+    },
+    {
+      "id": "g",
+      "arquivos": [
+        "scripts/gate-marco.mjs",
+        "scripts/evidencia-marco.mjs",
+        "tests/gate-marco.test.cjs",
+        "docs/coordenacoes/pacotes-M2.json",
+        "docs/coordenacoes/gerar.mjs",
+        "docs/coordenacoes/M3-preview-bridge.json"
+      ]
+    }
+  ]
+}

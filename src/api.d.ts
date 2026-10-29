@@ -30,8 +30,39 @@ type ProjectFile = { path: string; relative: string; name: string; kind: 'text' 
 type UsageWindow = { id: string; label: string; usedPercent: number; resetsAt: number | null; resetLabel?: string };
 type ProviderUsage = { id: string; name: string; account?: string; plan?: string; windows: UsageWindow[]; message: string; source?: string; checkedAt: number };
 type UsageSnapshot = { checkedAt: number; providers: ProviderUsage[] };
+type AgentCapabilities = {
+  claude: { disponivel: boolean; versao: string | null; binario: string | null; motivo: string; aprovacao_host_provada: false };
+  codex: { disponivel: false; motivo: string };
+};
+type AgentRunState = 'na_fila' | 'iniciando' | 'executando' | 'aguardando_aprovacao' | 'prazo_vencido' | 'interrompendo' | 'concluido' | 'interrompido' | 'falhou';
+type AgentUsage = { input_tokens?: number; output_tokens?: number; cache_read?: number; total_cost_usd?: number };
+type AgentRun = {
+  runId: string; root: string; provider: 'claude'; estado: AgentRunState; sessionId: string; title: string;
+  createdAt: number; updatedAt: number; texto: string; usage: AgentUsage; promptHash: string;
+  parcial: boolean; cleanupPartial: boolean; model?: string; unknownEvents?: number; invalidLines?: number;
+};
+type AgentStartOptions = {
+  provider: 'claude'; prompt: string; sessionId?: string; skillId?: string; designSystemId?: string;
+  files?: string[]; stage?: string; prazoMs?: number; modo?: 'interativo' | 'somente-leitura';
+};
+type AgentPromptOptions = Pick<AgentStartOptions, 'skillId' | 'designSystemId' | 'files' | 'stage'>;
+type PromptPreview = {
+  text: string; totalBytes: number;
+  camadas: { id: 'guia_dk' | 'skill_ativa' | 'design_system' | 'craft' | 'instrucoes_projeto' | 'etapa_ativa' | 'arquivos'; fonte: string | null; bytes: number; bytesOriginais: number; truncado: boolean; ausente: boolean; motivo?: string }[];
+};
+type AgentRunSnapshot = { run: AgentRun; eventos: AgentRunEvent[] };
+type AgentRunEvent = { runId: string; root: string; seq: number; at: number } & (
+  | { type: 'text_delta'; messageId: string; value: string }
+  | { type: 'tool_use'; toolUseId: string; name: string; inputResumo: string; inputBytes: number; estado: 'iniciado' | 'concluido' }
+  | { type: 'tool_result'; toolUseId: string; content: string; is_error: boolean; truncado: boolean }
+  | { type: 'status'; estado: AgentRunState; sessionId?: string; model?: string; permissionMode?: string; tools?: string[]; motivo?: string; parcial?: boolean; cleanupPartial?: boolean; aceito?: boolean; subtype?: string; is_error?: boolean; num_turns?: number; duration_ms?: number; total_cost_usd?: number; permission_denials?: { tool_name: string; tool_use_id: string }[]; session_id?: string }
+  | ({ type: 'usage' } & AgentUsage)
+  | { type: 'error'; message: string; fatal: boolean }
+  | { type: 'approval'; requestId: string; kind: 'tool' | 'prazo'; status: 'pending' | 'allowed' | 'denied' | 'expired'; toolName?: string; displayName?: string; resumo?: string; input?: Record<string, unknown>; description?: string; blockedPath?: string; decisionReason?: string; prazoMs?: number }
+  | ({ type: 'snapshot' } & AgentRunSnapshot)
+);
 type ResourcePart = { cpuPercent: number | null; memoryKiB: number | null; processCount: number };
-type ResourceSnapshot = { app: ResourcePart; children: ResourcePart | null; otherProcesses: ResourcePart | null; total: { cpuPercent: number | null; memoryKiB: number | null }; system: { cpuPercent: number | null; memoryUsedKiB: number | null; memoryTotalKiB: number | null; swap: { usedKiB: number; totalKiB: number } | null; availablePercent:number|null; cache:{memoryKiB:number;kind:'estimate'|'purgeable'}|null; pressure:{kind:'linux-psi';someAvg10:number}|null }; sessions: { id: string; pid?:number; kind: 'terminal' | 'codex'; root?: string; memoryKiB: number; lastActivity: number }[]; sampledAt: number };
+type ResourceSnapshot = { app: ResourcePart; children: ResourcePart | null; otherProcesses: ResourcePart | null; total: { cpuPercent: number | null; memoryKiB: number | null }; system: { cpuPercent: number | null; memoryUsedKiB: number | null; memoryTotalKiB: number | null; swap: { usedKiB: number; totalKiB: number } | null; availablePercent:number|null; cache:{memoryKiB:number;kind:'estimate'|'purgeable'}|null; pressure:{kind:'linux-psi';someAvg10:number}|null }; sessions: { id: string; pid?:number; kind: 'terminal' | 'codex' | 'claude-run'; root?: string; memoryKiB: number; lastActivity: number }[]; sampledAt: number };
 type DkActionResult = { action: string; label: string; root: string; code: number | null; data: unknown; output: string; stderr: string; startedAt: string; finishedAt: string; jsonParsed?: boolean; timedOut?: boolean; cancelled?: boolean; truncated?: boolean; cleanupPartial?: boolean; status?: string; signal?: string | null };
 type StageId = 'levantar' | 'entender' | 'entregar' | 'prototipar';
 type StageState = 'concluido' | 'pendente' | 'indisponivel';
@@ -84,7 +115,7 @@ interface Window {
     activateProject(path: string): Promise<Project>;
     setActiveProject(path: string): Promise<void>;
     forgetProject(path: string): Promise<Bootstrap>;
-    closeProjectSessions(path: string): Promise<{closed:number;chats:number;partial:boolean}>;
+    closeProjectSessions(path: string): Promise<{closed:number;chats:number;agents:number;partial:boolean}>;
     checkClaudePlugin(path: string | null): Promise<ClaudePlugin>;
     installClaudePlugin(path: string | null): Promise<ClaudePlugin>;
     updateClaudePlugin(path: string | null): Promise<ClaudePlugin>;
@@ -103,6 +134,14 @@ interface Window {
     cancelChat(path: string, id: string): Promise<void>;
     approveChat(path: string, id: string, requestId: string, choice: 'accept' | 'decline'): Promise<void>;
     onChatEvent(callback: (event: import('./chat').CodexChatEvent) => void): () => void;
+    capabilitiesAgent(path: string): Promise<AgentCapabilities>;
+    listAgentRuns(path: string): Promise<AgentRun[]>;
+    readAgentRun(path: string, runId: string): Promise<AgentRunSnapshot>;
+    startAgentRun(path: string, options: AgentStartOptions): Promise<Pick<AgentRun, 'runId' | 'estado'>>;
+    cancelAgentRun(path: string, runId: string): Promise<void>;
+    approveAgentRun(path: string, runId: string, requestId: string, choice: 'allow' | 'deny'): Promise<void>;
+    previewAgentPrompt(path: string, options?: AgentPromptOptions): Promise<PromptPreview>;
+    onAgentEvent(callback: (event: AgentRunEvent) => void): () => void;
     runAction(path: string, action: string): Promise<DkActionResult>;
     cancelAction(path: string): Promise<number>;
     listOrchestrations(path: string): Promise<GraphListing>;

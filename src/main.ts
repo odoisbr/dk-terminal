@@ -23,6 +23,7 @@ import './plugins.css';
 import { createCatalogPanel } from './catalog';
 import { createStageBar } from './stages';
 import './stages.css';
+import './agent-run.css';
 import { installDebugCapture } from './debug';
 import { DetectedServicesView } from './session-services';
 import { icon, setIconButton } from './icons';
@@ -50,7 +51,7 @@ app.innerHTML = `
     <div id="extension-bar" class="extension-bar" aria-label="Extensões de agentes" hidden></div>
     <div class="work-area">
       <section id="terminal-view" class="terminal-card" aria-label="Área de trabalho do projeto">
-        <div class="terminal-toolbar"><div class="workspace-tabs"><div id="tabs" role="tablist" aria-label="Guias do projeto"></div><div id="file-tabs"></div></div><div class="terminal-controls"><button id="single-terminal" class="icon-button" aria-label="Visualização única" title="Visualização única" hidden>${icon('single')}</button><button id="detach-pane" class="icon-button" aria-label="Separar painel ativo do split" title="Separar painel ativo do split" hidden>${icon('detach')}</button><button id="split-right" class="icon-button" aria-label="Dividir terminal à direita" title="Dividir à direita (⌘ D)" disabled>${icon('split')}</button><button id="split-down" class="icon-button" aria-label="Dividir terminal abaixo" title="Dividir abaixo (⌘ ⇧ D)" disabled>${icon('splitDown')}</button><button id="split-agent" class="icon-button" aria-label="Dividir com agente" title="Dividir com Claude, Codex ou outra ferramenta" aria-haspopup="menu" aria-expanded="false" disabled>${icon('sparkle')}</button><button id="launch-claude" class="icon-button agent-launch" aria-label="Abrir Claude Code" title="Abrir Claude Code" disabled><img src="${claudeIcon}" alt="" /></button><button id="launch-codex" class="icon-button agent-launch" aria-label="Abrir Codex" title="Abrir Codex" disabled><img src="${codexIcon}" alt="" /></button><button id="launch-antigravity" class="icon-button agent-launch" aria-label="Abrir Antigravity CLI" title="Abrir Antigravity CLI" hidden><img src="${antigravityIcon}" alt="" /></button><button id="launch-gemini" class="icon-button agent-launch" aria-label="Abrir Gemini CLI" title="Abrir Gemini CLI" hidden><img src="${geminiIcon}" alt="" /></button><button id="launch-dk" class="icon-button agent-launch" aria-label="Abrir DK CLI" title="Abrir DK CLI" hidden><img src="${logoUrl}" alt="" /></button><button id="open-browser" class="icon-button" aria-label="Visualizar protótipo" title="Visualizar protótipo" disabled>${icon('globe')}</button><span class="toolbar-divider" aria-hidden="true"></span><button id="expand-terminal" class="icon-button" aria-label="Expandir terminal" aria-pressed="false" title="Expandir terminal (⌘ ⇧ E)">${icon('expand')}</button><button id="search-toggle" class="icon-button" aria-label="Buscar no terminal" title="Buscar no terminal (⌘ F)" disabled>${icon('search')}</button><button id="new-session" class="icon-button" aria-label="Nova sessão de terminal" title="Nova sessão de terminal (⌘ T)" disabled>${icon('terminalPlus')}</button></div></div>
+        <div class="terminal-toolbar"><div class="workspace-tabs"><div id="tabs" role="tablist" aria-label="Guias do projeto"></div><div id="file-tabs"></div></div><div class="terminal-controls"><button id="single-terminal" class="icon-button" aria-label="Visualização única" title="Visualização única" hidden>${icon('single')}</button><button id="detach-pane" class="icon-button" aria-label="Separar painel ativo do split" title="Separar painel ativo do split" hidden>${icon('detach')}</button><button id="split-right" class="icon-button" aria-label="Dividir terminal à direita" title="Dividir à direita (⌘ D)" disabled>${icon('split')}</button><button id="split-down" class="icon-button" aria-label="Dividir terminal abaixo" title="Dividir abaixo (⌘ ⇧ D)" disabled>${icon('splitDown')}</button><button id="split-agent" class="icon-button" aria-label="Dividir com agente" title="Dividir com Claude, Codex ou outra ferramenta" aria-haspopup="menu" aria-expanded="false" disabled>${icon('sparkle')}</button><button id="launch-claude" class="icon-button agent-launch" aria-label="Abrir Claude Code" title="Abrir Claude Code" disabled><img src="${claudeIcon}" alt="" /></button><button id="launch-agent" class="icon-button agent-task-launch" aria-label="Tarefa com Claude" title="Tarefa com Claude" disabled><img src="${claudeIcon}" alt="" /><span>Tarefa com Claude</span></button><button id="launch-codex" class="icon-button agent-launch" aria-label="Abrir Codex" title="Abrir Codex" disabled><img src="${codexIcon}" alt="" /></button><button id="launch-antigravity" class="icon-button agent-launch" aria-label="Abrir Antigravity CLI" title="Abrir Antigravity CLI" hidden><img src="${antigravityIcon}" alt="" /></button><button id="launch-gemini" class="icon-button agent-launch" aria-label="Abrir Gemini CLI" title="Abrir Gemini CLI" hidden><img src="${geminiIcon}" alt="" /></button><button id="launch-dk" class="icon-button agent-launch" aria-label="Abrir DK CLI" title="Abrir DK CLI" hidden><img src="${logoUrl}" alt="" /></button><button id="open-browser" class="icon-button" aria-label="Visualizar protótipo" title="Visualizar protótipo" disabled>${icon('globe')}</button><span class="toolbar-divider" aria-hidden="true"></span><button id="expand-terminal" class="icon-button" aria-label="Expandir terminal" aria-pressed="false" title="Expandir terminal (⌘ ⇧ E)">${icon('expand')}</button><button id="search-toggle" class="icon-button" aria-label="Buscar no terminal" title="Buscar no terminal (⌘ F)" disabled>${icon('search')}</button><button id="new-session" class="icon-button" aria-label="Nova sessão de terminal" title="Nova sessão de terminal (⌘ T)" disabled>${icon('terminalPlus')}</button></div></div>
         <div id="terminal-workspace" class="terminal-workspace">
         <div id="search-bar" hidden><label for="terminal-search" class="sr-only">Buscar no terminal</label><input id="terminal-search" placeholder="Buscar nesta sessão" autocomplete="off" /><button id="search-previous" class="icon-button" aria-label="Resultado anterior" title="Resultado anterior (⇧ ↵)">${icon('arrowUp')}</button><button id="search-next" class="icon-button" aria-label="Próximo resultado" title="Próximo resultado (↵)">${icon('arrowDown')}</button><button id="search-close" class="icon-button" aria-label="Fechar busca" title="Fechar busca (Esc)">${icon('close')}</button></div>
         <div class="terminal-content"><div id="welcome"><div class="welcome-symbol">${icon('terminal')}</div><span class="eyebrow">MENOS DISTÂNCIA ENTRE IDEIA E ENTREGA</span><h2>O projeto é o ponto de partida.</h2><p>Seu terminal, suas ferramentas e os comandos do DK.<br>Tudo no mesmo espaço, direto no seu computador.</p><button id="welcome-open" class="button primary">${icon('folderOpen')}Abrir um projeto${icon('arrow')}</button><span class="welcome-hint">Selecione uma pasta para começar</span></div><div id="terminal-empty" hidden><span class="welcome-symbol small">${icon('terminal')}</span><h2>Espaço pronto.</h2><p>Abra um terminal quando precisar.</p><button id="empty-new" class="button primary">${icon('terminalPlus')}Nova sessão de terminal</button></div><div id="terminal-host"><section id="editor-view" class="editor-card" aria-label="Editor de arquivos" hidden><div id="editor-content"></div></section></div></div>
@@ -61,6 +62,7 @@ app.innerHTML = `
       <section id="graph-view" class="graph-card" aria-label="Orquestração do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('graph')}Orquestração do DK</strong><button id="refresh-graph" class="icon-button" aria-label="Atualizar orquestração" title="Atualizar orquestração">${icon('refresh')}</button><button id="graph-back" class="button secondary">Voltar ao terminal</button></div><div id="graph-content"></div><footer class="auxiliary-footer">Visualização dos registros locais do DK</footer></section>
       <section id="action-view" class="action-card" aria-label="Resultado do DK" hidden><div class="auxiliary-toolbar"><strong><span id="action-view-icon">${icon('activity')}</span>Resultado do DK</strong><button id="cancel-action" class="button secondary" hidden>Interromper</button><button id="action-back" class="button secondary">Voltar ao terminal</button></div><div id="action-content" role="status" aria-live="polite"></div></section>
       <section id="chat-view" class="chat-card" aria-label="Codex" hidden></section>
+      <section id="agent-view" class="chat-card" aria-label="Tarefa com Claude" hidden></section>
       <div class="project-inspector">
         <aside id="project-inspector-panel" class="context-panel" aria-label="Painel do projeto" hidden>
           <section id="panel-git" class="inspector-panel" aria-labelledby="tab-git" tabindex="0" hidden></section>
@@ -108,7 +110,7 @@ type InspectorPanel = 'context' | 'services' | 'files' | 'usage' | 'git';
 let selectedPanel: InspectorPanel | null = null;
 let treeProject: string | null = null;
 let treeRequest = 0;
-type MainView = 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'action';
+type MainView = 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'agent' | 'action';
 let mainView: MainView = 'terminal';
 let workspaceView: 'terminal' | 'editor' = 'terminal';
 const views = new ViewRegistry<MainView>();
@@ -117,6 +119,7 @@ views.register('editor', [$('terminal-view'), $('terminal-workspace'), $('editor
 views.register('graph', [$('graph-view')]);
 views.register('browser', [$('terminal-view'), $('browser-view')]);
 views.register('chat', [$('chat-view')]);
+views.register('agent', [$('agent-view')]);
 views.register('action', [$('action-view')]);
 let focusedPane: 'terminal' | 'editor' = 'terminal';
 type BrowserTab = { id: string | null; ready: Promise<string | null> | null; url: string; wantedService: string; selectedService: string; waitingForService: boolean; status: string; caption?: string };
@@ -140,6 +143,7 @@ let editorOpening: Promise<import('./editor').FileEditor> | null = null;
 let usageSnapshot: UsageSnapshot | null = null, usageLoading = false;
 let chatView: import('./chat').CodexChatView | null = null;
 let chatOpening: Promise<import('./chat').CodexChatView> | null = null;
+let agentView: import('./agent-run').AgentRunView | null = null, agentOpeningView: Promise<import('./agent-run').AgentRunView> | null = null;
 const actionResults = new Map<string, DkActionResult>();
 const runningActions = new Set<string>();
 
@@ -217,7 +221,7 @@ const stageBar = createStageBar($('stage-bar'), { readStages: api.readStages, li
   if (current?.path !== root) throw new Error('O projeto não está ativo.');
   if (runningActions.has(root)) throw new Error('Aguarde a ação em andamento.');
   return runDkAction(action);
-}, notify });
+}, capabilitiesAgent: api.capabilitiesAgent, openClaude: (_root, preset) => openAgent(preset), notify });
 const catalogPanel = stageBar.attachCatalog(createCatalogPanel(stageBar.catalogHost, { listCatalog: api.listCatalog, readCatalog: api.readCatalogEntry, notify, onClose: () => stageBar.closeCatalog(true) }));
 function renderKit() {
   $('kit-dot').classList.toggle('ready', !!kit);
@@ -304,6 +308,7 @@ function createProjectRow(info: Project) {
       current = null; activeId = null;
       void pluginsPanel?.setProject(null);
       if (typeof stageBar !== 'undefined') void stageBar.setProject(null); if (typeof catalogPanel !== 'undefined') void catalogPanel.setProject(null);
+      if (typeof agentView !== 'undefined' && agentView) void agentView.open('');
       fileEditor?.setProject('');
       selectMainView('terminal');
       renderProject(); focusSession(null, false);
@@ -326,6 +331,7 @@ function renderProject() {
   if (current) reveal.setAttribute('aria-description', `Pasta: ${current.path}`); else reveal.removeAttribute('aria-description');
   button('new-session').disabled = !current;
   button('show-graph').disabled = !current;
+  button('launch-agent').disabled = !current;
   $('welcome').hidden = !!current;
   $('context-empty').hidden = !!current;
   $('context-details').hidden = !current;
@@ -619,6 +625,17 @@ async function openCodex() {
   try { view = await chatOpening; } catch (error) { chatOpening = null; throw error; }
   if (current?.path !== root || mainView !== 'chat') return;
   await view.open(root);
+}
+async function openAgent(preset?: import('./agent-run').AgentRunPreset) {
+  if (!current || closingProjects.has(current.path)) return;
+  const root = current.path;
+  selectMainView('agent');
+  if (!agentView) $('agent-view').replaceChildren(Object.assign(document.createElement('div'), { className: 'chat-loading', textContent: 'Abrindo Tarefa com Claude…' }));
+  if (!agentOpeningView) agentOpeningView = import('./agent-run').then(({ AgentRunView }) => (agentView = new AgentRunView($('agent-view'), { capabilities: api.capabilitiesAgent, list: api.listAgentRuns, read: api.readAgentRun, start: api.startAgentRun, cancel: api.cancelAgentRun, approve: api.approveAgentRun, previewPrompt: api.previewAgentPrompt, listCatalog: api.listCatalog, readStages: api.readStages, listDirectory: api.listDirectory, onBack: () => selectMainView(workspaceView), onOpenTerminal: () => run(() => newSession(installedExtensions.some(item => item.id === 'claude' && item.available) ? 'extension:claude' : undefined)) }, notify)));
+  let view;
+  try { view = await agentOpeningView; } catch (error) { agentOpeningView = null; throw error; }
+  if (current?.path !== root || mainView !== 'agent') return;
+  await view.open(root, preset);
 }
 async function showActionResult(result: DkActionResult) {
   const { renderAction } = await import('./actions');
@@ -971,6 +988,7 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   // Attach the rejection handler now so a slow chat cannot leave it unhandled.
   const treeLoading = selectedPanel === 'files' && treeProject !== info.path ? loadRootTree().then(() => null, (error: unknown) => ({ error })) : null;
   if (mainView === 'chat' && chatView) { await chatView.open(info.path); if (!valid()) return false; }
+  if (typeof agentView !== 'undefined' && agentView) { if (mainView === 'agent') { await agentView.open(info.path); if (!valid()) return false; } else void agentView.open(info.path); }
   if (treeLoading) { const result = await treeLoading; if (!valid()) return false; if (result) throw result.error; }
   await loadServices(info.path, valid); if (!valid()) return false;
   if (mainView === 'graph') { await loadGraph(valid); if (!valid()) return false; }
@@ -1119,11 +1137,12 @@ api.onTerminalExit(({ id, exitCode }) => {
 });
 api.onServiceChanged(({ path, service }) => updateService(path, service));
 api.onChatEvent(event => { if (idleId === event.sessionId) { idleSnapshot = null; renderIdleNotice(); } chatView?.handle(event); });
+api.onAgentEvent(event => agentView?.handle(event));
 api.onProjectOpened(info => run(async () => { const intent = beginProjectIntent(), snapshot = launcher.captureState(); if (await activate(info, intent)) launcher.completeOpen(snapshot, intent === projectIntent); }));
 api.onOrchestrationChanged(({ path }) => { if (current?.path === path && mainView === 'graph') run(loadGraph); });
 api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.setProject(path, current?.title || current?.name)); });
-api.onStagesChanged(({ path }) => { if (current?.path === path) run(() => stageBar.reload()); });
-api.onCatalogChanged(({ path }) => { if (current?.path === path) run(() => catalogPanel.reload()); });
+api.onStagesChanged(({ path }) => { if (current?.path === path) { run(() => stageBar.reload()); agentView?.refreshContext(path); } });
+api.onCatalogChanged(({ path }) => { if (current?.path === path) { run(() => catalogPanel.reload()); agentView?.refreshContext(path); } });
 api.onExtensionsChanged(list => { installedExtensions = list; renderExtensions(); });
 api.onBrowserRequest(event => {
   void (async () => {
@@ -1212,6 +1231,7 @@ button('install-dk-plugin').onclick = () => run(async () => {
 button('reveal-project').onclick = () => { if (current) run(() => api.revealProject(current!.path)); };
 button('new-session').onclick = button('empty-new').onclick = () => run(() => newSession());
 button('launch-claude').onclick = () => run(() => newSession('extension:claude'));
+button('launch-agent').onclick = () => run(() => openAgent());
 button('launch-codex').onclick = () => run(openCodex);
 for (const id of ['antigravity', 'gemini', 'dk']) button(`launch-${id}`).onclick = () => run(() => newSession(`extension:${id}`));
 button('open-browser').onclick = () => run(openBrowserView);

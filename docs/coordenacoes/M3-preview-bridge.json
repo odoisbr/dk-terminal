@@ -37,7 +37,8 @@
     "Packet de escrita roda só npm test unitário; npm run build e testes de desktop ficam nos packets de verificação, porque dist/ entra no retrato do changeset.",
     "Preview sem rede: connect-src none e sub-recursos só de dk-preview:.",
     "Arquivo editável até 2 MiB; histórico de undo limitado e verificado contra o disco.",
-    "Antes de despachar M3, verificar o estado e as evidências reais de M2; resultado declarado não comprova o gate."
+    "Antes de despachar M3, verificar o estado e as evidências reais de M2; resultado declarado não comprova o gate.",
+    "regenerar o contrato M3 antes do despacho, depois que M2 entrar"
   ],
   "lacunas": [
     "Projetos React (carimbo data-dk-source, proxy de dev server) ficam fora deste marco."
@@ -95,7 +96,7 @@
   "tarefas": [
     {
       "id": "m3-anterior",
-      "objetivo": "Confirmar que COORD-PLUGINS-M2 foi concluída: runner de agente com aprovação e testes verificados. Ler o estado em .dk/coordenacoes e o README; devolver dados.anterior.concluida.",
+      "objetivo": "Executar node scripts/gate-marco.mjs COORD-PLUGINS-M2 --projeto . --json na raiz do projeto. Usar o código de saída e o JSON do gate: devolver dados.anterior.concluida=true somente com saída 0 e concluida=true; em qualquer falha devolver false e os motivos. O gate verifica pacotes aprovados, eventual estado runtime concluído, identidade do projeto, HEAD/conjunto sujo e hashes dos alvos, testes unitários e desktop e rodada autorizada da CLI oficial (P2–P5) ou decisão explícita de escopo. Não gravar evidência nem executar outros comandos; somente consultar o gate. Não inferir conclusão pelo README, histórico ou campo concluida declarado; sem liberação, não despachar tarefas dependentes de M3.",
       "categoria": "leitura",
       "depende_de": [],
       "condicao": null,
@@ -108,9 +109,7 @@
       "arquivos": [],
       "skills": [],
       "tools": [
-        "Read",
-        "Grep",
-        "Glob"
+        "Bash(node scripts/gate-marco.mjs COORD-PLUGINS-M2 --projeto . --json)"
       ],
       "criterios": [
         {

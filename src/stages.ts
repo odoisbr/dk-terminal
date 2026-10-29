@@ -1,13 +1,20 @@
 import { createCatalogPanel, serializeCatalogTask, type CatalogPanel } from './catalog';
 import { iconMark, setIconButton } from './icons';
 
+export type StageClaudePreset = {
+  skillHint?: string;
+  stage?: StageId;
+  prompt?: string;
+};
+
 export interface StageBarCallbacks {
   readStages(root: string, refresh?: boolean): Promise<StagesSnapshot>;
   listCatalog?(root: string, refresh?: boolean): Promise<CatalogList>;
   readCatalog?(root: string, catalogId: string, entryId: string): Promise<CatalogRead>;
+  capabilitiesAgent?(root: string): Promise<AgentCapabilities>;
   stopWatching?(): Promise<void>;
   runAction(root: string, action: string): Promise<unknown>;
-  openClaude?(root: string): Promise<unknown> | void;
+  openClaude?(root: string, preset?: StageClaudePreset): Promise<unknown> | void;
   copyText?(text: string): Promise<void> | void;
   notify?(error: unknown): void;
 }
@@ -209,6 +216,8 @@ export function createStageBar(host: HTMLElement, callbacks: StageBarCallbacks):
   let actionRunning = false;
   let request = 0;
   let catalogRequest = 0;
+  let capabilityRequest = 0;
+  let claudeAvailable = false;
   let destroyed = false;
   let detailsTrigger: HTMLElement | null = null;
   let catalogTrigger: HTMLElement | null = null;
@@ -272,6 +281,7 @@ export function createStageBar(host: HTMLElement, callbacks: StageBarCallbacks):
       syncPressedStates();
       renderDetails();
       void ensureStageCatalog(false);
+      void ensureClaudeCapability();
     }
 
     btn.addEventListener('keydown', event => {
@@ -372,6 +382,25 @@ export function createStageBar(host: HTMLElement, callbacks: StageBarCallbacks):
       }
     }
   }
+
+    async function ensureClaudeCapability() {
+      if (!root || !projectIsDk || !callbacks.capabilitiesAgent) return;
+      const project = root;
+      const serial = ++capabilityRequest;
+      try {
+        const cap = await callbacks.capabilitiesAgent(project);
+        const next = Boolean(cap?.claude?.disponivel);
+        if (!destroyed && root === project && capabilityRequest === serial && claudeAvailable !== next) {
+          claudeAvailable = next;
+          if (openStageId) renderDetails();
+        }
+      } catch {
+        if (!destroyed && root === project && capabilityRequest === serial && claudeAvailable) {
+          claudeAvailable = false;
+          if (openStageId) renderDetails();
+        }
+      }
+    }
 
   function renderKitBanner() {
     if (!currentSnapshot || !currentSnapshot.isDk) {
@@ -531,7 +560,34 @@ export function createStageBar(host: HTMLElement, callbacks: StageBarCallbacks):
       }
     });
 
-    actionsRow.append(fixButton, fixFeedback);
+    let claudeButton: HTMLButtonElement | null = null;
+    if (criterion.fix.kind === 'skill' && claudeAvailable && callbacks.openClaude) {
+      const skillRaw = criterion.fix.skill;
+      claudeButton = element('button', 'stage-fix-button');
+      claudeButton.type = 'button';
+      claudeButton.dataset.testid = 'stage-fix-claude';
+      claudeButton.dataset.criterionId = criterion.id;
+      claudeButton.append(iconMark('sparkle', 'stage-fix-icon'), element('span', '', 'Executar com Claude'));
+      claudeButton.disabled = !canFix;
+      if (!stage.liberada) {
+        claudeButton.title = stage.bloqueio || 'Conclua a etapa anterior para liberar a correção.';
+      } else if (!hasKit) {
+        claudeButton.title = 'Instale ou ative o plugin DK para habilitar a correção.';
+      }
+      claudeButton.addEventListener('click', async () => {
+        if (!isCurrent(project, serial) || claudeButton!.disabled || !stage.liberada || !effectiveKit() || actionRunning) return;
+        const prompt = `Corrija o critério ${criterion.id} (${criterion.descricao}) da etapa ${stage.nome}.${criterion.motivo ? ` Motivo atual: ${criterion.motivo}` : ''}`;
+        closeDetails(false);
+        try {
+          await callbacks.openClaude?.(project, { skillHint: skillRaw, stage: stage.id, prompt });
+        } catch (error) {
+          if (!destroyed && root === project) callbacks.notify?.(error);
+        }
+      });
+    }
+
+    if (claudeButton) actionsRow.append(fixButton, claudeButton, fixFeedback);
+    else actionsRow.append(fixButton, fixFeedback);
     li.append(actionsRow);
     return li;
   }
@@ -690,6 +746,7 @@ export function createStageBar(host: HTMLElement, callbacks: StageBarCallbacks):
       renderStageButtons();
       renderKitBanner();
       host.hidden = false;
+      void ensureClaudeCapability();
       if (openStageId) renderDetails();
     } catch (error) {
       if (!isCurrent(project, serial)) return;
@@ -793,6 +850,8 @@ export function createStageBar(host: HTMLElement, callbacks: StageBarCallbacks):
       if (rootChanged) {
         catalogSnapshot = null;
         catalogRequest++;
+        claudeAvailable = false;
+        capabilityRequest++;
         closeDetails(false);
         closeCatalog(false);
         syncRovingTabindex(0);
@@ -853,6 +912,7 @@ export function createStageBar(host: HTMLElement, callbacks: StageBarCallbacks):
       catalogSnapshot = null;
       request++;
       catalogRequest++;
+      capabilityRequest++;
       host.replaceChildren();
     },
   };
