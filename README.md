@@ -212,6 +212,47 @@ Para a validação completa de código, regras e submódulo Git do protótipo, u
 
 O recurso de etapas e catálogos foi executado e testado exclusivamente no macOS. As plataformas Windows e Linux não foram executadas nesta versão. A declaração `contributes.stages` de plugins permanece inerte.
 
+### Tarefas com Claude
+
+O runner de tarefas executa comandos pontuais com a CLI oficial do Claude. A comunicação ocorre por entrada e saída padrão em formato JSON estruturado (`stream-json`), utilizando o protocolo de controle da ferramenta. O painel apresenta o texto em tempo real, as ferramentas acionadas, os resultados parciais, o uso de tokens e o custo acumulado. O runner não altera arquivos sem confirmação prévia. Ele não possui modo autônomo, não oferece modo somente leitura e não executa scripts externos ao projeto.
+
+O processo usa a CLI oficial instalada no computador e a autenticação já existente na conta do usuário (`claude auth login`). O SEA Dock não lê tokens de acesso, não armazena credenciais e não gerencia arquivos de autenticação do provedor. A inicialização passa os argumentos `-p`, `--input-format stream-json`, `--output-format stream-json`, `--include-partial-messages`, `--replay-user-messages`, `--permission-prompts host`, `--permission-prompt-tool stdio` e `--permission-mode manual`. O prompt composto de sistema é gravado em um arquivo temporário privado em `userData/agent-runs/<runId>/system-prompt.md`, com permissão de acesso estrita 0600. Esse arquivo fica fora da árvore do projeto e é apagado ao término do turno. O primeiro turno recebe um identificador único via `--session-id`. Os turnos seguintes na mesma sessão usam `--resume`.
+
+O controle de segurança opera em modo manual fixo. As opções `bypassPermissions`, `auto`, `dontAsk` e `acceptEdits` não são permitidas. Se o processo iniciar com modo de permissão diferente de `manual`, a execução é abortada imediatamente. A execução usa `--setting-sources user,local`. Arquivos de configuração commitados no repositório não são carregados. Cada ação proposta pela CLI (leitura de arquivo, escrita em disco ou comando de terminal) gera um cartão de autorização. O usuário deve escolher entre "Permitir uma vez" ou "Recusar". Sugestões automáticas de permissão enviadas pela CLI (`permission_suggestions`) nunca são aplicadas nem salvas em disco.
+
+O tempo limite padrão é de 15 minutos por turno de execução, com valores aceitos entre 1 e 120 minutos. Ao atingir o prazo configurado, o aplicativo exibe uma solicitação de decisão com as opções "Continuar 15 min" ou "Interromper". O processo continua ativo enquanto aguarda a resposta. Nenhuma execução é finalizada automaticamente por tempo ou inatividade.
+
+O usuário pode cancelar a tarefa ativa a qualquer instante pelo botão Interromper. O cancelamento recusa todas as aprovações pendentes e envia um pedido de interrupção via protocolo. Se a CLI não encerrar em 5 segundos, o aplicativo envia o sinal `SIGTERM`. Após mais 1 segundo sem encerramento, envia o sinal `SIGKILL`. Processos descendentes são identificados e encerrados. O conteúdo produzido até a interrupção permanece visível na interface e no histórico, sinalizado com o estado parcial.
+
+Limites numéricos aplicados pelo runner:
+- Execuções ativas: no máximo 2 por projeto e no máximo 3 no aplicativo inteiro.
+- Fila de espera: até 4 tarefas aguardando início por aplicativo.
+- Prazos: entre 1 e 120 minutos por turno, com padrão de 15 minutos.
+- Inicialização: tempo limite de 20 segundos para a confirmação de início.
+- Linhas de protocolo: limite de 1 MiB por linha recebida; valores superiores cancelam a execução.
+- Linhas inválidas: 3 ocorrências de JSON corrompido cancelam o processo.
+- Mensagem do usuário: até 64 KiB incluindo o envelope estruturado.
+- Texto por mensagem: até 256 KiB, com marcador visível de truncamento quando excedido.
+- Entrada de autorização: até 16 KiB por pedido de ferramenta.
+- Saída de ferramenta (`tool_result`): até 64 KiB por resultado.
+- Prompt composto: limite total de 96 KiB somando todas as camadas (guia do aplicativo até 32 KiB, skill ativa até 24 KiB, design system até 24 KiB, instruções em AGENTS.md até 16 KiB, etapa ativa até 4 KiB e caminhos de arquivos até 8 KiB com no máximo 200 itens).
+- Histórico em disco: arquivo privado `agent-runs.json` com permissão 0600, fora do projeto, com limite de 8 MiB, até 30 execuções e texto final de até 64 KiB por item.
+- Eventos em memória: anel circular com capacidade para 500 eventos por execução.
+
+O assistente Codex não utiliza este runner. O Codex permanece no seu painel de conversa próprio (`electron/codex-chat.cjs`), operando via `codex app-server` com seus limites independentes de 2 turnos ativos. A consulta de recursos do runner responde que o Codex está indisponível para este componente e direciona para o painel correspondente.
+
+A detecção de capacidade consulta o executável `claude` no `PATH` do sistema e guarda o resultado em cache com base no caminho, na data de modificação e no tamanho do arquivo. A ferramenta requer a versão 2.1.312 ou superior da CLI e a presença das opções de controle por stdio no comando de ajuda. Também exige a confirmação dinâmica do modo `manual` na mensagem inicial de inicialização. Se o binário não atender aos requisitos ou rejeitar os argumentos, o botão "Tarefa com Claude" permanece desabilitado ou exibe o motivo da recusa, acompanhado da opção "Abrir no terminal oficial".
+
+A identificação estática de opções não comprova o funcionamento da assinatura do usuário ou da aprovação via stdio. Até a realização da rodada manual de validação com a CLI oficial, a interface exibe o aviso "Protocolo não confirmado com a CLI oficial".
+
+O runner de tarefas com Claude foi executado e testado unicamente no macOS. Os ambientes Windows e Linux não foram executados nesta versão.
+
+#### Gate entre marcos
+
+A transição entre marcos do projeto é controlada por scripts determinísticos de verificação. O script `scripts/gate-marco.mjs` avalia o cumprimento das tarefas e das evidências sem modificar o disco. O script `scripts/evidencia-marco.mjs` registra os dados de teste, os arquivos alvos e o resultado da rodada oficial em `.dk/coordenacoes/evidencias/COORD-PLUGINS-M2.verificacao.json`. A lista de pacotes e arquivos auditados é versionada em `docs/coordenacoes/pacotes-M2.json`.
+
+O arquivo de evidência é autodeclarado no repositório. A integridade do marco é garantida pela execução do gate pelo orquestrador e pelo bloqueio de aprovações automáticas. O script de evidência recusa execução em ambientes automatizados de agentes e exige confirmação manual digitada em terminal interativo. Agentes não gravam aprovações nem liberam marcos.
+
 ## Gerar o aplicativo
 
 ```sh

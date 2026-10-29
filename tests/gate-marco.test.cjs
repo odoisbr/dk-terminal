@@ -421,7 +421,9 @@ test('M3 preserva inventário e snapshots de HEAD; aviso de regeneração fica e
     if (task.id === 'm3-anterior') continue;
     assert.deepEqual(task, head.tarefas.find(t => t.id === task.id));
   }
-  assert.deepEqual({ ...current, tarefas: [], restricoes: current.restricoes.filter(r => r !== warning) }, { ...head, tarefas: [] });
+  // Vale antes e depois do commit que introduz o aviso.
+  const semAviso = contract => ({ ...contract, tarefas: [], restricoes: contract.restricoes.filter(r => r !== warning) });
+  assert.deepEqual(semAviso(current), semAviso(head));
 });
 
 test('gate exige ids exatos e arquivos canônicos do manifesto de HEAD, mesmo se disco e evidência forem reduzidos', t => {
