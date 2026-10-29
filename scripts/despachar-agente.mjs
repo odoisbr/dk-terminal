@@ -6,6 +6,7 @@
 //   node scripts/despachar-agente.mjs --perfil implementador --tarefa m0-parser \
 //     --prompt arquivo.md --cwd /caminho/da/worktree --registro pasta-de-registros \
 //     [--alvo electron/extensions.cjs --alvo tests/extensions.test.cjs] [--somente-leitura]
+//     [--dir /pasta/extra/de/leitura]
 //
 // Perfis com host "claude" não são despachados aqui: a sessão orquestradora os
 // executa pela ferramenta Agent com o mesmo modelo e esforço.
@@ -17,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 export function lerArgumentos(argv) {
-  const opcoes = { alvo: [] };
+  const opcoes = { alvo: [], dir: [] };
   for (let i = 0; i < argv.length; i += 1) {
     const chave = argv[i];
     if (!chave.startsWith('--')) throw new Error(`argumento inesperado: ${chave}`);
@@ -27,6 +28,7 @@ export function lerArgumentos(argv) {
     if (valor === undefined) throw new Error(`falta valor para ${chave}`);
     i += 1;
     if (nome === 'alvo') opcoes.alvo.push(valor);
+    else if (nome === 'dir') opcoes.dir.push(valor);
     else opcoes[nome] = valor;
   }
   for (const obrigatoria of ['perfil', 'tarefa', 'prompt', 'cwd', 'registro']) {
@@ -85,7 +87,7 @@ function montarComando(perfil, atribuicoes, opcoes, prompt) {
     return {
       cli: 'agy',
       argv: ['-p', prompt, '--model', modelo, '--mode', opcoes.somenteLeitura ? 'plan' : 'accept-edits', '--sandbox',
-        '--add-dir', opcoes.cwd, '--output-format', 'json', '--print-timeout', '0', '--settings', JSON.stringify(settings)],
+        '--add-dir', opcoes.cwd, ...opcoes.dir.flatMap((d) => ['--add-dir', d]), '--output-format', 'json', '--print-timeout', '0', '--settings', JSON.stringify(settings)],
       entrada: null,
     };
   }
