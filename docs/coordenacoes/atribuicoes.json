@@ -3,49 +3,78 @@
   "data": "2026-10-29",
   "nota": "Perfis pedidos a cada host. O modelo efetivo não é observado: o registro guarda o pedido e a resposta da CLI.",
   "hosts": {
-    "antigravity": { "cli": "agy", "versao_verificada": "1.4.10" },
-    "codex": { "cli": "codex", "versao_verificada": "0.165.0" },
-    "claude": { "cli": "ferramenta Agent da sessão orquestradora", "versao_verificada": "2.1.312" }
+    "antigravity": {
+      "cli": "agy",
+      "versao_verificada": "1.4.10"
+    },
+    "codex": {
+      "cli": "codex",
+      "versao_verificada": "0.165.0"
+    },
+    "claude": {
+      "cli": "ferramenta Agent da sessão orquestradora",
+      "versao_verificada": "2.1.312"
+    }
   },
   "perfis": {
     "leitor": {
-      "host": "antigravity", "modelo": "gemini-3.8-flash-medium", "esforco": "medium",
+      "host": "antigravity",
+      "modelo": "gemini-3.8-flash-medium",
+      "esforco": "medium",
       "uso": "Inventário de código com arquivo, função e linha; sem opinião e sem escrita"
     },
     "analista": {
-      "host": "claude", "modelo": "fable", "esforco": "high",
+      "host": "claude",
+      "modelo": "fable",
+      "esforco": "high",
       "uso": "Desenho de esquema, protocolo, canais e decisões antes de codar"
     },
     "implementador": {
-      "host": "codex", "modelo": "gpt-6.1-sol", "esforco": "high",
+      "host": "codex",
+      "modelo": "gpt-6.1-sol",
+      "esforco": "high",
       "uso": "Módulo do processo principal com teste unitário no mesmo pacote"
     },
     "implementador-critico": {
-      "host": "codex", "modelo": "gpt-6-astra", "esforco": "xhigh",
+      "host": "codex",
+      "modelo": "gpt-6-astra",
+      "esforco": "xhigh",
       "uso": "Canais IPC autorizados, extração de src/main.ts, runner, protocolo do preview"
     },
     "interface": {
-      "host": "antigravity", "modelo": "gemini-4-argon-high", "esforco": "high",
+      "host": "antigravity",
+      "modelo": "gemini-4-argon-high",
+      "esforco": "high",
       "uso": "Renderer e CSS sobre canais já prontos, texto como texto"
     },
     "testador": {
-      "host": "claude", "modelo": "sonnet", "esforco": "medium",
+      "host": "claude",
+      "modelo": "sonnet",
+      "esforco": "medium",
       "uso": "Testes de desktop com Electron e perfil temporário"
     },
     "documentador": {
-      "host": "antigravity", "modelo": "gemini-3.8-flash-high", "esforco": "high",
+      "host": "antigravity",
+      "modelo": "gemini-3.8-flash-high",
+      "esforco": "high",
       "uso": "Seção do README com limites e permissões, sem promessas"
     },
     "revisor": {
-      "host": "claude", "modelo": "opus", "esforco": "high",
+      "host": "claude",
+      "modelo": "opus",
+      "esforco": "high",
       "uso": "Revisão de código em contexto novo, de família diferente de quem implementou"
     },
     "revisor-seguranca": {
-      "host": "claude", "modelo": "fable", "esforco": "high",
+      "host": "claude",
+      "modelo": "fable",
+      "esforco": "high",
       "uso": "authorize, contenção de caminhos, permissões, CSP e sandbox"
     },
     "segunda-opiniao": {
-      "host": "codex", "modelo": "gpt-6-astra", "esforco": "high",
+      "host": "codex",
+      "modelo": "gpt-6-astra",
+      "esforco": "high",
       "uso": "Revisão independente só leitura; discordância exige evidência ou teste"
     }
   },
@@ -56,5 +85,22 @@
     "Codex roda com sandbox workspace-write; Antigravity com accept-edits, --sandbox e lista curta de comandos permitidos. Nunca bypass de permissões.",
     "Nenhum pacote lê ou grava tokens, faz commit, push ou chamada de rede."
   ],
-  "comandos_permitidos_antigravity": ["node", "npx tsc", "git diff", "git status", "ls", "cat", "rg", "grep"]
+  "comandos_permitidos_antigravity": [
+    "node",
+    "npx tsc",
+    "git diff",
+    "git status",
+    "git log",
+    "git show",
+    "ls",
+    "cat",
+    "rg",
+    "grep",
+    "sed -n",
+    "head",
+    "tail",
+    "wc",
+    "find",
+    "nl"
+  ]
 }
