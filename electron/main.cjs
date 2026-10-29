@@ -11,6 +11,7 @@ const { listDirectory } = require('./file-tree.cjs');
 const { treeAction } = require('./tree-actions.cjs');
 const { Orchestration } = require('./orchestration.cjs');
 const { PreviewBrowser } = require('./browser.cjs');
+const { PreviewBridge } = require('./preview-bridge.cjs');
 const { readProjectFile, saveProjectFile } = require('./files.cjs');
 const { Usage } = require('./usage.cjs');
 const { CodexChat } = require('./codex-chat.cjs');
@@ -46,7 +47,7 @@ function launchFiles(argv, cwd, skip = process.defaultApp ? 2 : 1) {
 const initialFiles = launchFiles(process.argv, process.cwd());
 const primaryInstance = app.requestSingleInstanceLock({ files: initialFiles });
 if (!primaryInstance) app.quit();
-let window, terminals, services, extensions, orchestration, preview, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
+let window, terminals, services, extensions, orchestration, preview, previewBridge, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false;
 const selected = new Set();
 const closingProjects = new Set();
@@ -235,6 +236,7 @@ function registerHandlers() {
   handle('action:cancel', root => actions.cancel(project(root).path));
   handle('graph:list', root => orchestration.list(project(root).path));
   handle('graph:watch', root => orchestration.watch(root === null ? null : project(root).path));
+  handle('browser:request-result', (id, ok) => previewBridge.finish(id, ok));
   handle('browser:open', (root, url, bounds) => preview.open(window, project(root).path, url, bounds));
   handle('browser:resize', bounds => preview.resize(bounds));
   handle('browser:close', () => preview.close());
@@ -251,6 +253,7 @@ function registerHandlers() {
     closingProjects.add(info.path);
     try {
       const [result, chats] = await Promise.all([terminals.closeProject(info.path), codexChat.closeProject(info.path)]);
+      previewBridge.revoke(info.path);
       return { ...result, chats };
     } finally { closingProjects.delete(info.path); }
   });
@@ -277,7 +280,7 @@ function registerHandlers() {
 }
 function createWindow() {
   allowClose = false; dirtyFiles = [];
-  codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event) });
+  codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event), previewEnvironment: root => previewBridge.environment(root) });
   window = new BrowserWindow({
     width: 1440, height: 920, minWidth: 940, minHeight: 620, backgroundColor: '#101214',
     title: 'DK Terminal', icon: path.join(app.getAppPath(), 'assets', 'dk-terminal.png'), titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -301,7 +304,7 @@ function createWindow() {
       else { quitRequested = false; send('app:menu', 'editor'); }
     }).finally(() => { closePrompt = false; });
   });
-  window.on('closed', () => { terminals.closeAll(); services.closeAll(); orchestration.close(); preview.close(); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = []; });
+  window.on('closed', () => { previewBridge.revokeAll(); terminals.closeAll(); services.closeAll(); orchestration.close(); preview.close(); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = []; });
   window.loadURL('dk-app://app/index.html');
 }
 function menu() {
@@ -326,7 +329,9 @@ if (primaryInstance) app.whenReady().then(async () => {
   stateFile = path.join(app.getPath('userData'), 'settings.json');
   config = readState(stateFile);
   env = { ...process.env };
-  terminals = new Terminals(send, env);
+  previewBridge = new PreviewBridge(request => { if (!window || window.isDestroyed() || !selected.has(request.root)) throw new Error('Projeto indisponível.'); send('browser:request', request); });
+  try { await previewBridge.start(); } catch (error) { console.error("Prévia integrada indisponível:", error.message); }
+  terminals = new Terminals(send, env, root => previewBridge.environment(root));
   services = new Services(event => send('service:changed', event), env);
   orchestration = new Orchestration(event => send('graph:changed', event));
   preview = new PreviewBrowser(event => send('browser:changed', event));
@@ -353,4 +358,4 @@ if (primaryInstance) app.whenReady().then(async () => {
 }).catch(error => { dialog.showErrorBox('DK Terminal', error.message); app.quit(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
-app.on('will-quit', () => { terminals?.closeAll(); services?.closeAll(); orchestration?.close(); preview?.close(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });
+app.on('will-quit', () => { previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); orchestration?.close(); preview?.close(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });

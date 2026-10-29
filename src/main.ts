@@ -792,6 +792,20 @@ api.onServiceChanged(({ path, service }) => updateService(path, service));
 api.onChatEvent(event => { if (idleId === event.sessionId) { idleSnapshot = null; renderIdleNotice(); } chatView?.handle(event); });
 api.onProjectOpened(info => run(async () => { await activate(info); launcher.hide(); }));
 api.onOrchestrationChanged(({ path }) => { if (current?.path === path && mainView === 'graph') run(loadGraph); });
+api.onBrowserRequest(event => {
+  void (async () => {
+    let ok = false;
+    try {
+      if (current?.path !== event.root || closingProjects.has(event.root)) throw new Error('Abra o projeto correspondente antes de visualizar o protótipo.');
+      browserWantedService = '';
+      selectMainView('browser');
+      renderBrowserServices('');
+      await navigatePreview(event.url);
+      ok = current?.path === event.root && mainView === 'browser' && browserURL === event.url;
+    } catch (error) { notify(error); }
+    finally { await api.finishBrowserRequest(event.id, ok).catch(() => {}); }
+  })();
+});
 api.onBrowserChanged(event => {
   if (current?.path !== event.path || mainView !== 'browser') return;
   $('browser-status').textContent = event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : 'Projeto executado localmente · Navegador isolado';

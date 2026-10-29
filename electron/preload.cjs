@@ -63,6 +63,8 @@ contextBridge.exposeInMainWorld('dk', Object.freeze({
   watchOrchestrations: path => invoke('graph:watch', path),
   onOrchestrationChanged: callback => listen('graph:changed', callback),
   openBrowser: (path, url, bounds) => invoke('browser:open', path, url, bounds),
+  onBrowserRequest: callback => listen('browser:request', callback),
+  finishBrowserRequest: (id, ok) => invoke('browser:request-result', id, ok),
   resizeBrowser: bounds => invoke('browser:resize', bounds),
   closeBrowser: () => invoke('browser:close'),
   onBrowserChanged: callback => listen('browser:changed', callback),
