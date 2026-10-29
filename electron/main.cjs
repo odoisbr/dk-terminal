@@ -20,7 +20,7 @@ const { Usage } = require('./usage.cjs');
 const { CodexChat } = require('./codex-chat.cjs');
 const { Actions } = require('./actions.cjs');
 const { ResourceMonitor } = require('./resources.cjs');
-const { ClaudePluginMonitor, installClaudePlugin } = require('./claude-plugin.cjs');
+const { ClaudePluginMonitor, installClaudePlugin, updateClaudePlugin } = require('./claude-plugin.cjs');
 const { Integrations } = require('./integrations.cjs');
 const { LocalRepositories } = require('./local-repositories.cjs');
 const { clearMachineFileCache } = require('./machine-cache.cjs');
@@ -362,6 +362,7 @@ function registerHandlers() {
   };
   handle('kit:plugin-check', async root => applyPlugin(await pluginMonitor.check(env, root ? project(root).path : null)));
   handle('kit:plugin-install', async root => { pluginMonitor.invalidate(); try { return applyPlugin(await installClaudePlugin(env, root ? project(root).path : null)); } finally { pluginMonitor.invalidate(); } });
+  handle('kit:plugin-update', async root => { pluginMonitor.invalidate(); try { return applyPlugin(await updateClaudePlugin(env, root ? project(root).path : null)); } finally { pluginMonitor.invalidate(); } });
   handle('project:select', async () => {
     const result = await dialog.showOpenDialog(window, { title: 'Abrir projeto ou pasta', properties: ['openDirectory'] });
     return result.canceled ? null : remember(result.filePaths[0]);

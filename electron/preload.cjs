@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('dk', Object.freeze({
   closeProjectSessions: path => invoke('project:close-sessions', path),
   checkClaudePlugin: path => invoke('kit:plugin-check', path),
   installClaudePlugin: path => invoke('kit:plugin-install', path),
+  updateClaudePlugin: path => invoke('kit:plugin-update', path),
   revealProject: path => invoke('project:reveal', path),
   listDirectory: (path, relative = '') => invoke('tree:list', path, relative),
   treeAction: (path, relative, action) => invoke('tree:action', path, relative, action),

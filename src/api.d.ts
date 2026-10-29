@@ -8,7 +8,7 @@ type GitBranch = {name:string;current:boolean;hash:string;upstream:string|null};
 type GitGraphCommit = GitCommit & {parents:string[];refs:string};
 type ToolStatus = { id: string; name: string; purpose: string; required: boolean; available: boolean; installed: boolean; version: string | null };
 type Bootstrap = { projects: Project[]; startupProject: Project | null; remoteProjects: {id:number;name:string;path:string}[]; kit: { path: string } | null; extensions: Extension[]; extensionErrors: string[]; platform: string; version: string };
-type ClaudePlugin = { status: 'installed' | 'missing' | 'disabled' | 'no-claude' | 'unavailable'; kit: { path: string } | null; activeKit: { path: string } | null; version?: string };
+type ClaudePlugin = { status: 'installed' | 'missing' | 'disabled' | 'no-claude' | 'unavailable'; kit: { path: string } | null; activeKit: { path: string } | null; version?: string; latestVersion?: string; updateAvailable?: boolean; scope?: string };
 type SessionInfo = { id: string; cwd: string; label: string; kind: 'action' | 'shell' | 'extension'; cwdFallback?: boolean };
 type TerminalSize = { cols: number; rows: number };
 type Service = { id: string; name: string; role?: 'frontend' | 'backend' | null; status: 'starting' | 'running' | 'stopping' | 'stopped' | 'failed'; pid: number | null; exitCode: number | null; url: string | null; log: string };
@@ -60,6 +60,7 @@ interface Window {
     closeProjectSessions(path: string): Promise<{closed:number;chats:number;partial:boolean}>;
     checkClaudePlugin(path: string | null): Promise<ClaudePlugin>;
     installClaudePlugin(path: string | null): Promise<ClaudePlugin>;
+    updateClaudePlugin(path: string | null): Promise<ClaudePlugin>;
     revealProject(path: string): Promise<void>;
     listDirectory(path: string, relative?: string): Promise<DirectoryListing>;
     treeAction(path:string,relative:string,action:'reveal'|'open-system'|'copy-path'|'copy-name'|'share'):Promise<boolean>;

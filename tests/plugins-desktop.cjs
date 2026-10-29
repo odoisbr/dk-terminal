@@ -309,6 +309,7 @@ let app;
 
     await page.locator('#launcher-close').click();
     await page.locator('#open-project').click();
+    await page.locator('#launcher-open-local').click();
     await page.locator('.project-select[title="Projeto Exemplo B"]').waitFor();
     await showSettings(page);
     const secondCard = panel.getByTestId('plugin-card').filter({ hasText: 'Plugin do projeto B' });

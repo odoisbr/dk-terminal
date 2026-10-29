@@ -13,6 +13,7 @@ import geminiIcon from '../assets/gemini.svg';
 import { renderOrchestration } from './orchestration';
 import { renderUsage } from './usage';
 import { Launcher } from './launcher';
+import { describeKit } from './kit-status';
 import { GitView } from './git-view';
 import { TreeMenu } from './tree-menu';
 import { createPluginsPanel } from './plugins';
@@ -62,7 +63,7 @@ app.innerHTML = `
     <div class="window-space" aria-hidden="true"></div>
     <div class="brand"><img class="brand-logo" src="${logoUrl}" alt="" /><div><strong>SEA Dock</strong><span>Seu espaço de trabalho</span></div><span class="beta">ALPHA</span></div>
     <div class="sea-signature" hidden><img class="sea-logo-wide" src="${seaLogo}" alt="SEA Tecnologia" /><img class="sea-logo-compact" src="${seaLogoCompact}" alt="SEA Tecnologia" /></div>
-    <button id="open-project" class="button open-button">${icon('plus')}<span>Abrir projeto</span><kbd>⌘ O</kbd></button>
+    <button id="open-project" class="button open-button" title="Ir para o Início: abrir pasta, recentes ou GitLab">${icon('plus')}<span>Abrir projeto</span></button>
     <div class="section-label"><span>PROJETOS RECENTES</span><span id="project-count">0</span></div>
     <nav id="project-list" aria-label="Projetos recentes"></nav>
     <div class="sidebar-bottom"><div class="kit-summary"><span class="status-dot" id="kit-dot"></span><div><strong id="kit-label">Detectando plugin DK</strong><span id="kit-description">Verificando instalação do Claude</span></div></div><button id="install-dk-plugin" class="button kit-button" hidden>Instalar plugin DK no Claude</button><div id="system-resources" class="system-resources" tabindex="0" aria-label="Consumo da máquina sendo calculado"><button id="system-resources-toggle" class="system-resources-title" type="button" aria-expanded="true" aria-controls="system-resources-content"><span>MÁQUINA</span>${icon('down')}</button><div id="system-resources-content"><div class="system-resource"><span>CPU</span><strong id="system-cpu">—</strong></div><div class="system-meter"><span id="system-cpu-bar"></span></div><div class="system-resource"><span>Memória · inclui cache</span><strong id="system-memory">—</strong></div><div class="system-meter"><span id="system-memory-bar"></span></div><div class="system-resource"><span>Swap</span><strong id="system-swap">—</strong></div><div class="system-meter"><span id="system-swap-bar"></span></div><div class="resource-breakdown" aria-label="Detalhamento de memória"><div class="system-resource"><span>SEA Dock · RSS</span><strong id="system-dk-memory">—</strong></div><div class="system-resource"><span>Filhos detectados · RSS</span><strong id="system-child-memory">—</strong></div><div class="system-resource"><span>Outros processos · RSS</span><strong id="system-other-memory">—</strong></div><div class="system-resource"><span>Disponibilidade · estimada</span><strong id="system-available">—</strong></div><div class="system-resource"><span id="system-cache-label">Cache recuperável</span><strong id="system-cache">—</strong></div><div class="system-resource"><span>Pressão de memória</span><strong id="system-pressure">—</strong></div><small class="resource-breakdown-note">RSS soma páginas compartilhadas; valores não são parcelas exclusivas da memória da máquina.</small></div><button id="optimize-resources" class="button system-optimize" title="Limpar o cache do SEA Dock sem interromper projetos" aria-describedby="optimize-explanation">${icon('refresh')}Otimizar recursos</button><p id="optimize-explanation" class="system-optimize-help">Limpa apenas o cache do SEA Dock.</p><details id="mac-memory-tools" hidden><summary>Ferramentas avançadas do macOS</summary><button id="clear-system-cache" class="button system-optimize" title="Limpar cache de arquivos do macOS">Limpar cache do macOS</button><p class="system-optimize-help">Limpa cache de arquivos, não a memória dos aplicativos. Pode pedir senha e reduzir a velocidade temporariamente.</p><button id="open-activity-monitor" class="button system-optimize">Monitor de Atividade</button></details><div id="optimize-status" class="system-optimize-status" role="status" aria-live="polite"></div></div></div><div class="sidebar-footnote">LOCAL POR NATUREZA<span id="version">v—</span></div></div>
@@ -111,6 +112,7 @@ type Session = SessionInfo & { terminal: Terminal; fit: FitAddon; search?: Searc
 const sessions = new Map<string, Session>();
 let projects: Project[] = [], recentProjects: Project[] = [], remoteProjects: {id:number;name:string;path:string}[] = [], current: Project | null = null, activeId: string | null = null;
 let pluginStatus: ClaudePlugin['status'] | 'checking' = 'checking';
+let pluginInfo: Pick<ClaudePlugin, 'version' | 'latestVersion' | 'updateAvailable'> = {};
 let kit: Bootstrap['kit'] = null, busy = false, toastTimer: ReturnType<typeof setTimeout>;
 let opening = Promise.resolve();
 let agentOpening: { root: string; name: string } | null = null;
@@ -236,11 +238,12 @@ function rememberRecent(info: Project) {
 const run = (task: () => Promise<unknown>) => { task().catch(notify); };
 function renderKit() {
   $('kit-dot').classList.toggle('ready', !!kit);
-  $('kit-label').textContent = pluginStatus === 'installed' ? 'Plugin DK conectado' : kit ? 'Design Kit conectado' : 'Plugin DK indisponível';
-  $('kit-description').textContent = pluginStatus === 'missing' ? 'Plugin DK ausente no Claude' : pluginStatus === 'disabled' ? 'Plugin DK desativado no Claude' : pluginStatus === 'no-claude' ? 'Instale o Claude Code para usar o plugin' : pluginStatus === 'unavailable' ? 'Não foi possível verificar o plugin' : kit?.path || 'Verificando instalação do plugin DK';
-  button('install-dk-plugin').hidden = pluginStatus !== 'missing' && pluginStatus !== 'disabled';
-  button('install-dk-plugin').textContent = pluginStatus === 'disabled' ? 'Ativar plugin DK no Claude' : 'Instalar plugin DK no Claude';
-  $('kit-description').title = kit?.path || '';
+  const view = describeKit({ status: pluginStatus, ...pluginInfo, kitActive: !!kit }), control = button('install-dk-plugin');
+  $('kit-label').textContent = view.label;
+  $('kit-description').textContent = view.description;
+  control.dataset.pluginAction = view.action || '';
+  if (!control.disabled) { control.hidden = !view.action; control.textContent = view.actionLabel; }
+  $('kit-description').title = kit?.path ? `Pasta do kit: ${kit.path}` : '';
   $('action-hint').textContent = !kit ? 'Instale ou ative o plugin DK para executar as ações.' : !current ? 'Abra uma pasta para começar.' : 'Resultados renderizados · JSON disponível.';
   document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach(el => { el.disabled = !kit || !current || runningActions.has(current.path) || (el.dataset.action === 'validate' && !current.isDk); });
 }
@@ -1122,17 +1125,29 @@ api.onMenu(action => {
   if (action === 'split-right') run(() => splitTerminal('right'));
   if (action === 'split-down') run(() => splitTerminal('down'));
 });
-button('open-project').onclick = button('welcome-open').onclick = () => run(openProject);
+button('welcome-open').onclick = () => run(openProject);
+button('open-project').onclick = () => launcher.show('home');
 async function refreshClaudePlugin() {
   const root = current?.path || null;
   const result = await api.checkClaudePlugin(root);
   if ((current?.path || null) !== root) return;
-  pluginStatus = result.status; kit = result.activeKit; renderKit();
+  applyClaudePlugin(result);
+}
+function applyClaudePlugin(result: ClaudePlugin) {
+  pluginStatus = result.status; kit = result.activeKit;
+  pluginInfo = { version: result.version, latestVersion: result.latestVersion, updateAvailable: result.updateAvailable };
+  renderKit();
 }
 button('install-dk-plugin').onclick = () => run(async () => {
-  const control = button('install-dk-plugin'); control.disabled = true; control.textContent = 'Instalando plugin DK…';
-  try { const result = await api.installClaudePlugin(current?.path || null); pluginStatus = result.status; kit = result.activeKit; renderKit(); }
-  finally { control.disabled = false; renderKit(); }
+  const control = button('install-dk-plugin'), updating = control.dataset.pluginAction === 'update';
+  control.disabled = true; control.setAttribute('aria-busy', 'true');
+  control.textContent = updating ? 'Atualizando plugin DK…' : control.dataset.pluginAction === 'enable' ? 'Ativando plugin DK…' : 'Instalando plugin DK…';
+  try {
+    const result = await (updating ? api.updateClaudePlugin(current?.path || null) : api.installClaudePlugin(current?.path || null));
+    control.disabled = false; applyClaudePlugin(result);
+    if (updating) notify(`Plugin DK atualizado para v${(result.version || '').replace(/^v/, '')}. Reinicie as sessões do Claude para aplicar.`);
+  }
+  finally { control.disabled = false; control.removeAttribute('aria-busy'); renderKit(); }
 });
 button('reveal-project').onclick = () => { if (current) run(() => api.revealProject(current!.path)); };
 button('new-session').onclick = button('empty-new').onclick = () => run(() => newSession());

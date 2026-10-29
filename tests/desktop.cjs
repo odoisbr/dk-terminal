@@ -183,6 +183,7 @@ async function main() {
   checkpoint('Separar split mantém sessões ativas e preserva o grupo dos demais painéis');
   await application.evaluate(({ dialog }, other) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [other] }); }, other);
   await page.locator('#open-project').click();
+  await page.locator('#launcher-open-local').click();
   await page.waitForFunction(() => document.querySelector('#project-title').textContent === 'Outro projeto');
   assert.equal(await page.locator('#breadcrumb-project').innerText(), 'Outro projeto');
   await startProjectTerminal(page);

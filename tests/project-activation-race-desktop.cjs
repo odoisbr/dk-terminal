@@ -1,3 +1,4 @@
+const { openFolderDialog } = require('./helpers/open-folder.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -26,7 +27,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(predicate, message) { for (let i = 0; i < 200; i++) { if (await predicate()) return; await delay(50); } throw new Error(message); }
 async function selectViaDialog(directory) {
   await app.evaluate(({ dialog }, folder) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] }); }, directory);
-  await page.locator('#open-project').click();
+  await openFolderDialog(app);
   await page.waitForFunction(folder => document.querySelector('#breadcrumb-project')?.dataset.projectPath === folder, directory);
 }
 
@@ -80,7 +81,7 @@ async function selectViaDialog(directory) {
     await page.locator('.tree-file[data-relative="somente-A.txt"]').waitFor();
     assert.equal(await page.locator('.project-select[title="Projeto B"]').count(), 0);
     await app.evaluate(({ dialog }, folder) => { global.__raceHold = true; dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] }); }, second);
-    await page.locator('#open-project').click();
+    await openFolderDialog(app);
     await until(() => app.evaluate(() => typeof global.__raceReleaseB === 'function'), 'A resposta de B não ficou pendente.');
     await page.waitForFunction(folder => document.querySelector('#breadcrumb-project')?.dataset.projectPath === folder, second);
     assert.equal(await page.locator('.tree-file[data-relative="somente-A.txt"]').count(), 0, 'A árvore anterior não pode aparecer sob o cabeçalho de B.');
@@ -122,7 +123,7 @@ async function selectViaDialog(directory) {
       global.__raceDelayed = delayed; global.__raceFailRoot = failure; global.__raceHold = true; global.__raceBReturned = false;
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [delayed] });
     }, { delayed: fourth, failure: third });
-    await page.locator('#open-project').click();
+    await openFolderDialog(app);
     await until(() => app.evaluate(() => typeof global.__raceReleaseB === 'function'), 'A resposta do projeto D não ficou pendente.');
     await page.locator('.project-select[title="Projeto C"]').click();
     await page.getByText('Falha simulada ao selecionar projeto C', { exact: false }).waitFor();

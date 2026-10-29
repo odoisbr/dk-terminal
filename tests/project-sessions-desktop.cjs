@@ -1,3 +1,4 @@
+const { openFolderDialog } = require('./helpers/open-folder.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -36,7 +37,7 @@ async function expectStarts(count) {
 }
 async function selectProject(directory) {
   await app.evaluate(({ dialog }, folder) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] }); }, directory);
-  await page.locator('#open-project').click();
+  await openFolderDialog(app);
   await page.waitForFunction(folder => document.querySelector('#breadcrumb-project')?.dataset.projectPath === folder, directory);
 }
 
