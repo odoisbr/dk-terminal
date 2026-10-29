@@ -1,4 +1,5 @@
 import type { Terminal } from '@xterm/xterm';
+import { mountDebugSettings } from './debug';
 
 type Preferences = { fontSize:number; scrollback:number; cursorBlink:boolean; idleMinutes:number; idleMemoryMiB:number; idleAlerts:boolean };
 type LauncherSnapshot = { revision:number; hidden:boolean };
@@ -203,6 +204,7 @@ export class Launcher {
     this.body.append(element('p','launcher-intro','Preferências deste computador e conexões usadas pelo SEA Dock.'));
     const grid=element('div','settings-grid');const appearance=this.section('Aparência e terminal'),alerts=this.section('Avisos de atividade'),accounts=this.section('Contas'),tools=this.section('Ferramentas instaladas'),plugins=this.section('Plugins');
     const left=element('div','settings-column'),right=element('div','settings-column');left.append(appearance,accounts);right.append(alerts,tools);
+    const diagnostics=this.section('Diagnóstico');diagnostics.querySelector('.settings-heading-note')!.textContent='Colete logs para enviar ao suporte.';diagnostics.dataset.testid='settings-debug';mountDebugSettings(diagnostics,this.options.notify);right.append(diagnostics);
     plugins.classList.add('settings-plugins-section');const pluginTitle=plugins.querySelector('h2')!;pluginTitle.id='settings-plugins-title';plugins.setAttribute('aria-labelledby',pluginTitle.id);
     const pluginHost=element('div','settings-plugins-host');pluginHost.dataset.testid='settings-plugins';plugins.append(pluginHost);
     grid.append(left,right,plugins);this.body.append(grid,element('p','settings-note settings-about','Serviços e suas funções são definidos no projeto. Extensões e modelos de Claude e Codex continuam sob configuração das ferramentas oficiais. As cotas podem ser consultadas na guia Consumo.'));

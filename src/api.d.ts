@@ -11,6 +11,9 @@ type Bootstrap = { projects: Project[]; startupProject: Project | null; remotePr
 type ClaudePlugin = { status: 'installed' | 'missing' | 'disabled' | 'no-claude' | 'unavailable'; kit: { path: string } | null; activeKit: { path: string } | null; version?: string };
 type SessionInfo = { id: string; cwd: string; label: string; kind: 'action' | 'shell' | 'extension'; cwdFallback?: boolean };
 type TerminalSize = { cols: number; rows: number };
+type DetectedService = { pid: number; pgid: number; started: string; command: string; sessionId: string; sessionLabel: string; ports: number[]; urls: string[]; url: string | null };
+type DetectedServices = { items: DetectedService[]; supported: boolean };
+type DebugState = { enabled: boolean; forced: boolean; directory: string; file: string | null };
 type Service = { id: string; name: string; role?: 'frontend' | 'backend' | null; status: 'starting' | 'running' | 'stopping' | 'stopped' | 'failed'; pid: number | null; exitCode: number | null; url: string | null; log: string };
 type DependencyPlan = { ok: true; manager: string } | { ok: false; error: string; reason?: string };
 type DirectoryEntry = { name: string; relative: string; kind: 'directory' | 'file' | 'link' };
@@ -116,5 +119,12 @@ interface Window {
     startService(path: string, id: string): Promise<Service>;
     stopService(path: string, id: string): Promise<Service>;
     onServiceChanged(callback: (event: { path: string; service: Service }) => void): () => void;
+    detectSessionServices(path: string): Promise<DetectedServices>;
+    terminateDetectedService(path: string, pid: number, started: string): Promise<{ status: 'cancelled' } | { status: 'terminated'; pid: number; group: number | null }>;
+    debugState(): Promise<DebugState>;
+    setDebugEnabled(enabled: boolean): Promise<DebugState>;
+    reportRendererLog(level: 'error' | 'warn' | 'info', message: string): Promise<boolean>;
+    exportDebugLogs(): Promise<{ file: string }>;
+    openDebugFolder(): Promise<boolean>;
   };
 }

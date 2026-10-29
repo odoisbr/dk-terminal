@@ -19,6 +19,10 @@ import { createPluginsPanel } from './plugins';
 import { ViewRegistry } from './views';
 import { playSeaMotion } from './sea-motion.mjs';
 import './plugins.css';
+import { installDebugCapture } from './debug';
+import { DetectedServicesView } from './session-services';
+
+installDebugCapture();
 
 const startupMotion = playSeaMotion(document.querySelector<SVGSVGElement>('#sea-motion-stage'));
 
@@ -157,6 +161,7 @@ const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, 
   } finally {changingBranches.delete(root);}
 }});
 const treeMenu = new TreeMenu({currentRoot:()=>current?.path||null,openFile:(root,name)=>openFile(root,name),notify});
+const detectedServices = new DetectedServicesView($('services-section'), { openPreview: (root, url) => openPreviewAddress(root, url), reloadDeclared: root => loadServices(root, () => current?.path === root), notify });
 let editorOpening: Promise<import('./editor').FileEditor> | null = null;
 let usageSnapshot: UsageSnapshot | null = null, usageLoading = false;
 let chatView: import('./chat').CodexChatView | null = null;
@@ -361,6 +366,7 @@ function isPreviewService(service: Service) {
   return /^(?:dev|start|serve|preview|web|site|frontend|front|client|prototipo)(?::(?:web|frontend|front|client|site))?$/i.test(service.name);
 }
 function renderServices() {
+  detectedServices.update(current?.path ?? null, selectedPanel === 'services');
   $('services-section').hidden = !current;
   $('services-placeholder').hidden = !!current;
   const list = $('service-list'); list.replaceChildren();
@@ -455,6 +461,7 @@ function selectPanel(panel: InspectorPanel | null, loadFiles = true) {
     $(`panel-${control.dataset.panel}`).hidden = !selected;
   });
   if (panel === 'services') renderServices();
+  if (panel !== 'services') detectedServices.update(current?.path ?? null, false);
   if (panel === 'usage') run(() => loadUsage());
   if (panel === 'git') void gitView.refresh();
   if (loadFiles && panel === 'files' && current?.path !== treeProject) run(loadRootTree);
@@ -753,6 +760,27 @@ async function openBrowserView(requestedService?: string) {
   if (current?.path === root && mainView === 'browser') renderBrowserServices();
   if (candidate) await startBrowserService(root, candidate, expected);
   else setBrowserStatus(root, expected, services.length ? 'Escolha o serviço do protótipo ou informe um endereço local.' : 'Nenhum serviço encontrado. Informe um endereço local para visualizar o projeto.');
+}
+// Abre na prévia um servidor detectado numa sessão, sem passar por um serviço declarado.
+async function openPreviewAddress(root: string, url: string) {
+  if (current?.path !== root || closingProjects.has(root)) throw new Error('Abra o projeto correspondente antes de visualizar o servidor.');
+  let tab = browserTabs.get(root);
+  if (!tab) {
+    tab = { id: null, ready: null, url: '', wantedService: '', selectedService: '', waitingForService: false, status: 'Carregando prévia…' };
+    browserTabs.set(root, tab);
+    tab.ready = prepareBrowserTab(root, tab);
+  }
+  const expected = tab;
+  selectMainView('browser');
+  try { if (!await expected.ready) return; }
+  catch (error) {
+    if (browserTabs.get(root) === expected) { browserTabs.delete(root); if (current?.path === root && mainView === 'browser') selectMainView(workspaceView); else renderTabs(); }
+    throw error;
+  }
+  if (browserTabs.get(root) !== expected || current?.path !== root) return;
+  expected.wantedService = ''; expected.selectedService = ''; expected.waitingForService = false;
+  if (mainView === 'browser') renderBrowserServices('');
+  await navigatePreview(root, url, expected);
 }
 async function startBrowserService(root: string, service: Service, tab = browserTabs.get(root)) {
   if (!tab || browserTabs.get(root) !== tab) return;
