@@ -27,6 +27,7 @@ const { Integrations } = require('./integrations.cjs');
 const { LocalRepositories } = require('./local-repositories.cjs');
 const { clearMachineFileCache } = require('./machine-cache.cjs');
 const { Git } = require('./git.cjs');
+const { GitlabPublisher } = require('./gitlab-publish.cjs');
 const { windowIcon } = require('./app-icon.cjs');
 const dockCli = require('./dock-cli.cjs');
 const { DebugLog, captureConsole, formatArgs } = require('./debug-log.cjs');
@@ -94,6 +95,7 @@ if (!primaryInstance) app.quit();
 let filePreviews;
 let sessionServices;
 let window, terminals, services, extensions, orchestration, preview, previewBridge, browserFullscreen, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
+let gitlabPublisher;
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false, windowClosing = false, windowCleanupDone = false;
 const selected = new Set();
 const closingProjects = new Set();
@@ -376,6 +378,19 @@ function registerHandlers() {
     if (selection.canceled) return null;
     const base=directory(selection.filePaths[0]);
     return remember(await integrations.materialize(id,base));
+  });
+  // Criar projeto no GitLab SEA a partir da pasta aberta. Só cria a partir de
+  // um plano revisado pela pessoa (id de uso único devolvido por publish-plan).
+  handle('gitlab:publish-options', root => gitlabPublisher.options(project(root).path));
+  handle('gitlab:publish-plan', (root, input) => {
+    const info = project(root);
+    if (input?.commit === true && hasDirtyFilesInProject(info.path)) throw new Error('Salve os arquivos abertos no editor antes de criar a primeira versão.');
+    return gitlabPublisher.plan(info.path, input);
+  });
+  handle('gitlab:publish', (root, planId) => {
+    const info = project(root);
+    if (typeof planId !== 'string' || planId.length > 64) throw new Error('Revise os dados antes de criar o projeto.');
+    return gitlabPublisher.publish(info.path, planId);
   });
   handle('app:optimize', async () => { if (!window || window.isDestroyed()) throw new Error('Janela indisponível.'); await window.webContents.session.clearCache(); return true; });
   handle('app:clear-system-cache', async () => {
@@ -725,6 +740,8 @@ if (primaryInstance) app.whenReady().then(async () => {
   actions = new Actions({ env });
   integrations = new Integrations(env);
   git = new Git(env);
+  // Reads the current environment on each call and shares the Git busy guard.
+  gitlabPublisher = new GitlabPublisher(() => env, undefined, git.busy);
   localRepositories = new LocalRepositories('/Volumes/SEA', env);
   resources = new ResourceMonitor(() => app.getAppMetrics(), { getTerminals: () => [...terminals.resourceRoots(), ...(codexChat?.resourceRoots() || [])] });
   extensions = new Extensions([path.join(app.getAppPath(), 'extensions'), path.join(app.getPath('userData'), 'extensions')], env, event => send('plugin:changed', event));
