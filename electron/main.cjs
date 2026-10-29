@@ -473,40 +473,55 @@ function registerHandlers() {
   // of the same path. Modules cancel their own pending work on close().
   const readProjectData = async (root, host, read) => {
     const info = pluginProject(root), owner = window, generation = pluginProjectGenerations.get(root);
-    const current = () => {
-      pluginProject(root);
-      if (window !== owner || owner.isDestroyed() || windowClosing || pluginProjectGenerations.get(root) !== generation) throw new Error('O projeto ou a janela mudou; tente novamente.');
+    const identity = pluginProjectIdentities.get(root);
+    const assertCurrent = () => {
+      if (!owner || window !== owner || owner.isDestroyed() || windowClosing || pluginProjectGenerations.get(root) !== generation) throw new Error('O projeto ou a janela mudou; tente novamente.');
+      if (closingProjects.has(root) || closedPluginProjects.has(root)) throw new Error('Abra o projeto antes de usar seus plugins.');
     };
-    current();
-    const value = await read(info, current);
-    try { current(); } catch (error) { host.closeProject(info.path); throw error; }
-    return value;
+    const current = async () => {
+      assertCurrent();
+      // lstat: a raiz canônica nunca pode virar link entre a autorização e a resposta.
+      const actual = await fs.promises.lstat(info.path);
+      assertCurrent();
+      if (!actual.isDirectory() || actual.dev !== identity.dev || actual.ino !== identity.ino) throw new Error('A pasta do projeto mudou. Selecione-a novamente para continuar.');
+    };
+    assertCurrent();
+    let activeKit = null;
+    const errors = [];
+    try { activeKit = kit && kitInfo(kit.path); }
+    catch (error) { errors.push(error.message); }
+    // Only identity/authorization failures close the module; ordinary read
+    // errors (invalid entry, size limit, removed file) keep its watchers.
+    const value = await read(info, current, activeKit);
+    try { await current(); } catch (error) { host.closeProject(info.path); throw error; }
+    // Stages may return their cached snapshot; keep request diagnostics local.
+    return errors.length && Array.isArray(value.errors) ? { ...value, errors: [...value.errors, ...errors] } : value;
   };
-  const listCatalog = (root, refresh = false) => {
+  const listCatalog = async (info, current, activeKit, refresh = false) => {
+    const epoch = catalogs.epoch;
+    await extensions.listPlugins(info.path, pluginProjectIdentities.get(info.path));
+    await current();
+    // stop-watching, kit updates and window cleanup must not restart a read.
+    if (catalogs.epoch !== epoch) throw new Error('Catálogos alterados durante a leitura; tente novamente.');
+    return catalogs.list(info.path, { kit: activeKit, plugins: extensions.records, refresh });
+  };
+  handle('catalog:list', (root, refresh = false) => {
     if (typeof refresh !== 'boolean') throw new Error('Opção de atualização inválida.');
-    return readProjectData(root, catalogs, async (info, current) => {
-      const activeKit = kit && kitInfo(kit.path), epoch = catalogs.epoch;
-      await extensions.listPlugins(info.path, pluginProjectIdentities.get(info.path));
-      current();
-      // stop-watching, kit updates and window cleanup must not restart a read.
-      if (catalogs.epoch !== epoch) throw new Error('Catálogos alterados durante a leitura; tente novamente.');
-      return catalogs.list(info.path, { kit: activeKit, plugins: extensions.records, refresh });
-    });
-  };
-  handle('catalog:list', listCatalog);
+    return readProjectData(root, catalogs, (info, current, activeKit) => listCatalog(info, current, activeKit, refresh));
+  });
   handle('catalog:read', (root, catalogId, entryId) => {
     // Validate before pluginProject(), which already accesses the filesystem.
     if (typeof catalogId !== 'string' || catalogId.length > 128 || !/^(?:kit-skills|project-design|plugin:[a-z0-9][a-z0-9-]{0,63}\/[a-z0-9][a-z0-9-]{0,63})$/.test(catalogId)) throw new Error('Catálogo não encontrado.');
     if (typeof entryId !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(entryId)) throw new Error('Item do catálogo não encontrado.');
-    return readProjectData(root, catalogs, async (info, current) => {
-      await listCatalog(info.path);
-      current();
+    return readProjectData(root, catalogs, async (info, current, activeKit) => {
+      await listCatalog(info, current, activeKit);
+      await current();
       return catalogs.read(info.path, catalogId, entryId);
     });
   });
   handle('stages:read', (root, refresh = false) => {
     if (typeof refresh !== 'boolean') throw new Error('Opção de atualização inválida.');
-    return readProjectData(root, stages, info => stages.read(info.path, { kitPath: (kit && kitInfo(kit.path))?.path || null, refresh }));
+    return readProjectData(root, stages, (info, _current, activeKit) => stages.read(info.path, { kitPath: activeKit?.path || null, refresh }));
   });
   handle('stages:stop-watching', () => { stages.close(); catalogs.close(); });
   handle('plugin:execute', async (root, pluginId, actionId, revision) => {

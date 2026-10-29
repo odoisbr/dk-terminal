@@ -83,6 +83,28 @@ async function prime(f) {
   }
 }
 
+test('barra de etapas rejeita projeto inativo e ação em andamento sem executar ações', async t => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/main.ts'), 'utf8');
+  const runDkAction = t.mock.fn(async () => 'executada'), directAction = t.mock.fn();
+  const context = vm.createContext({
+    $() {}, createStageBar: (_host, callbacks) => callbacks, notify() {},
+    api: { runAction: directAction }, current: { path: '/ativo' }, runningActions: new Set(), runDkAction,
+  });
+  vm.runInContext(source.slice(source.indexOf('const stageBar ='), source.indexOf('\nconst catalogPanel =')), context);
+  const { runAction } = vm.runInContext('stageBar', context);
+  await assert.rejects(runAction('/outro', 'audit'), { message: 'O projeto não está ativo.' });
+  context.current = null;
+  await assert.rejects(runAction('/ativo', 'audit'), { message: 'O projeto não está ativo.' });
+  context.current = { path: '/ativo' };
+  context.runningActions.add('/ativo');
+  await assert.rejects(runAction('/ativo', 'audit'), { message: 'Aguarde a ação em andamento.' });
+  assert.equal(runDkAction.mock.callCount(), 0);
+  assert.equal(directAction.mock.callCount(), 0);
+  context.runningActions.clear();
+  assert.equal(await runAction('/ativo', 'audit'), 'executada');
+  assert.deepEqual([...runDkAction.mock.calls[0].arguments], ['audit']);
+});
+
 test('M1 autoriza todos os canais somente para o frame principal da janela', async t => {
   const f = mainHandlers(t);
   const list = t.mock.method(f.hosts.catalogs, 'list'), read = t.mock.method(f.hosts.stages, 'read');
@@ -159,6 +181,17 @@ test('canais usam o kit instalado, identidade autorizada e registros de Extensio
   assert.equal(action.value.kit.cli, path.join(f.installedKit, 'cli', 'dk'));
 });
 
+for (const channel of ['catalog:list', 'catalog:read', 'stages:read']) test(`${channel} resolve projeto e kit uma vez por requisição`, async t => {
+  const f = mainHandlers(t); f.context.remember(f.root);
+  const project = t.mock.method(f.context, 'projectInfo'), kit = t.mock.method(f.context, 'kitInfo');
+  const stat = t.mock.method(fs.promises, 'lstat');
+  const result = await f.call(channel, f.root, ...(channel === 'catalog:read' ? ['kit-skills', 'dk-entender'] : []));
+  assert.equal(result.ok, true, result.error);
+  assert.equal(project.mock.callCount(), 1);
+  assert.equal(kit.mock.callCount(), 1);
+  assert.ok(stat.mock.calls.some(call => call.arguments[0] === f.root), 'revalida identidade de forma assíncrona');
+});
+
 test('refresh aceita somente booleano e kit ausente não usa dk do PATH', async t => {
   const f = mainHandlers(t); f.context.remember(f.root);
   for (const channel of ['catalog:list', 'stages:read']) for (const refresh of [null, 1, 'true', {}]) {
@@ -175,6 +208,38 @@ test('refresh aceita somente booleano e kit ausente não usa dk do PATH', async 
     if (channel === 'catalog:list') assert.match(result.value.errors.join(' '), /Plugin DK não instalado/);
     else assert.ok(!motivos.some(m => /dk do PATH|exit 99/.test(m)), 'etapas não podem usar dk do PATH');
   }
+});
+
+for (const removed of ['cli/dk', '.']) test(`kit com ${removed} removido preserva catálogos e critérios sem kit`, async t => {
+  const f = mainHandlers(t);
+  fs.cpSync(path.join(__dirname, 'fixtures/stages/v2'), f.root, { recursive: true });
+  f.context.remember(f.root);
+  const installed = f.context.kit;
+  f.context.kit = null;
+  const withoutKit = await f.call('stages:read', f.root);
+  assert.equal(withoutKit.ok, true, withoutKit.error);
+  f.context.kit = installed;
+  fs.rmSync(path.join(f.installedKit, removed), { recursive: true });
+  const catalogList = t.mock.method(f.hosts.catalogs, 'list'), stageRead = t.mock.method(f.hosts.stages, 'read');
+  const reason = removed === '.' ? /ENOENT/ : /Não encontrei cli\/dk/;
+  for (const channel of ['catalog:list', 'stages:read']) {
+    const result = await f.call(channel, f.root);
+    assert.equal(result.ok, true, result.error);
+    assert.equal(result.value.kit, null);
+    assert.match(result.value.errors.join(' '), reason);
+    assert.match(result.value.errors.join(' '), /Plugin DK não instalado/);
+    if (channel === 'catalog:list') assert.ok(result.value.catalogs.some(c => c.id === 'plugin:example/skills'));
+    else {
+      assert.deepEqual(result.value.stages, withoutKit.value.stages);
+      const criteria = Object.fromEntries(result.value.stages.flatMap(s => s.criterios.map(c => [c.id, c])));
+      assert.equal(criteria.L1.estado, 'concluido');
+      assert.equal(criteria.L2.estado, 'concluido');
+      assert.equal(criteria.L4.estado, 'indisponivel');
+    }
+  }
+  assert.equal(catalogList.mock.calls[0].arguments[1].kit, null);
+  assert.equal(stageRead.mock.calls[0].arguments[1].kitPath, null);
+  assert.ok(!withoutKit.value.errors.some(error => reason.test(error)), 'não altera snapshot em cache com diagnóstico da requisição');
 });
 
 test('eventos chegam à janela e plugin:changed invalida só o catálogo da raiz correspondente', async t => {
@@ -226,14 +291,57 @@ test('stages:stop-watching limpa os dois módulos e impede reinício de leitura 
   for (const host of [f.hosts.catalogs, f.hosts.stages]) { assert.equal(host.cache, null); assert.equal(host.watchers.length, 0); }
 });
 
-test('stages:read revalida a identidade depois de uma leitura assíncrona', async t => {
+for (const channel of ['catalog:list', 'catalog:read', 'stages:read']) test(`${channel} revalida a identidade depois de uma leitura assíncrona`, async t => {
   const f = mainHandlers(t); f.context.remember(f.root);
-  let release;
-  t.mock.method(f.hosts.stages, 'read', () => new Promise(resolve => { release = resolve; }));
-  const pending = f.call('stages:read', f.root);
+  let release, started;
+  const reading = new Promise(resolve => { started = resolve; });
+  const host = channel === 'stages:read' ? f.hosts.stages : f.hosts.catalogs;
+  t.mock.method(host, channel === 'catalog:list' ? 'list' : 'read', () => new Promise(resolve => { release = resolve; started(); }));
+  const pending = f.call(channel, f.root, ...(channel === 'catalog:read' ? ['kit-skills', 'dk-entender'] : []));
+  await reading;
   fs.renameSync(f.root, `${f.root}-original`); fs.mkdirSync(f.root);
   release({ root: f.root });
   assert.match((await pending).error, /pasta do projeto mudou/);
+});
+
+test('catalog:read revalida identidade após Extensions antes de iniciar o catálogo', async t => {
+  const f = mainHandlers(t); f.context.remember(f.root);
+  let release;
+  t.mock.method(f.hosts.extensions, 'listPlugins', () => new Promise(resolve => { release = resolve; }));
+  const list = t.mock.method(f.hosts.catalogs, 'list'), read = t.mock.method(f.hosts.catalogs, 'read');
+  const pending = f.call('catalog:read', f.root, 'kit-skills', 'dk-entender');
+  fs.renameSync(f.root, `${f.root}-original`); fs.mkdirSync(f.root);
+  release();
+  assert.match((await pending).error, /pasta do projeto mudou/);
+  assert.equal(list.mock.callCount(), 0); assert.equal(read.mock.callCount(), 0);
+});
+
+for (const change of [
+  'advancePluginGeneration(root)',
+  'closingProjects.add(root)',
+  'closedPluginProjects.add(root)',
+  'windowClosing = true',
+  'window = { isDestroyed: () => false }',
+]) test(`revalida autorização também durante stat assíncrono: ${change}`, async t => {
+  const f = mainHandlers(t); f.context.remember(f.root);
+  let release, started;
+  const gate = new Promise(resolve => { release = resolve; });
+  const checking = new Promise(resolve => { started = resolve; });
+  const stat = fs.promises.lstat;
+  t.mock.method(fs.promises, 'lstat', async (...args) => {
+    const actual = await stat(...args);
+    if (args[0] === f.root) { started(); await gate; }
+    return actual;
+  });
+  t.mock.method(f.hosts.stages, 'read', async () => ({ root: f.root }));
+  const pending = f.call('stages:read', f.root);
+  await checking;
+  f.context.root = f.root;
+  vm.runInContext(change, f.context);
+  release();
+  const result = await pending;
+  assert.equal(result.ok, false);
+  assert.match(result.error, /projeto ou a janela mudou|Abra o projeto/);
 });
 
 for (const event of ['closed', 'render-process-gone', 'will-quit']) test(`${event} encerra catálogos e etapas`, async t => {

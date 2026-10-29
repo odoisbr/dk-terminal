@@ -213,7 +213,11 @@ function rememberRecent(info: Project) {
   launcher.refreshRecents();
 }
 const run = (task: () => Promise<unknown>) => { task().catch(notify); };
-const stageBar = createStageBar($('stage-bar'), { readStages: api.readStages, listCatalog: api.listCatalog, readCatalog: api.readCatalogEntry, stopWatching: api.stopWatchingStages, runAction: (root, action) => current?.path === root ? runDkAction(action) : api.runAction(root, action), notify });
+const stageBar = createStageBar($('stage-bar'), { readStages: api.readStages, listCatalog: api.listCatalog, readCatalog: api.readCatalogEntry, stopWatching: api.stopWatchingStages, runAction: async (root, action) => {
+  if (current?.path !== root) throw new Error('O projeto não está ativo.');
+  if (runningActions.has(root)) throw new Error('Aguarde a ação em andamento.');
+  return runDkAction(action);
+}, notify });
 const catalogPanel = stageBar.attachCatalog(createCatalogPanel(stageBar.catalogHost, { listCatalog: api.listCatalog, readCatalog: api.readCatalogEntry, notify, onClose: () => stageBar.closeCatalog(true) }));
 function renderKit() {
   $('kit-dot').classList.toggle('ready', !!kit);
