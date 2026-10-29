@@ -34,7 +34,8 @@ const env = {
   ...process.env, PATH: bin, DK_TERMINAL_TEST: '1', DK_TERMINAL_TEST_PROJECT: first, DK_TERMINAL_DATA_DIR: profile,
   ...(process.platform === 'win32' ? { ComSpec: fixtureShell } : { SHELL: fixtureShell }),
 };
-const nativeFullscreen = process.env.DK_FULLSCREEN_NATIVE === '1';
+const manualEscape = process.env.DK_FULLSCREEN_MANUAL_ESCAPE === '1';
+const nativeFullscreen = process.env.DK_FULLSCREEN_NATIVE === '1' || manualEscape;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(check, message, timeout = 20000) {
   const deadline = Date.now() + timeout;
@@ -44,7 +45,8 @@ let app, page;
 
 async function windowState() {
   return app.evaluate(({ BrowserWindow }) => {
-    const window = BrowserWindow.getAllWindows()[0], view = window.contentView.children.find(child => child.webContents);
+    const window = BrowserWindow.getAllWindows()[0], views = window.contentView.children.filter(child => child.webContents);
+    const view = views.find(child => child.getVisible()) || views.at(-1);
     const preferences = view?.webContents.getLastWebPreferences();
     return {
       fullscreen: window.isFullScreen(), fullscreenable: window.isFullScreenable(), focused: window.isFocused(), visible: window.isVisible(), minimized: window.isMinimized(), contentSize: window.getContentSize(),
@@ -54,10 +56,14 @@ async function windowState() {
 }
 async function preview(source) {
   return app.evaluate(async ({ BrowserWindow }, script) => {
-    const view = BrowserWindow.getAllWindows()[0].contentView.children.find(child => child.webContents);
+    const views = BrowserWindow.getAllWindows()[0].contentView.children.filter(child => child.webContents);
+    const view = views.find(child => child.getVisible()) || views.at(-1);
     if (!view) throw new Error('Prévia não encontrada.');
     return view.webContents.executeJavaScript(script, true);
   }, source);
+}
+async function previewVisible(id) {
+  return app.evaluate(({ BrowserWindow }, target) => BrowserWindow.getAllWindows()[0].contentView.children.find(child => child.webContents?.id === target)?.getVisible() ?? null, id);
 }
 async function expectBounds() {
   let observed;
@@ -145,6 +151,14 @@ async function sendPreviewEscape(expectConsumed = false) {
         await debuggerClient.sendCommand('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
       } finally { debuggerClient.detach(); }
     });
+    return;
+  }
+  if (manualEscape) {
+    console.log(expectConsumed
+      ? 'AÇÃO MANUAL: clique na página da prévia em tela cheia e pressione Escape físico para sair.'
+      : 'AÇÃO MANUAL: clique na página da prévia fora da tela cheia e pressione Escape físico para verificar a entrega à página.');
+    if (expectConsumed) await until(async () => !(await windowState()).fullscreen, 'Escape físico não fechou a tela cheia.', 90000);
+    else await until(async () => await preview('window.__escapeCount') >= 1, 'Escape físico fora da tela cheia não chegou à página.', 90000);
     return;
   }
   await app.evaluate(({ BrowserWindow }) => {
@@ -371,7 +385,9 @@ async function nativeProbe(focus) {
 
     // Repete a abertura com a criação da view pendente, sem depender de fullscreen.
     await page.locator('#browser-back').click();
-    await until(async () => !(await windowState()).view, 'A prévia inicial não foi retirada.');
+    await until(async () => await previewVisible(originalView.id) === false, 'A prévia não ficou oculta ao voltar ao terminal.');
+    await page.locator('#browser-tab-close').click();
+    await until(() => app.evaluate(({ webContents }, id) => !webContents.fromId(id), originalView.id), 'Fechar a guia não descartou a prévia inicial.');
     await expectService(pid, url);
     // A abertura ainda não criou WebContentsView quando o perfil aparece.
     await app.evaluate(({ ipcMain }) => {
@@ -455,6 +471,7 @@ async function nativeProbe(focus) {
     await expectMode(true, true);
     await sendPreviewEscape(true);
     await expectMode(false, false);
+    assert.equal(await preview('window.__escapeCount'), 1, 'Escape em tela cheia deve ser consumido antes de chegar à página.');
     await expectSamePreview(originalView.id, originalURL);
     await expectService(pid, url);
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1000, 660));
@@ -464,17 +481,18 @@ async function nativeProbe(focus) {
       ? '✓ Botão, Escape na barra e na página, dimensões e isolamento preservados'
       : '✓ Botão, Escape na barra e handler simulado da página; dimensões e isolamento preservados');
 
-    // Voltar ao terminal deve fechar apenas a visualização, mantendo o serviço.
+    // Voltar ao terminal oculta a mesma página e sai da tela cheia, sem encerrar o serviço.
     await control.click(); await expectMode(true, true);
     const retiredId = (await windowState()).view.id;
     await page.locator('#browser-back').click();
-    await until(async () => !(await windowState()).fullscreen && !(await windowState()).view, 'Voltar ao terminal não encerrou a visualização em tela cheia.');
+    await until(async () => !(await windowState()).fullscreen && await previewVisible(retiredId) === false, 'Voltar ao terminal não ocultou a prévia em tela cheia.');
     assert.equal(await page.locator('#terminal-host').isVisible(), true);
     await expectService(pid, url);
     assert.equal(await page.locator(`#pane-${terminalId}`).count(), 1);
-    assert.equal(await app.evaluate(({ webContents }, id) => !!webContents.fromId(id), retiredId), false);
-    await page.locator('#open-browser').click();
-    await until(async () => { const view = (await windowState()).view; return view && !view.loading && (view.url === url || view.url === url + '/'); }, 'A prévia não reabriu.');
+    assert.equal(await app.evaluate(({ webContents }, id) => !!webContents.fromId(id), retiredId), true);
+    await page.locator('#browser-tab').click();
+    await until(async () => { const view = (await windowState()).view; return view && view.id === retiredId && view.visible && !view.loading; }, 'A prévia preservada não voltou.');
+    await expectSamePreview(retiredId, originalURL);
     await expectMode(false, false);
 
     // Se o usuário já usava fullscreen nativo, a saída do browser não o desfaz.
@@ -483,8 +501,19 @@ async function nativeProbe(focus) {
     await control.click(); await expectMode(true, true);
     await control.click(); await expectMode(false, true);
     await expectService(pid, url);
+    const nativeEventsBeforeExit = await app.evaluate(() => (global.__fullscreenTestEvents || []).length);
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setFullScreen(false));
-    await until(async () => !(await windowState()).fullscreen, 'Não foi possível sair do fullscreen nativo da fixture.', 30000);
+    await until(async () => !(await windowState()).fullscreen, 'Não foi possível iniciar a saída do fullscreen nativo da fixture.', 30000);
+    if (nativeFullscreen) {
+      // macOS can update the flag before emitting leave-full-screen. Reenter
+      // immediately to cover that real transition race, then restore normally.
+      await control.click(); await expectMode(true, true);
+      await control.click(); await expectMode(false, false);
+      await expectSamePreview(retiredId, originalURL);
+      await expectService(pid, url);
+    } else {
+      await until(async () => (await app.evaluate(() => global.__fullscreenTestEvents || [])).slice(nativeEventsBeforeExit).some(event => event.name === 'leave-full-screen'), 'Não foi possível confirmar a saída simulada do fullscreen.', 30000);
+    }
     await expectBounds();
     console.log(nativeFullscreen
       ? '✓ Voltar preserva o serviço; fullscreen nativo preexistente é respeitado'
@@ -496,9 +525,9 @@ async function nativeProbe(focus) {
     await app.evaluate(({ dialog }, directory) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] }); }, second);
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send('app:menu', 'open'));
     await page.waitForFunction(directory => document.querySelector('#breadcrumb-project')?.dataset.projectPath === directory, second, { timeout: 20000 });
-    await until(async () => !(await windowState()).fullscreen && !(await windowState()).view, 'A troca de projeto não retirou a prévia anterior.', 30000);
+    await until(async () => !(await windowState()).fullscreen && await previewVisible(oldView) === false, 'A troca de projeto não ocultou a prévia anterior.', 30000);
     assert.equal(await page.evaluate(() => document.body.classList.contains('browser-fullscreen')), false);
-    assert.equal(await app.evaluate(({ webContents }, id) => !!webContents.fromId(id), oldView), false);
+    assert.equal(await app.evaluate(({ webContents }, id) => !!webContents.fromId(id), oldView), true);
     assert.equal(await page.locator(`#pane-${terminalId}`).count(), 1, 'A sessão do primeiro projeto não deve ser encerrada.');
     assert.equal(await page.locator('.project-select[title="Primeiro projeto"]').count(), 1);
     await page.locator('#terminal-view').waitFor({ state: 'visible' });

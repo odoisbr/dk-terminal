@@ -26,6 +26,9 @@ async function main(){
  assert.equal(await page.evaluate(()=>localStorage.getItem('systemResourcesCollapsed')),'true');
  await page.getByRole('button',{name:'Perfil e configurações',exact:true}).last().click();
  await page.getByText('Conta SEA teste').waitFor();assert.equal(await page.getByText('Conta GitLab teste').count(),1);
+ const seaTheme=page.getByRole('checkbox',{name:'Tema SEA',exact:true});
+ assert.equal(await seaTheme.isChecked(),true);assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('theme-sea')),true);
+ await seaTheme.uncheck();assert.equal(await page.evaluate(()=>localStorage.getItem('seaTheme')),'false');
  const alertCard=page.getByRole('heading',{name:'Avisos de atividade'}).locator('..').locator('..').locator('..');const toolCard=page.getByRole('heading',{name:'Ferramentas instaladas'}).locator('..').locator('..').locator('..');
  const [a,t]=await Promise.all([alertCard.boundingBox(),toolCard.boundingBox()]);assert.ok(a&&t);assert.ok(Math.abs(t.y-(a.y+a.height)-16)<2, 'Ferramentas devem ficar diretamente abaixo dos avisos');
  const glass=page.getByRole('checkbox',{name:'Efeito de vidro (glassmorphism)'});

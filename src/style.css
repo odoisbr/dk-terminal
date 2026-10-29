@@ -72,6 +72,8 @@ h1 { margin: 12px 0 9px; font-size: 27px; font-weight: 500; letter-spacing: -.8p
 .extension small { font-size: 8px; color: #a8b29e; margin-left: 3px; }
 .work-area { display: flex; flex: 1; min-height: 0; gap: 24px; padding: 0 30px 24px; }
 .terminal-card { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; background: var(--terminal); overflow: hidden; }
+.terminal-workspace { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.terminal-card > .browser-card { border: 0; border-radius: 0; }
 .graph-card, .browser-card { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; background: var(--terminal); overflow: hidden; }
 .auxiliary-toolbar { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: #1b211d; }
 .auxiliary-toolbar>strong { display: flex; align-items: center; gap: 8px; margin-right: auto; font-size: 11px; font-weight: 500; }

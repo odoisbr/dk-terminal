@@ -17,7 +17,10 @@ import { GitView } from './git-view';
 import { TreeMenu } from './tree-menu';
 import { createPluginsPanel } from './plugins';
 import { ViewRegistry } from './views';
+import { playSeaMotion } from './sea-motion.mjs';
 import './plugins.css';
+
+const startupMotion = playSeaMotion(document.querySelector<SVGSVGElement>('#sea-motion-stage'));
 
 const paths: Record<string, string> = {
   home: '<path d="M3 11 12 3l9 8M5 10v10h14V10M9 20v-6h6v6"/>',
@@ -69,14 +72,16 @@ app.innerHTML = `
     <div class="action-bar"><span class="action-label">AÇÕES DK</span><button class="button action" data-action="audit" disabled>${icon('scan')}Auditoria</button><button class="button action" data-action="validate" disabled>${icon('check')}Validar projeto</button><button class="button action" data-action="doctor" disabled>${icon('activity')}Diagnóstico</button><button class="button action" id="show-graph" disabled>${icon('graph')}Orquestração</button><span class="action-hint" id="action-hint">Instale ou ative o plugin DK para executar as ações.</span></div>
     <div id="extension-bar" class="extension-bar" aria-label="Extensões de agentes" hidden></div>
     <div class="work-area">
-      <section id="terminal-view" class="terminal-card" aria-label="Terminais">
-        <div class="terminal-toolbar"><div class="workspace-tabs"><div id="tabs" role="tablist" aria-label="Sessões de terminal"></div><div id="file-tabs"></div></div><div class="terminal-controls"><button id="single-terminal" class="icon-button" aria-label="Visualização única" title="Visualização única" hidden>${icon('single')}</button><button id="detach-pane" class="icon-button" aria-label="Separar painel ativo do split" title="Separar painel ativo do split" hidden>${icon('detach')}</button><button id="split-right" class="icon-button" aria-label="Dividir terminal à direita" title="Dividir à direita (⌘ D)" disabled>${icon('split')}</button><button id="split-down" class="icon-button" aria-label="Dividir terminal abaixo" title="Dividir abaixo (⌘ ⇧ D)" disabled>${icon('splitDown')}</button><button id="split-agent" class="icon-button" aria-label="Dividir com agente" title="Dividir com Claude, Codex ou outra ferramenta" aria-haspopup="menu" aria-expanded="false" disabled>${icon('activity')}</button><button id="launch-claude" class="icon-button agent-launch" aria-label="Abrir Claude Code" title="Abrir Claude Code" disabled><img src="${claudeIcon}" alt="" /></button><button id="launch-codex" class="icon-button agent-launch" aria-label="Abrir Codex" title="Abrir Codex" disabled><img src="${codexIcon}" alt="" /></button><button id="launch-antigravity" class="icon-button agent-launch" aria-label="Abrir Antigravity CLI" title="Abrir Antigravity CLI" hidden><img src="${antigravityIcon}" alt="" /></button><button id="launch-gemini" class="icon-button agent-launch" aria-label="Abrir Gemini CLI" title="Abrir Gemini CLI" hidden><img src="${geminiIcon}" alt="" /></button><button id="launch-dk" class="icon-button agent-launch" aria-label="Abrir DK CLI" title="Abrir DK CLI" hidden><img src="${logoUrl}" alt="" /></button><button id="open-browser" class="icon-button" aria-label="Visualizar protótipo" title="Visualizar protótipo" disabled>${icon('globe')}</button><span class="toolbar-divider" aria-hidden="true"></span><button id="expand-terminal" class="icon-button" aria-label="Expandir terminal" aria-pressed="false" title="Expandir terminal (⌘ ⇧ E)">${icon('expand')}</button><button id="search-toggle" class="icon-button" aria-label="Buscar no terminal" title="Buscar no terminal (⌘ F)" disabled>${icon('search')}</button><button id="new-session" class="icon-button" aria-label="Nova sessão" title="Nova sessão (⌘ T)" disabled>${icon('plus')}</button></div></div>
+      <section id="terminal-view" class="terminal-card" aria-label="Área de trabalho do projeto">
+        <div class="terminal-toolbar"><div class="workspace-tabs"><div id="tabs" role="tablist" aria-label="Guias do projeto"></div><div id="file-tabs"></div></div><div class="terminal-controls"><button id="single-terminal" class="icon-button" aria-label="Visualização única" title="Visualização única" hidden>${icon('single')}</button><button id="detach-pane" class="icon-button" aria-label="Separar painel ativo do split" title="Separar painel ativo do split" hidden>${icon('detach')}</button><button id="split-right" class="icon-button" aria-label="Dividir terminal à direita" title="Dividir à direita (⌘ D)" disabled>${icon('split')}</button><button id="split-down" class="icon-button" aria-label="Dividir terminal abaixo" title="Dividir abaixo (⌘ ⇧ D)" disabled>${icon('splitDown')}</button><button id="split-agent" class="icon-button" aria-label="Dividir com agente" title="Dividir com Claude, Codex ou outra ferramenta" aria-haspopup="menu" aria-expanded="false" disabled>${icon('activity')}</button><button id="launch-claude" class="icon-button agent-launch" aria-label="Abrir Claude Code" title="Abrir Claude Code" disabled><img src="${claudeIcon}" alt="" /></button><button id="launch-codex" class="icon-button agent-launch" aria-label="Abrir Codex" title="Abrir Codex" disabled><img src="${codexIcon}" alt="" /></button><button id="launch-antigravity" class="icon-button agent-launch" aria-label="Abrir Antigravity CLI" title="Abrir Antigravity CLI" hidden><img src="${antigravityIcon}" alt="" /></button><button id="launch-gemini" class="icon-button agent-launch" aria-label="Abrir Gemini CLI" title="Abrir Gemini CLI" hidden><img src="${geminiIcon}" alt="" /></button><button id="launch-dk" class="icon-button agent-launch" aria-label="Abrir DK CLI" title="Abrir DK CLI" hidden><img src="${logoUrl}" alt="" /></button><button id="open-browser" class="icon-button" aria-label="Visualizar protótipo" title="Visualizar protótipo" disabled>${icon('globe')}</button><span class="toolbar-divider" aria-hidden="true"></span><button id="expand-terminal" class="icon-button" aria-label="Expandir terminal" aria-pressed="false" title="Expandir terminal (⌘ ⇧ E)">${icon('expand')}</button><button id="search-toggle" class="icon-button" aria-label="Buscar no terminal" title="Buscar no terminal (⌘ F)" disabled>${icon('search')}</button><button id="new-session" class="icon-button" aria-label="Nova sessão" title="Nova sessão (⌘ T)" disabled>${icon('plus')}</button></div></div>
+        <div id="terminal-workspace" class="terminal-workspace">
         <div id="search-bar" hidden><label for="terminal-search" class="sr-only">Buscar no terminal</label><input id="terminal-search" placeholder="Buscar nesta sessão" autocomplete="off" /><button id="search-previous" class="icon-button" aria-label="Resultado anterior">${icon('up')}</button><button id="search-next" class="icon-button" aria-label="Próximo resultado">${icon('down')}</button><button id="search-close" class="icon-button" aria-label="Fechar busca">${icon('close')}</button></div>
         <div class="terminal-content"><div id="welcome"><div class="welcome-symbol">${icon('terminal')}</div><span class="eyebrow">MENOS DISTÂNCIA ENTRE IDEIA E ENTREGA</span><h2>O projeto é o ponto de partida.</h2><p>Seu terminal, suas ferramentas e os comandos do DK.<br>Tudo no mesmo espaço, direto no seu computador.</p><button id="welcome-open" class="button primary">${icon('folder')}Abrir um projeto${icon('arrow')}</button><span class="welcome-hint">Selecione uma pasta para começar</span></div><div id="terminal-empty" hidden><span class="welcome-symbol small">${icon('terminal')}</span><h2>Espaço pronto.</h2><p>Abra um terminal quando precisar.</p><button id="empty-new" class="button primary">${icon('plus')}Nova sessão</button></div><div id="terminal-host"><section id="editor-view" class="editor-card" aria-label="Editor de arquivos" hidden><div id="editor-content"></div></section></div></div>
         <footer class="terminal-footer"><span><span class="status-dot" id="session-dot"></span><span id="session-state" role="status" aria-live="polite">Nenhuma sessão aberta</span></span><span id="session-dimensions">UTF-8</span></footer>
+        </div>
+        <section id="browser-view" class="browser-card" role="tabpanel" aria-labelledby="browser-tab" aria-label="Browser do projeto" hidden><div class="auxiliary-toolbar"><strong>${icon('globe')}Browser</strong><button id="browser-fullscreen" class="icon-button" aria-label="Abrir browser em tela cheia" aria-pressed="false" title="Abrir browser em tela cheia">${icon('expand')}</button><button id="browser-back" class="button secondary">Voltar ao terminal</button></div><div class="browser-runtime"><label for="browser-service">Serviço</label><select id="browser-service" aria-label="Serviço para visualizar"></select><button id="browser-start" class="button primary">Executar projeto</button><button id="browser-stop" class="icon-button" aria-label="Desligar serviço da prévia" title="Desligar serviço" disabled>${icon('stop')}</button></div><form id="browser-navigation" class="browser-navigation"><label for="browser-address" class="sr-only">Endereço local da prévia</label><input id="browser-address" type="text" placeholder="http://localhost:5173" autocomplete="off" spellcheck="false" /><button type="submit" class="icon-button" aria-label="Abrir endereço local" title="Abrir ou recarregar endereço">${icon('arrow')}</button></form><div id="browser-canvas"><div id="browser-placeholder">Selecione um serviço ou informe o endereço local do projeto.</div></div><footer class="auxiliary-footer"><span id="browser-status">Projeto local · A página pode acessar a rede</span></footer></section>
       </section>
       <section id="graph-view" class="graph-card" aria-label="Orquestração do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('graph')}Orquestração do DK</strong><button id="refresh-graph" class="icon-button" aria-label="Atualizar grafo">${icon('refresh')}</button><button id="graph-back" class="button secondary">Voltar ao terminal</button></div><div id="graph-content"></div><footer class="auxiliary-footer">Visualização dos registros locais do DK</footer></section>
-      <section id="browser-view" class="browser-card" aria-label="Browser do projeto" hidden><div class="auxiliary-toolbar"><strong>${icon('globe')}Browser</strong><button id="browser-fullscreen" class="icon-button" aria-label="Abrir browser em tela cheia" aria-pressed="false" title="Abrir browser em tela cheia">${icon('expand')}</button><button id="browser-back" class="button secondary">Voltar ao terminal</button></div><div class="browser-runtime"><label for="browser-service">Serviço</label><select id="browser-service" aria-label="Serviço para visualizar"></select><button id="browser-start" class="button primary">Executar projeto</button><button id="browser-stop" class="icon-button" aria-label="Desligar serviço da prévia" title="Desligar serviço" disabled>${icon('stop')}</button></div><form id="browser-navigation" class="browser-navigation"><label for="browser-address" class="sr-only">Endereço local da prévia</label><input id="browser-address" type="text" placeholder="http://localhost:5173" autocomplete="off" spellcheck="false" /><button type="submit" class="icon-button" aria-label="Abrir endereço local" title="Abrir ou recarregar endereço">${icon('arrow')}</button></form><div id="browser-canvas"><div id="browser-placeholder">Selecione um serviço ou informe o endereço local do projeto.</div></div><footer class="auxiliary-footer"><span id="browser-status">Projeto local · A página pode acessar a rede</span></footer></section>
       <section id="action-view" class="action-card" aria-label="Resultado do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('scan')}Resultado do DK</strong><button id="cancel-action" class="button secondary" hidden>Interromper</button><button id="action-back" class="button secondary">Voltar ao terminal</button></div><div id="action-content" role="status" aria-live="polite"></div></section>
       <section id="chat-view" class="chat-card" aria-label="Codex" hidden></section>
       <div class="project-inspector">
@@ -128,14 +133,15 @@ type MainView = 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'action';
 let mainView: MainView = 'terminal';
 let workspaceView: 'terminal' | 'editor' = 'terminal';
 const views = new ViewRegistry<MainView>();
-views.register('terminal', [$('terminal-view')]);
-views.register('editor', [$('terminal-view'), $('editor-view')]);
+views.register('terminal', [$('terminal-view'), $('terminal-workspace')]);
+views.register('editor', [$('terminal-view'), $('terminal-workspace'), $('editor-view')]);
 views.register('graph', [$('graph-view')]);
-views.register('browser', [$('browser-view')]);
+views.register('browser', [$('terminal-view'), $('browser-view')]);
 views.register('chat', [$('chat-view')]);
 views.register('action', [$('action-view')]);
 let focusedPane: 'terminal' | 'editor' = 'terminal';
-let browserWantedService = '', browserURL = '';
+type BrowserTab = { id: string | null; ready: Promise<string | null> | null; url: string; wantedService: string; selectedService: string; waitingForService: boolean; status: string };
+const browserTabs = new Map<string, BrowserTab>();
 let browserFullscreenActive = false, browserFullscreenDesired = false, browserFullscreenPending = false, browserFullscreenRecovery = false, browserFullscreenRequest = 0;
 let fileEditor: import('./editor').FileEditor | null = null;
 const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, hasUnsaved:()=>!!current && !!fileEditor?.hasUnsaved(current.path), changeBranch:async(root,action,name)=>{
@@ -269,17 +275,17 @@ function renderProjects() {
       for (const [id, session] of [...sessions]) if (session.cwd === info.path) {
         clearTimeout(session.ackTimer); session.ackPending = 0; session.terminal.dispose(); session.element.remove(); sessions.delete(id); idleSnoozed.delete(id);
       }
-      lastActive.delete(info.path); projectWorkspaceViews.delete(info.path); paneGroups.delete(info.path); renderIdleNotice();
+      lastActive.delete(info.path); projectWorkspaceViews.delete(info.path); paneGroups.delete(info.path); browserTabs.delete(info.path); renderIdleNotice();
       projects = projects.filter(project => project.path !== info.path);
       if (current?.path === info.path) {
-        current = null; activeId = null; browserWantedService = ''; browserURL = '';
+        current = null; activeId = null;
         fileEditor?.setProject('');
         selectMainView('terminal');
         renderProject(); focusSession(null, false);
         selectPanel(null); await loadRootTree();
         launcher.show('home');
-        if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar o encerramento de todos os processos do terminal.');
-      } else { renderProjects(); if (!current) launcher.show('home'); if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar o encerramento de todos os processos do terminal.'); }
+        if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.');
+      } else { renderProjects(); if (!current) launcher.show('home'); if (result.partial) notify('O projeto foi fechado, mas não foi possível confirmar a liberação de todas as sessões ou dos dados temporários da prévia.'); }
       } finally { closingProjects.delete(info.path); forget.disabled = false; }
     });
     row.append(select, forget); list.append(row);
@@ -403,13 +409,17 @@ function updateService(root: string, service: Service) {
   if (index === -1) items.push(service); else items[index] = service;
   projectServices.set(root, items);
   if (current?.path === root) renderPreviewAction();
-  if (current?.path === root && mainView === 'browser' && isPreviewService(service) && !items.some(item => isPreviewService(item) && ['running', 'starting'].includes(item.status))) { selectMainView(workspaceView); return; }
   if (current?.path === root && selectedPanel === 'services') renderServices();
+  const tab = browserTabs.get(root);
+  if (tab && service.id === tab.wantedService) {
+    if (service.url && service.status === 'running' && (service.url !== tab.url || tab.waitingForService)) {
+      tab.waitingForService = false; run(() => navigatePreview(root, service.url!, tab));
+    }
+    if (service.status === 'failed') setBrowserStatus(root, tab, 'O serviço não iniciou. Confira a saída na guia Serviços.');
+    if (service.status === 'stopped') setBrowserStatus(root, tab, 'Serviço encerrado.');
+  }
   if (current?.path === root && mainView === 'browser') {
     renderBrowserServices();
-    if (service.id === browserWantedService && service.url && service.url !== browserURL && service.status === 'running') run(() => navigatePreview(service.url!));
-    if (service.id === browserWantedService && service.status === 'failed') $('browser-status').textContent = 'O serviço não iniciou. Confira a saída na guia Serviços.';
-    if (service.id === browserWantedService && service.status === 'stopped' && !browserURL) $('browser-status').textContent = 'O serviço encerrou antes de informar um endereço. Confira a saída na guia Serviços.';
   }
 }
 async function loadServices(root: string, valid: () => boolean = () => true) {
@@ -525,7 +535,14 @@ function selectMainView(view: typeof mainView) {
   updateTerminalVisibility();
   if (view === 'terminal' || view === 'editor') { workspaceView = view; if (current) projectWorkspaceViews.set(current.path, view); }
   views.select(view);
-  if (view !== 'browser') { leaveBrowserFullscreen(previousView === 'browser'); api.closeBrowser().catch(() => {}); browserURL = ''; }
+  if (view !== 'browser') leaveBrowserFullscreen(previousView === 'browser');
+  // Only the selected project's native view may be above the workspace.
+  const root = view === 'browser' ? current?.path || null : null;
+  const selected = root ? browserTabs.get(root) : undefined;
+  api.selectBrowser(selected?.id ? root : null, selected?.id || undefined).catch(notify);
+  fileEditor?.setWorkspaceActive(view === 'editor');
+  if (view === 'browser') renderBrowserState();
+  renderTabs();
   if (view === 'graph') run(loadGraph);
   else api.watchOrchestrations(null).catch(() => {});
   if (view === 'terminal' || view === 'editor') { focusSession(activeId, false); requestAnimationFrame(fitActive); }
@@ -537,7 +554,7 @@ async function openFile(root: string, relative: string) {
       read: api.readFile, save: api.saveFile, confirmClose: api.confirmCloseFile, tabsHost: $('file-tabs'),
       onSelect: () => { focusedPane = 'editor'; syncTreeSelection(); if (mainView !== 'editor') selectMainView('editor'); else focusSession(activeId, false); },
       onDirty: files => { api.setDirtyFiles(files).catch(notify); },
-      onEmpty: () => { syncTreeSelection(); selectMainView('terminal'); }, onError: notify,
+      onEmpty: () => { syncTreeSelection(); if (mainView === 'editor') selectMainView('terminal'); else renderTabs(); }, onError: notify,
     });
     if (current) fileEditor.setProject(current.path);
     return fileEditor;
@@ -604,7 +621,7 @@ let previewResizeFrame = 0;
 function schedulePreviewResize() {
   cancelAnimationFrame(previewResizeFrame);
   previewResizeFrame = requestAnimationFrame(() => {
-    if (mainView === 'browser' && browserURL) api.resizeBrowser(previewBounds()).catch(() => {});
+    if (mainView === 'browser' && current && browserTabs.get(current.path)?.url) api.resizeBrowser(previewBounds()).catch(() => {});
   });
 }
 function renderBrowserFullscreen() {
@@ -650,64 +667,110 @@ function leaveBrowserFullscreen(force = false) {
 }
 function renderBrowserServices(preferred?: string) {
   const select = $<HTMLSelectElement>('browser-service');
-  const previous = preferred === undefined ? select.value : preferred;
+  const tab = current ? browserTabs.get(current.path) : undefined;
+  const previous = preferred === undefined ? tab?.selectedService || '' : preferred;
   select.replaceChildren();
   const items = current ? (projectServices.get(current.path) || []).filter(item => isPreviewService(item)) : [];
   const manual = document.createElement('option'); manual.value = ''; manual.textContent = 'Endereço manual'; select.append(manual);
   for (const item of items) { const option = document.createElement('option'); option.value = item.id; option.textContent = `${item.name} · ${['running', 'starting'].includes(item.status) ? 'Rodando' : 'Parado'}`; select.append(option); }
   select.value = items.some(item => item.id === previous) ? previous : '';
+  if (tab) tab.selectedService = select.value;
   const selected = items.find(item => item.id === select.value);
   button('browser-start').disabled = !selected || selected.status === 'starting' || selected.status === 'stopping';
   button('browser-start').textContent = selected?.status === 'starting' ? 'Iniciando…' : selected?.status === 'running' ? 'Visualizar projeto' : 'Executar projeto';
   button('browser-stop').disabled = !selected || !['running', 'starting'].includes(selected.status);
 }
+function setBrowserStatus(root: string, tab: BrowserTab, status: string) {
+  if (browserTabs.get(root) !== tab) return;
+  tab.status = status;
+  if (current?.path === root && mainView === 'browser') $('browser-status').textContent = status;
+}
+function renderBrowserState() {
+  const tab = current ? browserTabs.get(current.path) : undefined;
+  $<HTMLInputElement>('browser-address').value = tab?.url || '';
+  $('browser-placeholder').hidden = !!tab?.url;
+  $('browser-status').textContent = tab?.status || 'Projeto local · A página pode acessar a rede';
+  renderBrowserServices(tab?.selectedService);
+  schedulePreviewResize();
+}
+async function closeBrowserTab(root: string) {
+  const tab = browserTabs.get(root); if (!tab) return;
+  browserTabs.delete(root);
+  if (current?.path === root && mainView === 'browser') selectMainView(workspaceView);
+  else renderTabs();
+  if (tab.id) await api.closeBrowser(root, tab.id);
+  else await tab.ready?.catch(() => null);
+}
+async function prepareBrowserTab(root: string, tab: BrowserTab): Promise<string | null> {
+  const id = await api.createBrowserTab(root);
+  if (browserTabs.get(root) !== tab) { await api.closeBrowser(root, id).catch(() => {}); return null; }
+  tab.id = id;
+  try { if (current?.path === root && mainView === 'browser') await api.selectBrowser(root, id); }
+  catch (error) { await api.closeBrowser(root, id).catch(() => {}); throw error; }
+  return id;
+}
 async function openBrowserView(requestedService?: string) {
   if (!current) return;
   const root = current.path;
+  let tab = browserTabs.get(root);
+  const created = !tab;
+  if (!tab) {
+    tab = { id: null, ready: null, url: '', wantedService: '', selectedService: '', waitingForService: false, status: 'Escolha o serviço do protótipo ou informe um endereço local.' };
+    browserTabs.set(root, tab);
+    tab.ready = prepareBrowserTab(root, tab);
+  }
   selectMainView('browser');
-  await loadServices(root);
-  if (current?.path !== root || mainView !== 'browser') return;
+  if (!created && !requestedService) return;
+  const expected = tab;
+  try { if (!await expected.ready) return; }
+  catch (error) {
+    if (browserTabs.get(root) === expected) { browserTabs.delete(root); if (current?.path === root && mainView === 'browser') selectMainView(workspaceView); else renderTabs(); }
+    throw error;
+  }
+  if (browserTabs.get(root) !== expected) return;
+  await loadServices(root, () => browserTabs.get(root) === expected);
+  if (browserTabs.get(root) !== expected) return;
   const services = projectServices.get(root) || [];
   const webServices = services.filter(service => isPreviewService(service));
   const running = webServices.filter(service => service.status === 'running');
-  if (!requestedService && !running.length) { selectMainView(workspaceView); renderPreviewAction(); return; }
+  if (!requestedService && !running.length) { if (created) await closeBrowserTab(root); if (current?.path === root) renderPreviewAction(); return; }
   const candidate = requestedService ? webServices.find(service => service.id === requestedService) || null : running.length === 1 ? running[0] : null;
-  renderBrowserServices(candidate?.id || '');
-  if (candidate) await startBrowserService(root, candidate);
-  else $('browser-status').textContent = services.length ? 'Escolha o serviço do protótipo ou informe um endereço local.' : 'Nenhum serviço encontrado. Informe um endereço local para visualizar o projeto.';
+  expected.selectedService = candidate?.id || '';
+  if (current?.path === root && mainView === 'browser') renderBrowserServices();
+  if (candidate) await startBrowserService(root, candidate, expected);
+  else setBrowserStatus(root, expected, services.length ? 'Escolha o serviço do protótipo ou informe um endereço local.' : 'Nenhum serviço encontrado. Informe um endereço local para visualizar o projeto.');
 }
-async function startBrowserService(root: string, service: Service) {
-  if (current?.path !== root || mainView !== 'browser') return;
-  if (browserWantedService !== service.id && browserURL) {
-    browserURL = ''; await api.closeBrowser(); $('browser-placeholder').hidden = false;
-  }
-  if (current?.path !== root || mainView !== 'browser') return;
-  browserWantedService = service.id;
-  if (service.status === 'running' && service.url) { await navigatePreview(service.url); return; }
-  browserURL = ''; $<HTMLInputElement>('browser-address').value = ''; $('browser-placeholder').hidden = false;
+async function startBrowserService(root: string, service: Service, tab = browserTabs.get(root)) {
+  if (!tab || browserTabs.get(root) !== tab) return;
+  tab.wantedService = service.id; tab.selectedService = service.id;
+  tab.waitingForService = service.status !== 'running' || !service.url;
+  if (service.status === 'running' && service.url) { if (tab.url !== service.url) await navigatePreview(root, service.url, tab); return; }
   if (service.status === 'running' || service.status === 'starting') {
-    $('browser-status').textContent = 'Aguardando o endereço do serviço. Você também pode informá-lo acima.'; return;
+    setBrowserStatus(root, tab, 'Aguardando o endereço do serviço. Você também pode informá-lo acima.'); return;
   }
-  if (service.status === 'stopping') { $('browser-status').textContent = 'Aguarde o serviço terminar de encerrar.'; return; }
-  $('browser-status').textContent = 'Iniciando projeto e aguardando seu endereço local…';
+  if (service.status === 'stopping') { setBrowserStatus(root, tab, 'Aguarde o serviço terminar de encerrar.'); return; }
+  setBrowserStatus(root, tab, 'Iniciando projeto e aguardando seu endereço local…');
   try {
     const started = await api.startService(root, service.id);
+    if (browserTabs.get(root) !== tab) return;
     const latest = projectServices.get(root)?.find(item => item.id === service.id);
     if (!latest || latest.status === 'stopped' || latest.status === 'failed') updateService(root, started);
   } catch (error) {
-    if (current?.path === root && mainView === 'browser' && browserWantedService === service.id) $('browser-status').textContent = 'Não foi possível iniciar o serviço. Confira a configuração na guia Serviços.';
+    if (browserTabs.get(root) === tab && tab.wantedService === service.id) setBrowserStatus(root, tab, 'Não foi possível iniciar o serviço. Confira a configuração na guia Serviços.');
     throw error;
   }
 }
-async function navigatePreview(url: string) {
-  if (!current || mainView !== 'browser') return;
-  const root = current.path;
-  browserURL = url; $<HTMLInputElement>('browser-address').value = url;
-  $('browser-status').textContent = 'Carregando prévia…'; $('browser-placeholder').hidden = true;
+async function navigatePreview(root: string, url: string, tab = browserTabs.get(root)) {
+  if (!tab || browserTabs.get(root) !== tab) return;
+  tab.url = url;
+  setBrowserStatus(root, tab, 'Carregando prévia…');
+  if (current?.path === root && mainView === 'browser') renderBrowserState();
+  const id = await tab.ready;
+  if (!id || browserTabs.get(root) !== tab || tab.url !== url) return;
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-  if (current?.path !== root || mainView !== 'browser' || browserURL !== url) return;
-  try { await api.openBrowser(root, url, previewBounds()); }
-  catch (error) { if (current?.path === root && mainView === 'browser') { $('browser-status').textContent = 'Não foi possível abrir a prévia. Confira o endereço e o serviço.'; throw error; } }
+  if (browserTabs.get(root) !== tab || tab.url !== url) return;
+  try { await api.openBrowser(root, url, previewBounds(), id); }
+  catch (error) { if (browserTabs.get(root) === tab) { setBrowserStatus(root, tab, 'Não foi possível abrir a prévia. Confira o endereço e o serviço.'); throw error; } }
 }
 async function loadGraph(valid: () => boolean = () => true) {
   if (!current) return;
@@ -729,7 +792,7 @@ function updateTerminalVisibility() {
   }
 }
 function fitActive() {
-  if (document.querySelector('.terminal-card')?.hasAttribute('hidden')) return;
+  if ($('terminal-view').hidden || $('terminal-workspace').hidden) return;
   for (const session of sessions.values()) {
     if (session.element.hidden) continue;
     try {
@@ -775,19 +838,30 @@ function renderTabs() {
   const list = $('tabs'); list.replaceChildren();
   const visible = [...sessions.values()].filter(s => s.cwd === current?.path);
   for (const session of visible) {
-    const tab = document.createElement('div'); tab.className = `tab${activeId === session.id ? ' active' : ''}`;
-    const select = document.createElement('button'); select.className = 'tab-select'; select.role = 'tab'; select.id = `tab-${session.id}`; select.setAttribute('aria-selected', String(activeId === session.id)); select.setAttribute('aria-controls', `pane-${session.id}`);
+    const selected = mainView !== 'browser' && activeId === session.id;
+    const tab = document.createElement('div'); tab.className = `tab${selected ? ' active' : ''}`;
+    const select = document.createElement('button'); select.className = 'tab-select'; select.role = 'tab'; select.id = `tab-${session.id}`; select.setAttribute('aria-selected', String(selected)); select.setAttribute('aria-controls', `pane-${session.id}`);
     select.innerHTML = icon(session.kind === 'shell' ? 'terminal' : session.exited ? 'check' : 'activity');
     const text = document.createElement('span'); text.textContent = session.label;
-    select.append(text); select.onclick = () => focusSession(session.id);
+    select.append(text); select.onclick = () => { if (mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView); focusedPane = 'terminal'; focusSession(session.id); };
     const close = document.createElement('button'); close.className = 'icon-button tab-close'; close.setAttribute('aria-label', `Fechar ${session.label}`); close.innerHTML = icon('close'); close.onclick = () => run(() => closeSession(session.id));
+    tab.append(select, close); list.append(tab);
+  }
+  if (current && browserTabs.has(current.path)) {
+    const root = current.path, selected = mainView === 'browser';
+    const tab = document.createElement('div'); tab.className = `tab${selected ? ' active' : ''}`;
+    const select = document.createElement('button'); select.type = 'button'; select.id = 'browser-tab'; select.className = 'tab-select'; select.role = 'tab';
+    select.setAttribute('aria-selected', String(selected)); select.setAttribute('aria-controls', 'browser-view'); select.innerHTML = `${icon('globe')}<span>Browser</span>`;
+    select.onclick = () => { if (current?.path === root) selectMainView('browser'); };
+    const close = document.createElement('button'); close.type = 'button'; close.id = 'browser-tab-close'; close.className = 'icon-button tab-close'; close.setAttribute('aria-label', 'Fechar browser'); close.title = 'Fechar browser'; close.innerHTML = icon('close');
+    close.onclick = () => run(() => closeBrowserTab(root));
     tab.append(select, close); list.append(tab);
   }
   const editorVisible = mainView === 'editor' && hasCurrentEditor();
   $('terminal-empty').hidden = !current || visible.length > 0 || editorVisible;
   $('terminal-host').hidden = !visible.length && !editorVisible;
-  button('search-toggle').disabled = !active();
-  button('split-right').disabled = button('split-down').disabled = button('split-agent').disabled = !active();
+  button('search-toggle').disabled = !active() || mainView === 'browser';
+  button('split-right').disabled = button('split-down').disabled = button('split-agent').disabled = !active() || mainView === 'browser';
   $('session-count').textContent = `${sessions.size} ${sessions.size === 1 ? 'sessão' : 'sessões'}`;
   const session = active();
   $('session-state').textContent = agentOpening && agentOpening.root === current?.path ? `Abrindo ${agentOpening.name}…` : !session ? 'Nenhuma sessão aberta' : session.exited ? `Encerrada · código ${session.exitCode ?? '—'}` : !session.started ? 'Abrindo sessão…' : session.kind === 'shell' ? 'Terminal conectado' : 'Comando em execução';
@@ -804,7 +878,6 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   appliedProjectIntent = intent;
   const generation = ++activationGeneration;
   const projectChanged = current?.path !== info.path;
-  if (projectChanged) { if (mainView !== 'browser') { leaveBrowserFullscreen(); api.closeBrowser().catch(() => {}); } browserURL = ''; browserWantedService = ''; $('browser-placeholder').hidden = false; $<HTMLInputElement>('browser-address').value = ''; }
   current = info;
   const valid = () => generation === activationGeneration && current?.path === info.path && !closingProjects.has(info.path);
   const projectIndex = projects.findIndex(p => p.path === info.path);
@@ -976,9 +1049,12 @@ api.onProjectOpened(info => run(async () => { const intent = beginProjectIntent(
 api.onOrchestrationChanged(({ path }) => { if (current?.path === path && mainView === 'graph') run(loadGraph); });
 api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.reload()); });
 api.onBrowserChanged(event => {
-  if (current?.path !== event.path || mainView !== 'browser') return;
-  $('browser-status').textContent = event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : 'Projeto local · A página pode acessar a rede';
-  if (event.url) $<HTMLInputElement>('browser-address').value = event.url;
+  const tab = browserTabs.get(event.path); if (!tab || tab.id !== event.id) return;
+  setBrowserStatus(event.path, tab, event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : 'Projeto local · A página pode acessar a rede');
+  if (event.url) {
+    tab.url = event.url;
+    if (current?.path === event.path && mainView === 'browser') $<HTMLInputElement>('browser-address').value = event.url;
+  }
 });
 api.onBrowserFullscreenChanged(active => {
   browserFullscreenActive = active;
@@ -993,11 +1069,12 @@ api.onMenu(action => {
   if (action === 'new') run(() => newSession());
   if (action === 'save' && mainView === 'editor') run(async () => fileEditor?.saveCurrent());
   if (action === 'close' && mainView === 'editor' && focusedPane === 'editor') run(async () => fileEditor?.closeCurrent());
+  else if (action === 'close' && mainView === 'browser' && current) run(() => closeBrowserTab(current!.path));
   else if (action === 'close' && mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
   else if (action === 'close' && activeId) run(() => closeSession(activeId!));
   if (action === 'editor') selectMainView('editor');
-  if (action === 'search') { if (mainView === 'editor' && focusedPane === 'editor') fileEditor?.search(); else toggleSearch(); }
-  if (action === 'clear') active()?.terminal.clear();
+  if (action === 'search' && (mainView === 'terminal' || mainView === 'editor')) { if (mainView === 'editor' && focusedPane === 'editor') fileEditor?.search(); else toggleSearch(); }
+  if (action === 'clear' && (mainView === 'terminal' || mainView === 'editor')) active()?.terminal.clear();
   if (action === 'expand') expandTerminal();
   if (action === 'split-right') run(() => splitTerminal('right'));
   if (action === 'split-down') run(() => splitTerminal('down'));
@@ -1070,8 +1147,15 @@ document.addEventListener('keydown', event => {
     button('browser-fullscreen').focus();
   }
 });
-$('browser-service').onchange = () => { browserWantedService = ''; renderBrowserServices(); };
-$('browser-navigation').onsubmit = event => { event.preventDefault(); browserWantedService = ''; run(() => navigatePreview($<HTMLInputElement>('browser-address').value.trim())); };
+$('browser-service').onchange = () => {
+  const tab = current ? browserTabs.get(current.path) : undefined; if (!tab) return;
+  tab.wantedService = ''; tab.waitingForService = false; tab.selectedService = $<HTMLSelectElement>('browser-service').value; renderBrowserServices();
+};
+$('browser-navigation').onsubmit = event => {
+  event.preventDefault(); if (!current) return;
+  const root = current.path, tab = browserTabs.get(root); if (!tab) return;
+  tab.wantedService = ''; tab.waitingForService = false; run(() => navigatePreview(root, $<HTMLInputElement>('browser-address').value.trim(), tab));
+};
 button('browser-start').onclick = () => run(async () => {
   if (!current) return;
   const root = current.path, id = $<HTMLSelectElement>('browser-service').value;
@@ -1080,9 +1164,11 @@ button('browser-start').onclick = () => run(async () => {
 });
 button('browser-stop').onclick = () => run(async () => {
   if (!current) return;
-  updateService(current.path, await api.stopService(current.path, $<HTMLSelectElement>('browser-service').value));
-  browserWantedService = ''; browserURL = ''; await api.closeBrowser();
-  $('browser-placeholder').hidden = false; $('browser-status').textContent = 'Serviço encerrado.';
+  const root = current.path, id = $<HTMLSelectElement>('browser-service').value, tab = browserTabs.get(root);
+  updateService(root, await api.stopService(root, id));
+  if (tab && browserTabs.get(root) === tab && (tab.wantedService === id || tab.selectedService === id)) {
+    tab.wantedService = ''; tab.waitingForService = false; setBrowserStatus(root, tab, 'Serviço encerrado.');
+  }
 });
 button('refresh-tree').onclick = () => run(loadRootTree);
 document.querySelectorAll<HTMLButtonElement>('[data-panel]').forEach((control, index, controls) => {
@@ -1128,7 +1214,7 @@ function setGlassAppearance(enabled: boolean) {
 button('launcher-show').onclick = () => launcher.show('home');
 button('profile-show').onclick = () => launcher.show('settings');
 button('theme-toggle').onclick = () => setSeaTheme(!document.body.classList.contains('theme-sea'));
-try { setSeaTheme(localStorage.getItem('seaTheme') === 'true'); } catch { setSeaTheme(false); }
+try { setSeaTheme(localStorage.getItem('seaTheme') !== 'false'); } catch { setSeaTheme(true); }
 try { const saved = localStorage.getItem('glassTransparency'); setGlassTransparency(saved === null ? 12 : Number(saved)); } catch { setGlassTransparency(12); }
 try { setGlassAppearance(localStorage.getItem('glassAppearance') === 'true'); } catch { setGlassAppearance(false); }
 function setSystemResourcesCollapsed(collapsed: boolean) {
@@ -1289,8 +1375,9 @@ run(async () => {
   } finally {
     void refreshResources();
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const remaining = reduced ? 0 : Math.max(0, 1600 - performance.now());
+    const remaining = reduced ? 0 : Math.max(0, Math.max(1600, startupMotion.finishBy) - performance.now());
     if (remaining) await new Promise(resolve => setTimeout(resolve, remaining));
+    startupMotion.complete();
     document.body.classList.remove('booting');
     const loading = $('startup-loading');
     loading.classList.add('is-leaving');

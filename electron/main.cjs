@@ -22,6 +22,8 @@ const { Integrations } = require('./integrations.cjs');
 const { LocalRepositories } = require('./local-repositories.cjs');
 const { clearMachineFileCache } = require('./machine-cache.cjs');
 const { Git } = require('./git.cjs');
+const { windowIcon } = require('./app-icon.cjs');
+const dockCli = require('./dock-cli.cjs');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'dk-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 const testing = process.env.DK_TERMINAL_TEST === '1' && !app.isPackaged;
@@ -123,6 +125,14 @@ function handle(channel, handler) {
 function project(root) {
   if (!selected.has(root)) throw new Error('Abra esta pasta pelo seletor de projetos.');
   return projectInfo(root);
+}
+function browserProject(root) {
+  const info = project(root);
+  if (windowClosing || closingProjects.has(info.path) || closedPluginProjects.has(info.path)) throw new Error('Abra o projeto antes de usar a prévia.');
+  return info;
+}
+function closeProjectBrowser(root) {
+  return preview.closeProject(root);
 }
 function hasDirtyFilesInProject(root) {
   return dirtyFiles.some(file => {
@@ -364,7 +374,9 @@ function registerHandlers() {
     const approved = await confirmPlugin(root, pluginId, actionId, revision);
     return approved ? terminals.create(approved.info, approved.spec) : null;
   });
-  handle('browser:open', (root, url, bounds) => preview.open(window, project(root).path, url, bounds));
+  handle('browser:create', root => preview.create(browserProject(root).path));
+  handle('browser:open', (root, url, bounds, id) => preview.open(window, browserProject(root).path, url, bounds, id));
+  handle('browser:select', (root, id) => preview.select(root === null ? null : browserProject(root).path, id));
   handle('browser:resize', bounds => preview.resize(bounds));
   handle('browser:visible', visible => preview.setVisible(visible));
   handle('browser:fullscreen', enabled => {
@@ -373,14 +385,17 @@ function registerHandlers() {
     return browserFullscreen.set(enabled);
   });
   handle('browser:fullscreen-needs-restore', () => !!browserFullscreen?.needsRestore);
-  handle('browser:close', () => preview.close());
-  handle('project:forget', root => {
-    project(root);
+  handle('browser:close', (root, id) => preview.close(project(root).path, id));
+  handle('project:forget', async root => {
+    const info = project(root);
     advancePluginGeneration(root);
     closedPluginProjects.add(root);
     extensions.closeProject(root);
+    const closingBrowser = closeProjectBrowser(info.path);
     config.projects = config.projects.filter(p => p !== root);
     save();
+    const browserResult = await closingBrowser;
+    if (browserResult.partial) throw new Error('O projeto foi removido, mas não foi possível limpar todos os dados temporários das prévias.');
     // Existing sessions keep their working directory until explicitly closed.
     return bootstrap();
   });
@@ -390,10 +405,10 @@ function registerHandlers() {
     closingProjects.add(info.path);
     advancePluginGeneration(info.path);
     try {
-      const [result, chats] = await Promise.all([terminals.closeProject(info.path), codexChat.closeProject(info.path)]);
+      const [result, chats, browserResult] = await Promise.all([terminals.closeProject(info.path), codexChat.closeProject(info.path), closeProjectBrowser(info.path)]);
       closedPluginProjects.add(info.path);
       extensions.closeProject(info.path);
-      return { ...result, chats };
+      return { ...result, partial: result.partial || browserResult.partial, chats };
     } finally { closingProjects.delete(info.path); }
   });
   handle('project:reveal', async root => {
@@ -437,7 +452,7 @@ function createWindow() {
   codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event) });
   window = new BrowserWindow({
     width: 1440, height: 920, minWidth: 940, minHeight: 620, backgroundColor: '#101214',
-    title: 'SEA Dock', icon: path.join(app.getAppPath(), 'assets', 'dk-terminal.png'), titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    title: 'SEA Dock', icon: windowIcon(app.getAppPath()), titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 20, y: 22 }, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, spellcheck: false, webSecurity: true },
   });
@@ -449,7 +464,7 @@ function createWindow() {
   window.webContents.session.setPermissionCheckHandler(() => false);
   window.webContents.on('render-process-gone', () => {
     extensions.close(); void terminals.closeAllAndWait().catch(() => {});
-    void preview.close(); preview.setVisible(true);
+    void preview.closeAll(); preview.setVisible(true);
     void browserFullscreen?.set(false).catch(() => {});
   });
   window.once('ready-to-show', () => window.show());
@@ -470,14 +485,15 @@ function createWindow() {
     // Prevent new edits while the explicit close drains known child processes.
     try { closingWindow.setEnabled(false); } catch {}
     try { services.closeAll(); } catch {}
-    void Promise.allSettled([terminals.closeAllAndWait(),actions.closeAllAndWait(),codexChat.closeAll()]).then(async results=>{
+    void Promise.allSettled([terminals.closeAllAndWait(),actions.closeAllAndWait(),codexChat.closeAll(),preview.closeAll()]).then(async results=>{
       const terminalResult=results[0];
       const actionResult=results[1];
       const chatResult=results[2];
-      const partial=terminalResult.status==='rejected' || terminalResult.value.partial || actionResult.status==='rejected' || actionResult.value.partial || chatResult.status==='rejected' || chatResult.value.partial;
+      const browserResult=results[3];
+      const partial=terminalResult.status==='rejected' || terminalResult.value.partial || actionResult.status==='rejected' || actionResult.value.partial || chatResult.status==='rejected' || chatResult.value.partial || browserResult.status==='rejected' || browserResult.value.partial;
       if(partial && closingWindow && !closingWindow.isDestroyed()) {
         try { closingWindow.setEnabled(true); } catch {}
-        try { await dialog.showMessageBox(closingWindow,{type:'warning',message:'Não foi possível confirmar todos os encerramentos.',detail:'Alguns processos associados podem continuar ativos. Confira-os no monitor de atividades do sistema.',buttons:['Fechar'],defaultId:0,noLink:true}); } catch {}
+        try { await dialog.showMessageBox(closingWindow,{type:'warning',message:'Não foi possível concluir toda a limpeza.',detail:'Alguns processos associados podem continuar ativos ou dados temporários de prévias podem não ter sido limpos. Confira os processos no monitor de atividades do sistema.',buttons:['Fechar'],defaultId:0,noLink:true}); } catch {}
       }
       windowCleanupDone=true;
       if(closingWindow && !closingWindow.isDestroyed()) {
@@ -488,16 +504,41 @@ function createWindow() {
   });
   window.on('closed', () => {
     browserFullscreen?.dispose(); browserFullscreen = null;
-    terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.close(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
+    terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
     const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
     if(reopen){focusRequested=false;const files=pendingFiles.splice(0);if(files.length)openFiles(files);else createWindow();focusWindow();}
   });
   window.loadURL('dk-app://app/index.html');
 }
+let dockCommandPending = false;
+async function manageDockCommand(action) {
+  if (dockCommandPending) return;
+  dockCommandPending = true;
+  try {
+    await bootReady;
+    let message, detail;
+    if (action === 'install') {
+      if (!app.isPackaged) throw new Error('Abra uma cópia empacotada do SEA Dock, em uma pasta permanente, para instalar o comando.');
+      const result = dockCli.install({ home: app.getPath('home'), executable: process.execPath, envPath: env.PATH });
+      message = result.alreadyInstalled ? 'O comando dock já está instalado.' : 'Comando dock instalado.';
+      detail = `Local: ${result.file}\nAplicativo: ${result.bundle}\n\nUse dock . para abrir a pasta atual. Arquivos abrem a pasta que os contém.`;
+      if (!result.availableInPath) detail += '\n\nA pasta ~/.local/bin não foi encontrada no PATH desta sessão. Configure-a no seu terminal para usar o comando.';
+    } else {
+      const result = dockCli.uninstall({ home: app.getPath('home') });
+      message = result.removed ? 'Comando dock removido.' : 'O comando dock não está instalado.';
+      detail = `Local: ${result.file}`;
+    }
+    const options = { type: 'info', message, detail, buttons: ['OK'], noLink: true };
+    if (window && !window.isDestroyed()) await dialog.showMessageBox(window, options); else await dialog.showMessageBox(options);
+  } catch (error) {
+    dialog.showErrorBox('Comando dock', error.message || 'Não foi possível alterar o comando.');
+  } finally { dockCommandPending = false; }
+}
+
 function menu() {
   const item = (label, accelerator, action) => ({ label, accelerator, click: () => send('app:menu', action) });
   const template = [
-    ...(process.platform === 'darwin' ? [{ label: 'SEA Dock', submenu: [{ role: 'about', label: 'Sobre o SEA Dock' }, { type: 'separator' }, { role: 'hide', label: 'Ocultar SEA Dock' }, { role: 'unhide', label: 'Mostrar tudo' }, { type: 'separator' }, { role: 'quit', label: 'Sair' }] }] : []),
+    ...(process.platform === 'darwin' ? [{ label: 'SEA Dock', submenu: [{ role: 'about', label: 'Sobre o SEA Dock' }, { type: 'separator' }, { label: 'Instalar comando dock no terminal', click: () => void manageDockCommand('install') }, { label: 'Remover comando dock do terminal', click: () => void manageDockCommand('uninstall') }, { type: 'separator' }, { role: 'hide', label: 'Ocultar SEA Dock' }, { role: 'unhide', label: 'Mostrar tudo' }, { type: 'separator' }, { role: 'quit', label: 'Sair' }] }] : []),
     { label: 'Arquivo', submenu: [item('Abrir projeto…', 'CmdOrCtrl+O', 'open'), item('Salvar arquivo', 'CmdOrCtrl+S', 'save'), item('Nova sessão', 'CmdOrCtrl+T', 'new'), item('Dividir à direita', 'CmdOrCtrl+D', 'split-right'), item('Dividir abaixo', 'CmdOrCtrl+Shift+D', 'split-down'), item('Fechar aba', 'CmdOrCtrl+W', 'close'), { type: 'separator' }, { role: 'quit', label: 'Sair' }] },
     { label: 'Editar', submenu: [{ role: 'copy', label: 'Copiar' }, { role: 'paste', label: 'Colar' }, { role: 'selectAll', label: 'Selecionar tudo' }, { type: 'separator' }, item('Buscar no terminal', 'CmdOrCtrl+F', 'search')] },
     { label: 'Visualizar', submenu: [item('Expandir ou restaurar terminal', 'CmdOrCtrl+Shift+E', 'expand'), item('Limpar terminal', 'CmdOrCtrl+K', 'clear'), { role: 'togglefullscreen', label: 'Tela cheia' }, ...(!app.isPackaged ? [{ role: 'toggleDevTools', label: 'Ferramentas de desenvolvimento' }] : [])] },
@@ -505,7 +546,7 @@ function menu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 if (primaryInstance) app.whenReady().then(async () => {
-  if (process.platform === 'darwin' && !app.isPackaged) app.dock.setIcon(path.join(app.getAppPath(), 'assets', 'dk-terminal.png'));
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock.setIcon(windowIcon(app.getAppPath()));
   const dist = path.resolve(__dirname, '..', 'dist');
   protocol.handle('dk-app', request => {
     const url = new URL(request.url);
@@ -547,4 +588,4 @@ if (primaryInstance) app.whenReady().then(async () => {
 }).catch(error => { dialog.showErrorBox('SEA Dock', error.message); app.quit(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
-app.on('will-quit', () => { terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.close(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });
+app.on('will-quit', () => { terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });

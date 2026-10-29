@@ -2,7 +2,7 @@ const { startProjectTerminal } = require('./helpers/project-session.cjs');
 // Testes isolados: ambos os hosts respondem no mesmo servidor de loopback.
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
-const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), http = require('node:http'), { createHash } = require('node:crypto');
+const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), http = require('node:http');
 
 const root = path.resolve(__dirname, '..');
 const temporary = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dk-browser-test-')));
@@ -16,7 +16,7 @@ const bounds = { x: 15, y: 85, width: 400, height: 300 };
 
 async function preview(script) {
   return app.evaluate(async ({ BrowserWindow }, source) => {
-    const view = BrowserWindow.getAllWindows()[0].contentView.children[0];
+    const view = BrowserWindow.getAllWindows()[0].contentView.children.find(child => child.webContents && child.getVisible());
     if (!view) throw new Error('Prévia não encontrada.');
     return view.webContents.executeJavaScript(source, true);
   }, script);
@@ -61,14 +61,23 @@ async function preview(script) {
     await startProjectTerminal(page);
     await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] }); }, second);
     await page.evaluate(() => window.dk.selectProject());
-    const open = (project, url) => page.evaluate(({ project, url, bounds }) => window.dk.openBrowser(project, url, bounds), { project, url, bounds });
-    const close = () => page.evaluate(() => window.dk.closeBrowser());
+    const tabs = new Map();
+    const getTab = async project => {
+      if (!tabs.has(project)) tabs.set(project, await page.evaluate(root => window.dk.createBrowserTab(root), project));
+      return tabs.get(project);
+    };
+    const open = async (project, url) => {
+      const id = await getTab(project);
+      return page.evaluate(async ({ project, url, bounds, id }) => { await window.dk.selectBrowser(project, id); return window.dk.openBrowser(project, url, bounds, id); }, { project, url, bounds, id });
+    };
+    const select = async project => page.evaluate(({ root, id }) => window.dk.selectBrowser(root, id), { root: project, id: await getTab(project) });
+    const close = async project => { const id = tabs.get(project); if (!id) return; await page.evaluate(({ root, id }) => window.dk.closeBrowser(root, id), { root: project, id }); tabs.delete(project); };
+    const currentViewId = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children.find(view => view.webContents && view.getVisible())?.webContents.id);
     await open(first, local + '/');
 
     const options = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children[0].webContents.getLastWebPreferences());
     assert.equal(options.sandbox, true); assert.equal(options.contextIsolation, true); assert.equal(options.nodeIntegration, false);
-    const partitionKey = 'dk-preview-' + createHash('sha256').update(first).digest('hex').slice(0, 20);
-    assert.equal(await app.evaluate(({ BrowserWindow, session }, key) => BrowserWindow.getAllWindows()[0].contentView.children[0].webContents.session === session.fromPartition(key), partitionKey), true);
+    assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children[0].webContents.session.getStoragePath()), null, 'A partição da prévia deve ser temporária.');
     assert.equal(await preview("document.body.textContent.includes('DK_PREVIEW_FIXTURE')"), true);
     assert.equal(await preview("typeof window.require + ':' + typeof window.dk"), 'undefined:undefined');
     assert.equal(await preview("window.open('https://outside.test/') === null"), true);
@@ -109,30 +118,75 @@ async function preview(script) {
     assert.equal(await preview("fetch('/cache-check').then(r => r.text())"), 'CACHE_OK');
     assert.equal(await preview("fetch('/cache-check').then(r => r.text())"), 'CACHE_OK');
     assert.equal(requests.filter(row => row.url === '/cache-check').length, 1);
-    await close(); await open(first, local + '/');
+    await close(first); await open(first, local + '/');
     assert.equal(await preview("fetch('/cache-check').then(r => r.text())"), 'CACHE_OK');
     assert.equal(requests.filter(row => row.url === '/cache-check').length, 2);
     console.log('✓ Cache HTTP temporário é limpo antes da reabertura');
 
     await preview("localStorage.setItem('dk-test-marker','first'); true");
+    const firstId = await currentViewId();
     await open(second, local + '/');
+    const secondId = await currentViewId();
+    assert.notEqual(firstId, secondId);
+    assert.equal(await app.evaluate(({ webContents }, ids) => webContents.fromId(ids[0]).session !== webContents.fromId(ids[1]).session, [firstId, secondId]), true);
     assert.equal(await preview("localStorage.getItem('dk-test-marker')"), null);
     await preview("localStorage.setItem('dk-test-marker','second'); true");
-    await close();
+    await select(first);
+    assert.equal(await currentViewId(), firstId);
+    assert.equal(await preview("localStorage.getItem('dk-test-marker')"), 'first');
+    await close(second);
+    assert.equal(await currentViewId(), firstId, 'Fechar a prévia inativa não deve remover a ativa.');
     await open(second, local + '/');
     assert.equal(await preview("localStorage.getItem('dk-test-marker')"), null);
-    const previewId = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children[0].webContents.id);
-    await close();
+    const previewId = await currentViewId();
+    await close(second);
     for (let i = 0; i < 50 && await app.evaluate(({ webContents }, id) => !!webContents.fromId(id), previewId); i++) await wait(50);
     assert.equal(await app.evaluate(({ webContents }, id) => !!webContents.fromId(id), previewId), false);
+    assert.equal(await app.evaluate(({ webContents }, id) => !!webContents.fromId(id), firstId), true);
+    const previousToken = tabs.get(first);
+    // Segura a limpeza real da partição, reproduzindo fechamento e reabertura
+    // simultâneos sem tocar em storage fora da fixture.
+    await app.evaluate(({ webContents }, id) => {
+      const partition = webContents.fromId(id).session, original = partition.clearStorageData;
+      global.__browserRestoreCleanup = () => { partition.clearStorageData = original; };
+      partition.clearStorageData = async function (...args) {
+        await new Promise(resolve => { global.__browserResumeCleanup = resolve; });
+        return original.apply(this, args);
+      };
+    }, firstId);
+    const pendingClose = page.evaluate(({ root, id }) => window.dk.closeBrowser(root, id), { root: first, id: previousToken });
+    for (let i = 0; i < 100 && !await app.evaluate(() => typeof global.__browserResumeCleanup === 'function'); i++) await wait(30);
+    assert.equal(await app.evaluate(() => typeof global.__browserResumeCleanup === 'function'), true, 'A limpeza da partição não ficou pendente.');
+    const replacementToken = await page.evaluate(root => window.dk.createBrowserTab(root), first);
+    assert.notEqual(previousToken, replacementToken);
+    let replacementFinished = false;
+    const replacementOpen = page.evaluate(async ({ root, id, url, bounds }) => { await window.dk.selectBrowser(root, id); return window.dk.openBrowser(root, url, bounds, id); }, { root: first, id: replacementToken, url: local + '/', bounds }).then(result => { replacementFinished = true; return result; });
+    await wait(150);
+    assert.equal(replacementFinished, false, 'A nova guia deve esperar a limpeza da anterior.');
     assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children.length), 0);
-    console.log('✓ Partições separadas, storage limpo e WebContents removido ao fechar');
+    await app.evaluate(() => { global.__browserResumeCleanup(); global.__browserResumeCleanup = null; });
+    await pendingClose; await replacementOpen;
+    await app.evaluate(() => { global.__browserRestoreCleanup(); global.__browserRestoreCleanup = null; });
+    const replacementId = await currentViewId();
+    assert.ok(replacementId); assert.notEqual(replacementId, firstId);
+    assert.equal(await preview("localStorage.getItem('dk-test-marker')"), null, 'A nova guia não deve herdar storage da anterior.');
+    await preview("localStorage.setItem('dk-test-marker','replacement');true");
+    assert.equal(await page.evaluate(({ root, id }) => window.dk.closeBrowser(root, id), { root: first, id: previousToken }), false);
+    assert.equal(await page.evaluate(({ root, id }) => window.dk.selectBrowser(root, id), { root: first, id: previousToken }), false);
+    const stale = await page.evaluate(({ root, id, url, bounds }) => window.dk.openBrowser(root, url, bounds, id), { root: first, id: previousToken, url: local + '/', bounds });
+    assert.equal(stale.cancelled, true, 'Uma identidade encerrada não pode abrir outra view.');
+    assert.equal(await currentViewId(), replacementId);
+    assert.equal(await preview("localStorage.getItem('dk-test-marker')"), 'replacement', 'Um fechamento tardio não pode apagar a guia nova.');
+    await page.evaluate(({ root, id }) => window.dk.closeBrowser(root, id), { root: first, id: replacementToken });
+    tabs.delete(first);
+    assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children.length), 0);
+    console.log('✓ Limpeza sequencial e identidades encerradas preservam a guia substituta');
 
     const oldIds = [];
     for (let i = 0; i < 3; i++) {
       await open(first, local + '/');
-      oldIds.push(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children[0].webContents.id));
-      await close();
+      oldIds.push(await currentViewId());
+      await close(first);
     }
     for (let i = 0; i < 50 && await app.evaluate(({ webContents }, ids) => ids.some(id => !!webContents.fromId(id)), oldIds); i++) await wait(50);
     assert.equal(await app.evaluate(({ webContents }, ids) => ids.some(id => !!webContents.fromId(id)), oldIds), false);
@@ -141,12 +195,16 @@ async function preview(script) {
     const slow = open(first, local + '/slow');
     for (let i = 0; i < 50 && !requests.some(row => row.url === '/slow'); i++) await wait(30);
     assert.ok(requests.some(row => row.url === '/slow'));
+    const slowView = await currentViewId();
     await open(second, local + '/');
-    assert.equal((await slow).cancelled, true);
+    const activeSecond = await currentViewId();
+    assert.notEqual(activeSecond, slowView);
+    assert.notEqual((await slow).cancelled, true);
     assert.equal(await preview('location.href'), local + '/');
-    assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children.length), 1);
-    await close();
-    console.log('✓ Troca de projeto durante carregamento não conserva a prévia anterior');
+    assert.equal(await currentViewId(), activeSecond, 'A conclusão de A não pode cobrir B.');
+    assert.equal(await app.evaluate(({ BrowserWindow }, id) => BrowserWindow.getAllWindows()[0].contentView.children.find(view => view.webContents?.id === id)?.getVisible(), slowView), false);
+    await close(second); await close(first);
+    console.log('✓ Carregamento de projeto oculto não cobre a prévia selecionada');
 
     await open(first, local + '/');
     const slowAgain = open(first, local + '/slow');
@@ -156,10 +214,13 @@ async function preview(script) {
     assert.equal((await slowAgain).cancelled, true);
     assert.equal(await preview('location.search'), '?newer=1');
     assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children.length), 1);
-    await close();
+    await close(first);
     console.log('✓ Navegações concorrentes mantêm o endereço mais recente');
   } finally {
-    if (app) await app.close();
+    if (app) {
+      try { await app.evaluate(() => { if (typeof global.__browserResumeCleanup === 'function') global.__browserResumeCleanup(); if (typeof global.__browserRestoreCleanup === 'function') global.__browserRestoreCleanup(); }); } catch {}
+      await app.close();
+    }
     if (server) await new Promise(resolve => server.close(resolve));
     fs.rmSync(temporary, { recursive: true, force: true });
   }

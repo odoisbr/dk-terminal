@@ -17,6 +17,11 @@ function fixture(fullscreen = false) {
   return { window, controller, changes };
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
+function macOS(t) {
+  const descriptor = Object.getOwnPropertyDescriptor(process, 'platform');
+  t.after(() => Object.defineProperty(process, 'platform', descriptor));
+  Object.defineProperty(process, 'platform', { ...descriptor, value: 'darwin' });
+}
 
 test('espera eventos nativos para entrar e restaurar a janela que o controle expandiu', async t => {
   const { window, controller, changes } = fixture(); t.after(() => controller.dispose());
@@ -36,6 +41,143 @@ test('janela que já estava em tela cheia permanece assim após sair da prévia'
   assert.equal(await controller.set(true), true); assert.equal(controller.active, true);
   assert.equal(await controller.set(false), false); assert.equal(window.fullscreen, true);
   assert.equal(controller.needsRestore, false); assert.deepEqual(window.calls, []); assert.deepEqual(changes, [true, false]);
+});
+
+test('nova entrada aguarda a conclusão de uma saída nativa externa em andamento', async t => {
+  macOS(t);
+  const { window, controller, changes } = fixture(true); t.after(() => controller.dispose());
+  assert.equal(await controller.set(true), true);
+  assert.equal(await controller.set(false), false);
+  assert.equal(window.fullscreen, true, 'a saída da prévia preserva o fullscreen preexistente');
+
+  // O macOS pode alterar a flag antes de emitir o evento de saída da animação.
+  window.fullscreen = false;
+  const entering = controller.set(true);
+  assert.deepEqual(window.calls, [], 'não iniciar uma segunda transição enquanto a saída externa está pendente');
+  window.finish(false); await tick();
+  assert.deepEqual(window.calls, [true]);
+  window.finish(true);
+  assert.equal(await entering, true);
+  assert.equal(controller.active, true); assert.equal(controller.requested, true);
+
+  // A nova entrada pertence à prévia e deve ser restaurada ao sair dela.
+  const leaving = controller.set(false);
+  assert.deepEqual(window.calls, [true, false]);
+  window.finish(false);
+  assert.equal(await leaving, false);
+  assert.equal(window.fullscreen, false); assert.equal(controller.needsRestore, false);
+  assert.deepEqual(changes, [true, false, true, false]);
+});
+
+test('entrada nativa externa em andamento continua preexistente à prévia', async t => {
+  macOS(t);
+  const { window, controller } = fixture(); t.after(() => controller.dispose());
+  window.fullscreen = true;
+  const entering = controller.set(true);
+  assert.deepEqual(window.calls, []); assert.equal(controller.active, false);
+  window.finish(true);
+  assert.equal(await entering, true);
+  assert.equal(await controller.set(false), false);
+  assert.equal(window.fullscreen, true); assert.deepEqual(window.calls, []);
+});
+
+test('entrada externa interrompida por saída nativa não confirma a prévia', async t => {
+  macOS(t);
+  const { window, controller } = fixture(); t.after(() => controller.dispose());
+  window.fullscreen = true;
+  const entering = controller.set(true);
+  window.finish(false);
+  assert.equal(await entering, false);
+  assert.equal(controller.active, false); assert.equal(controller.requested, false);
+  assert.deepEqual(window.calls, []);
+});
+
+test('saída externa revertida por entrada nativa continua preexistente', async t => {
+  macOS(t);
+  const { window, controller } = fixture(true); t.after(() => controller.dispose());
+  window.fullscreen = false;
+  const entering = controller.set(true);
+  window.finish(true);
+  assert.equal(await entering, true);
+  assert.equal(await controller.set(false), false);
+  assert.equal(window.fullscreen, true); assert.deepEqual(window.calls, []);
+});
+
+test('evento de saída em transição para entrada espera a confirmação seguinte', async t => {
+  macOS(t);
+  const { window, controller } = fixture(true); t.after(() => controller.dispose());
+  window.fullscreen = false;
+  const entering = controller.set(true);
+  // A entrada começou antes da entrega do evento de saída anterior.
+  window.fullscreen = true; window.emit('leave-full-screen'); await tick();
+  assert.equal(controller.active, false); assert.deepEqual(window.calls, []);
+  window.finish(true);
+  assert.equal(await entering, true); assert.deepEqual(window.calls, []);
+});
+
+test('cancelamento durante saída nativa externa respeita o pedido mais recente', async t => {
+  macOS(t);
+  const { window, controller } = fixture(true); t.after(() => controller.dispose());
+  window.fullscreen = false;
+  const entering = controller.set(true), leaving = controller.set(false);
+  assert.deepEqual(await Promise.all([entering, leaving]), [false, false]);
+  assert.deepEqual(window.calls, []); assert.equal(controller.active, false);
+  window.finish(false);
+});
+
+test('cancelar durante entrada nativa externa não espera nem altera o fullscreen externo', async t => {
+  macOS(t);
+  const { window, controller } = fixture(); t.after(() => controller.dispose());
+  window.fullscreen = true;
+  const entering = controller.set(true), leaving = controller.set(false);
+  assert.deepEqual(await Promise.all([entering, leaving]), [false, false]);
+  assert.equal(controller.active, false); assert.deepEqual(window.calls, []);
+  window.finish(true);
+  assert.equal(window.fullscreen, true); assert.equal(controller.active, false);
+});
+
+test('nova intenção durante saída externa do modo ativo só entra após concluir a saída', async t => {
+  macOS(t);
+  const { window, controller, changes } = fixture(true); t.after(() => controller.dispose());
+  await controller.set(true);
+  window.fullscreen = false;
+  const reentering = controller.set(true);
+  assert.deepEqual(window.calls, []);
+  window.finish(false); await tick();
+  assert.deepEqual(window.calls, [true]); assert.equal(controller.active, false);
+  window.finish(true);
+  assert.equal(await reentering, true); assert.deepEqual(changes, [true, false, true]);
+});
+
+test('sair pelo controle nativo sem novo pedido não reabre a prévia', async t => {
+  macOS(t);
+  const { window, controller, changes } = fixture(true); t.after(() => controller.dispose());
+  await controller.set(true);
+  window.finish(false); await tick();
+  assert.equal(controller.active, false); assert.equal(controller.requested, false);
+  assert.deepEqual(window.calls, []); assert.deepEqual(changes, [true, false]);
+});
+
+test('descarte durante transição externa rejeita a espera e remove listeners', async t => {
+  macOS(t);
+  const { window, controller } = fixture(true);
+  window.fullscreen = false;
+  const entering = controller.set(true), rejected = assert.rejects(entering, /controle de tela cheia foi encerrado/);
+  controller.dispose(); await rejected;
+  for (const name of ['enter-full-screen', 'leave-full-screen', 'closed']) assert.equal(window.listenerCount(name), 0);
+  assert.deepEqual(window.calls, []);
+});
+
+test('uma transição nativa externa sem evento não cria tentativa automática', async t => {
+  macOS(t); t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { window, controller } = fixture(true); t.after(() => controller.dispose());
+  window.fullscreen = false;
+  const entering = controller.set(true), rejected = assert.rejects(entering, /Tempo excedido/);
+  t.mock.timers.tick(5000); await rejected;
+  assert.deepEqual(window.calls, []); assert.equal(controller.active, false);
+  window.finish(false);
+  const retry = controller.set(true); window.finish(true);
+  assert.equal(await retry, true); assert.deepEqual(window.calls, [true]);
 });
 
 test('saída pelo controle nativo desativa o modo e não reabre a janela', async t => {
@@ -140,6 +282,19 @@ test('timeout com flag nativa ativa expõe restauração explícita sem confirma
   window.finish(false);
   assert.equal(await restoring, false); assert.equal(controller.needsRestore, false);
   assert.equal(window.fullscreen, false); assert.deepEqual(changes, []);
+});
+
+test('timeout após mudança de flag nativa permite tentativa explícita de restauração', async t => {
+  macOS(t); t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { window, controller } = fixture(); t.after(() => controller.dispose());
+  const entering = controller.set(true), rejected = assert.rejects(entering, /Tempo excedido/);
+  window.fullscreen = true;
+  t.mock.timers.tick(5000); await rejected;
+  assert.equal(controller.needsRestore, true);
+  const restoring = controller.set(false);
+  assert.deepEqual(window.calls, [true, false]);
+  window.finish(false);
+  assert.equal(await restoring, false); assert.equal(controller.needsRestore, false);
 });
 
 test('cancelamento rápido seguido de timeout permite restaurar com nova ação explícita', async t => {

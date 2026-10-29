@@ -13,6 +13,10 @@ class BrowserFullscreen {
     this._running = false;
     this._transition = null;
     this._waiters = [];
+    // On macOS isFullScreen() can change before the completion event. Track
+    // the last completed native state, including changes outside this class.
+    try { this._nativeConfirmed = window.isFullScreen(); } catch { this._nativeConfirmed = null; }
+    this._nativePhase = null;
     this._onEnter = () => this._onNativeEnter();
     this._onLeave = () => this._onNativeLeave();
     this._onClosed = () => this._close(new Error('A janela foi fechada.'));
@@ -37,6 +41,9 @@ class BrowserFullscreen {
       return Promise.reject(error);
     }
     this._desired = enabled;
+    // Cancelling a wait for another owner's transition requires no native
+    // action: leave that window transition alone and close the preview mode.
+    if (!enabled && !this._owned && this._nativePhase) this._finishNativePhase(this._nativePhase);
     const result = new Promise((resolve, reject) => this._waiters.push({ resolve, reject }));
     this._start();
     return result;
@@ -57,6 +64,7 @@ class BrowserFullscreen {
     this._owned = false;
     this._setActive(false);
     this._finishTransition(error);
+    this._finishNativePhase(this._nativePhase, error);
     for (const waiter of this._waiters.splice(0)) waiter.reject(error);
     this.window.removeListener('enter-full-screen', this._onEnter);
     this.window.removeListener('leave-full-screen', this._onLeave);
@@ -76,37 +84,71 @@ class BrowserFullscreen {
     if (error) transition.reject(error); else transition.resolve();
   }
 
+  _finishNativePhase(phase, error) {
+    if (!phase) return;
+    if (this._nativePhase === phase) this._nativePhase = null;
+    clearTimeout(phase.timer);
+    if (error) phase.reject(error); else phase.resolve();
+  }
+
+  _waitForNativePhase(target) {
+    return new Promise((resolve, reject) => {
+      const phase = { target, resolve, reject, timer: null };
+      this._nativePhase = phase;
+      phase.timer = setTimeout(() => this._finishNativePhase(phase, new Error('Tempo excedido ao aguardar a tela cheia do sistema.')), TRANSITION_TIMEOUT_MS);
+    });
+  }
+
   _onNativeEnter() {
     if (this._disposed) return;
-    if (this._transition?.target !== true) return;
+    const phase = this._nativePhase;
+    const expected = this._transition?.target === true;
     try {
-      if (!this._nativeState()) throw new Error('Não foi possível confirmar a tela cheia.');
-      this._finishTransition();
-    } catch (error) { this._finishTransition(error); }
+      const native = this._nativeState();
+      // A phase wait is resolved by either completion event: an external
+      // transition can be interrupted or followed immediately by another.
+      if (native || phase) this._nativeConfirmed = true;
+      if (expected && !native) throw new Error('Não foi possível confirmar a tela cheia.');
+      if (expected) this._finishTransition();
+      if (phase) this._finishNativePhase(phase);
+    } catch (error) {
+      if (expected) this._finishTransition(error);
+      if (phase) this._finishNativePhase(phase, error);
+    }
   }
 
   _onNativeLeave() {
     if (this._disposed) return;
     const transition = this._transition;
     const expected = transition?.target === false;
+    const phase = this._nativePhase;
     try {
-      if (this._nativeState()) {
+      const native = this._nativeState();
+      if (!native || phase) this._nativeConfirmed = false;
+      if (native) {
         if (expected) this._finishTransition(new Error('Não foi possível confirmar a saída da tela cheia.'));
+        if (phase) this._finishNativePhase(phase);
         return;
       }
     } catch (error) {
       if (expected) this._finishTransition(error);
+      if (phase) this._finishNativePhase(phase, error);
       return;
     }
-    if (!expected) this._desired = false;
+    // A request waiting for an already-started external exit is newer than
+    // that exit. A real exit during our own entry still interrupts it.
+    const reenterAfterExit = phase?.target === false && this._desired && !transition;
+    if (!expected && !reenterAfterExit) this._desired = false;
     this._owned = false;
     this._setActive(false);
     if (expected) {
       this._finishTransition();
+      if (phase) this._finishNativePhase(phase);
       return;
     }
     // A native exit is authoritative, including when a user interrupts entry.
     if (transition?.target === true && this._transition === transition) this._finishTransition(new Error('A tela cheia foi interrompida.'));
+    if (phase) this._finishNativePhase(phase);
   }
 
   _changeNative(target) {
@@ -117,7 +159,7 @@ class BrowserFullscreen {
         this.window.setFullScreen(target);
         // Windows/Linux may finish synchronously. On macOS the native event is
         // required even if isFullScreen changes during the animation.
-        if (process.platform !== 'darwin' && this._transition && this._nativeState() === target) this._finishTransition();
+        if (process.platform !== 'darwin' && this._transition && this._nativeState() === target) { this._nativeConfirmed = target; this._finishTransition(); }
       } catch (error) { this._finishTransition(error); }
     });
   }
@@ -148,6 +190,13 @@ class BrowserFullscreen {
     while (!this._disposed) {
       const desired = this._desired;
       const native = this._nativeState();
+      // An explicit recovery after our own timed-out entry must remain
+      // possible even if no completion event arrived.
+      const recoveringOwnEntry = this._owned && !this._active && !desired;
+      if (process.platform === 'darwin' && (desired || this._owned) && this._nativeConfirmed !== null && native !== this._nativeConfirmed && !recoveringOwnEntry) {
+        await this._waitForNativePhase(native);
+        continue;
+      }
       if (desired) {
         if (!native) {
           this._setActive(false);

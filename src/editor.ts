@@ -117,6 +117,7 @@ export class FileEditor {
   private readonly view: EditorView;
   private projectRoot = '';
   private currentKey: string | null = null;
+  private workspaceActive = false;
   private viewTabKey: string | null = null;
   private destroyed = false;
 
@@ -156,6 +157,12 @@ export class FileEditor {
     const recent = this.recentByProject.get(root);
     const next = recent && this.tabs.get(recent)?.root === root ? recent : [...this.tabs.values()].find(tab => tab.root === root)?.key;
     this.activate(next ?? null, false);
+  }
+
+  setWorkspaceActive(active: boolean): void {
+    if (this.workspaceActive === active) return;
+    this.workspaceActive = active;
+    this.renderTabs();
   }
 
   async open(root: string, relative: string): Promise<void> {
@@ -361,7 +368,7 @@ export class FileEditor {
     const nodes: HTMLElement[] = [];
     for (const tab of this.tabs.values()) {
       if (tab.root !== this.projectRoot) continue;
-      const wrapper = element('div', 'dk-editor-tab'); wrapper.setAttribute('role', 'tab'); wrapper.setAttribute('aria-selected', String(tab.key === this.currentKey)); wrapper.title = tab.relative;
+      const wrapper = element('div', 'dk-editor-tab'); wrapper.setAttribute('role', 'tab'); wrapper.setAttribute('aria-selected', String(this.workspaceActive && tab.key === this.currentKey)); wrapper.title = tab.relative;
       const name = element('button', 'dk-editor-tab-name'); name.type = 'button'; name.textContent = tab.file.name; name.addEventListener('click', () => this.activate(tab.key));
       const mark = element('span', 'dk-editor-dirty'); mark.textContent = tab.dirty ? '●' : ''; mark.setAttribute('aria-label', tab.dirty ? 'Alterações não salvas' : 'Arquivo salvo');
       const close = element('button', 'dk-editor-tab-close'); close.type = 'button'; close.textContent = '×'; close.title = `Fechar ${tab.file.name}`; close.setAttribute('aria-label', close.title); close.addEventListener('click', () => { void this.closeTab(tab); });
@@ -417,7 +424,7 @@ export class FileEditor {
       this.tabs.delete(tab.key); this.emitDirty();
       if (this.currentKey === tab.key) {
         const next = [...this.tabs.values()].filter(candidate => candidate.root === this.projectRoot).at(-1);
-        this.activate(next?.key ?? null);
+        this.activate(next?.key ?? null, this.workspaceActive);
         if (!next) this.options.onEmpty();
       } else this.renderTabs();
       return true;

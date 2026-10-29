@@ -2,7 +2,7 @@
 
 Aplicativo desktop local para trabalhar com projetos do Design Kit. Primeira versão funcional, 0.1.0-alpha.1, feita com Electron, xterm.js e node-pty.
 
-O loading usa a logo SVG fornecida pelo usuário: a seta chega pela diagonal, depois as letras DK são reveladas da esquerda para a direita. A animação é vetorial, com ciclo de 3,2 segundos; a introdução completa sua primeira revelação antes de abrir o espaço de trabalho. A preferência do sistema por redução de movimento remove a animação e essa espera visual. Os arquivos reutilizáveis ficam em `assets/dk-loading.svg` e `assets/dk-loading.html`; a prévia animada fica em `artifacts/dk-loading.gif`.
+O loading usa o motion SEA fornecido para o aplicativo: um círculo se enche de água e as ondas se assentam na marca. A sequência vetorial é adaptada ao tempo de abertura, roda localmente e termina antes de o espaço de trabalho aparecer. Com redução de movimento ativada no sistema, a marca aparece estática e a espera visual é removida. Os arquivos do motion ficam em `assets/sea-motion.svg` e `src/sea-motion.mjs`.
 
 ## Abrir no desenvolvimento
 
@@ -35,7 +35,7 @@ Arquivos `.mmd` e `.mermaid`, assim como blocos Mermaid em Markdown, abrem com o
 
 **Orquestração** mostra as tarefas, dependências e estados reais dos arquivos `.dk/coordenacoes/*.json`. A visualização atualiza por eventos do sistema somente enquanto está aberta e recusa registros com ciclos ou referências ausentes.
 
-O ícone **Visualizar protótipo**, na barra do terminal ao lado de Claude e Codex, fica disponível quando um serviço reconhecido como front-end está em execução. Inicie esse serviço na guia **Serviços**; a identificação usa nomes comuns como `dev`, `preview`, `web`, `frontend` e `start`. Iniciar um serviço de prévia identificado pela guia **Serviços** também abre o navegador. Serviços como API, worker e watch continuam disponíveis em segundo plano. Em `dk-terminal.services.json`, use `"role": "frontend"` ou `"role": "backend"` para identificar explicitamente serviços personalizados com nomes ambíguos. O navegador é criado sob demanda, sem acesso ao Node ou à API do aplicativo, com armazenamento temporário por projeto. Navegações principais para fora de localhost, novas janelas, downloads e permissões são bloqueados. A página ainda pode carregar recursos e realizar conexões de rede externas; a prévia não é um bloqueio de rede. Sair da prévia libera a visualização e aguarda a limpeza de sua sessão antes de reabrir o mesmo projeto; desligar o serviço é uma ação separada. A execução do projeto continua local, com as permissões da conta do sistema.
+O ícone **Visualizar protótipo**, na barra de guias ao lado de Claude e Codex, fica disponível quando um serviço reconhecido como front-end está em execução. Inicie esse serviço na guia **Serviços**; a identificação usa nomes comuns como `dev`, `preview`, `web`, `frontend` e `start`. Iniciar um serviço de prévia identificado pela guia **Serviços** também abre o navegador. Serviços como API, worker e watch continuam disponíveis em segundo plano. Em `dk-terminal.services.json`, use `"role": "frontend"` ou `"role": "backend"` para identificar explicitamente serviços personalizados com nomes ambíguos. O navegador abre como uma guia do projeto e preserva a página ao alternar para sessões, arquivos ou outro projeto. Fechar a guia ou o projeto libera a visualização e limpa seus dados temporários; desligar o serviço é uma ação separada. O navegador é criado sob demanda, sem acesso ao Node ou à API do aplicativo, com armazenamento temporário por projeto. Navegações principais para fora de localhost, novas janelas, downloads e permissões são bloqueados. A página ainda pode carregar recursos e realizar conexões de rede externas; a prévia não é um bloqueio de rede. A execução do projeto continua local, com as permissões da conta do sistema.
 
 Na barra do navegador, **Abrir browser em tela cheia** ocupa a tela com a prévia e seus controles. Use o mesmo botão ou `Esc` para restaurar; o serviço e o estado da página permanecem ativos. Se a janela já estava em tela cheia, ela continua assim ao sair do modo do browser. Abrir Início, GitLab ou Perfil e configurações oculta a prévia enquanto a tela está aberta e a exibe novamente ao voltar.
 
@@ -133,7 +133,7 @@ Referências: [Codex CLI](https://learn.chatgpt.com/docs/codex/cli) e [Claude Co
 npm run package
 ```
 
-A saída fica em `release/`. O pacote inclui o node-pty fora do arquivo ASAR e mantém apenas as dependências necessárias ao processo principal; as bibliotecas visuais já estão compiladas em `dist/` e são carregadas sob demanda. É gerado para a plataforma e arquitetura atuais. No Mac, abra `release/SEA Dock-darwin-arm64/SEA Dock.app` em uma máquina Apple Silicon ou a pasta `darwin-x64` em Intel. A compilação local não inclui assinatura de distribuição nem notarização.
+A saída fica em `release/`. O pacote inclui o node-pty fora do arquivo ASAR e mantém apenas as dependências necessárias ao processo principal; as bibliotecas visuais já estão compiladas em `dist/` e são carregadas sob demanda. É gerado para a plataforma e arquitetura atuais. No Mac, abra `release/SEA Dock-darwin-arm64/SEA Dock.app` em uma máquina Apple Silicon ou a pasta `darwin-x64` em Intel. A compilação local usa assinatura ad hoc para integridade, mas não inclui assinatura de distribuição nem notarização.
 
 ## Verificar
 
@@ -142,6 +142,7 @@ npm test
 npm run test:desktop
 npm run test:editor
 npm run test:launcher
+npm run test:browser:tabs
 npm run test:browser:fullscreen
 npm run test:inspector
 npm run test:project:sessions
@@ -154,7 +155,7 @@ npm run test:all  # suíte completa, incluindo interface gráfica e regressões 
 
 Os testes desktop abrem um Electron real com pastas temporárias e verificam o shell, os painéis, o editor visual, Markdown, Mermaid, split e a fronteira entre interface e processo principal. Com `DK_ROOT=/caminho/do/dk npm run test:desktop`, também executa auditoria e diagnóstico reais. Captura de tela e relatório ficam em `artifacts/`. A compilação é verificada pelo TypeScript.
 
-O teste de tela cheia simula, por padrão, os eventos de janela para funcionar em ambientes sem foco gráfico; a prévia, seu posicionamento e o serviço de teste são reais. Em uma sessão gráfica interativa com a janela de teste focada, use `DK_FULLSCREEN_NATIVE=1 npm run test:browser:fullscreen` para verificar também a transição nativa e o teclado dentro da página.
+O teste de tela cheia simula, por padrão, os eventos de janela para funcionar em ambientes sem foco gráfico; a prévia, seu posicionamento e o serviço de teste são reais. Em uma sessão gráfica interativa, use `DK_FULLSCREEN_NATIVE=1 npm run test:browser:fullscreen` para verificar a transição nativa. Caso o envio automatizado de teclas não alcance a prévia, use `DK_FULLSCREEN_MANUAL_ESCAPE=1 DK_FULLSCREEN_WAIT_FOCUS=1 npm run test:browser:fullscreen` e siga as instruções de foco e Escape exibidas no terminal.
 
 ## Abrir com SEA Dock no Finder
 
@@ -171,6 +172,14 @@ O instalador prepara a ação em `integrations/macos/Abrir com DK.workflow` e a 
 Após mudar do DK Terminal para o SEA Dock, execute o comando novamente para atualizar uma ação gerenciada que ainda aponte para o aplicativo antigo.
 
 `python3 scripts/finder.py validate` executa o Automator com uma pasta temporária, sem abrir o aplicativo, para verificar o formato e a passagem de caminhos com espaços e caracteres especiais. [Referência da Apple](https://support.apple.com/en-gb/guide/automator/aut73234890a/2.10/mac/15.0).
+
+## Comando dock no terminal
+
+No macOS, coloque o aplicativo empacotado em uma pasta permanente, como `~/Applications`, e escolha **SEA Dock → Instalar comando dock no terminal**. Essa ação explícita cria `~/.local/bin/dock`, sem alterar a configuração do shell nem substituir um comando existente. Caso o aplicativo não encontre essa pasta no `PATH`, o terminal precisa ser configurado pelo usuário. Apelidos e funções definidos apenas em shells interativos não podem ser detectados pelo aplicativo.
+
+Use `dock .` para abrir a pasta atual, ou `dock 'pasta com espaços' 'outra pasta'`. Um arquivo abre a pasta que o contém, como na ação do Finder; o arquivo em si não é aberto no editor. Se o aplicativo já estiver aberto, a solicitação é encaminhada a ele. `dock` sem argumentos usa a pasta atual; o limite é 32 caminhos existentes por solicitação.
+
+O comando guarda o caminho da cópia instalada. Se o aplicativo for movido ou removido, o terminal informa o problema. Para apontar para a nova localização, abra a cópia atual, escolha **SEA Dock → Remover comando dock do terminal** e instale novamente. A remoção preserva arquivos que não forem o comando original do SEA Dock ou que tenham sido editados. A instalação e a remoção dessa integração ainda não estão disponíveis no Windows e no Linux.
 
 ## Estrutura
 
@@ -217,7 +226,7 @@ O botão **Tema SEA** ativa ou desativa a identidade visual SEA e guarda a prefe
 
 A tela inicial reúne separadamente projetos recentes locais e remotos. Fechar um projeto na barra lateral encerra seus terminais e conversas de agentes, preserva o histórico e pergunta sobre arquivos não salvos. Os serviços iniciados pela guia Serviços são gerenciados separadamente e continuam ativos até serem desligados. Projetos do grupo `design` e seus subgrupos no GitLab SEA abrem em modo de consulta, com a árvore, arquivos de texto UTF-8 e imagens PNG, JPEG, GIF ou WebP da branch padrão, sem criar uma cópia local. Para editar ou executar, use **Preparar cópia local**, escolha a pasta de destino e aguarde a criação da cópia pelo GitLab CLI; uma pasta existente não é sobrescrita. A leitura remota requer rede e uma conta GitLab com acesso ao projeto. A lista destaca projetos com cópia encontrada no volume SEA e, ao abrir um projeto remoto, oferece essas pastas locais cujo Git `origin` corresponde ao projeto. A busca ignora pastas ocultas, dependências e saídas de build; pode ser parcial em volumes grandes e oferece continuar a busca.
 
-Em **Perfil e configurações**, escolha tema, efeito de vidro e nível de transparência (opcionais e persistentes), sidebar, tamanho da fonte, histórico do terminal e parâmetros dos avisos de inatividade. O cursor fica estático por padrão para reduzir o uso de CPU; a opção **Cursor piscando** permite ativar a animação e é persistida. A tela verifica SEA CLI, Claude, Codex (opcional), Python, pnpm, Node.js, Git e GitLab CLI. A consulta ocorre na abertura do aplicativo, pois a distribuição atual é um aplicativo empacotado e não um instalador. Não instala ferramentas automaticamente.
+Em **Perfil e configurações**, escolha tema, efeito de vidro e nível de transparência (opcionais e persistentes), sidebar, tamanho da fonte, histórico do terminal e parâmetros dos avisos de inatividade. O tema SEA é padrão para novas instalações; uma preferência anterior continua sendo respeitada. O cursor fica estático por padrão para reduzir o uso de CPU; a opção **Cursor piscando** permite ativar a animação e é persistida. A tela verifica SEA CLI, Claude, Codex (opcional), Python, pnpm, Node.js, Git e GitLab CLI. A consulta ocorre na abertura do aplicativo, pois a distribuição atual é um aplicativo empacotado e não um instalador. Não instala ferramentas automaticamente.
 
 A conta SEA usa `sea auth login` e a conta GitLab usa `glab auth login` para o host SEA; são autenticações separadas. O SEA Dock abre as ferramentas oficiais em um terminal temporário e não registra nem armazena tokens em configuração própria. Para a leitura remota e a cópia, o GitLab CLI precisa estar instalado e autenticado. Os tempos de rede e as permissões de acesso dependem dos serviços e das contas do usuário.
 

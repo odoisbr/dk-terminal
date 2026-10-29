@@ -21,6 +21,21 @@ let application;
 const errors = [];
 const checkpoints = [];
 function checkpoint(message) { checkpoints.push(message); console.log(`✓ ${message}`); }
+async function waitForServiceAddress(page, project, id) {
+  const deadline = Date.now() + 30000;
+  let observed;
+  while (Date.now() < deadline) {
+    observed = await page.evaluate(async ({ root, serviceId }) => {
+      const service = (await window.dk.listServices(root)).find(item => item.id === serviceId);
+      return { status: service?.status, url: service?.url, address: document.querySelector('#browser-address')?.value };
+    }, { root: project, serviceId: id });
+    if (observed.status === 'running' && observed.url && observed.address) {
+      try { if (new URL(observed.address).href === new URL(observed.url).href) return observed.url; } catch {}
+    }
+    await new Promise(resolve => setTimeout(resolve, 80));
+  }
+  throw new Error(`O serviço ${id} não informou um endereço para a prévia: ${JSON.stringify(observed)}`);
+}
 
 async function main() {
   application = await electron.launch({
@@ -42,9 +57,8 @@ async function main() {
   await startProjectTerminal(page);
   assert.equal(await page.locator('#open-browser').isDisabled(),true);
   assert.equal(await page.getByRole('button',{name:'Configurar kit'}).count(),0);
-  await page.getByRole('button',{name:'Tema SEA'}).click();
   assert.equal(await page.getByRole('button',{name:'Tema SEA'}).getAttribute('aria-pressed'),'true');
-  assert.equal(await page.evaluate(()=>localStorage.getItem('seaTheme')),'true');
+  assert.equal(await page.locator('body').evaluate(node=>node.classList.contains('theme-sea')),true);
   await page.locator('.sea-logo-wide').waitFor({state:'visible'});
   assert.ok((await page.locator('.sea-logo-wide').boundingBox()).width >= 70);
   assert.equal(await page.locator('.brand-logo').isVisible(),false);
@@ -52,7 +66,7 @@ async function main() {
   await page.getByRole('button',{name:'Tema SEA'}).click();
   assert.equal(await page.evaluate(()=>localStorage.getItem('seaTheme')),'false');
   assert.equal(await page.locator('.brand-logo').isVisible(),true);
-  checkpoint('Tema SEA opcional utiliza a marca oficial e guarda a preferência');
+  checkpoint('Tema SEA inicia ativo, usa a marca oficial e guarda a preferência alternativa');
   await page.waitForFunction(()=>document.querySelector('#resource-memory')?.textContent !== '—',null,{timeout:15000});
   await page.waitForFunction(()=>document.querySelector('#resource-cpu')?.textContent !== '—',null,{timeout:15000});
   const resource = await page.evaluate(()=>window.dk.readResources());
@@ -236,6 +250,11 @@ async function main() {
   assert.equal(await page.getByRole('progressbar').getAttribute('aria-valuenow'),'18');
   checkpoint('Guia Consumo apresenta quota informada e distingue dados indisponíveis');
   await openProjectPanel(page, 'services');
+  await application.evaluate(({ipcMain})=>{
+    const original=ipcMain._invokeHandlers?.get('browser:open');if(!original)throw new Error('Handler browser:open indisponível.');
+    global.__desktopBrowserOpen=original;global.__desktopBrowserIds={};ipcMain.removeHandler('browser:open');
+    ipcMain.handle('browser:open',async(...args)=>{global.__desktopBrowserIds[args[1]]=args[4];return original(...args);});
+  });
   const startService = page.getByRole('button', { name: 'Iniciar serviço web', exact: true });
   await startService.click();
   await page.getByRole('button', { name: 'Desligar serviço web', exact: true }).waitFor();
@@ -262,18 +281,27 @@ async function main() {
   assert.ok(preview,await page.locator('#browser-status').innerText());
   assert.equal(preview.text,'DK_PREVIEW_OK');assert.equal(preview.require,'undefined');assert.equal(preview.bridge,'undefined');assert.equal(preview.prefs.sandbox,true);
   await page.waitForFunction(()=>document.querySelector('#browser-status')?.textContent.includes('página pode acessar a rede'));
-  await page.evaluate(async root=>{try{await window.dk.openBrowser(root,'https://example.com',{x:0,y:0,width:100,height:100});throw new Error('external accepted');}catch(e){if(!e.message.includes('somente'))throw e;}},fixture);
+  const browserIdentity = await application.evaluate((_electron,root)=>global.__desktopBrowserIds[root],fixture);
+  assert.ok(browserIdentity, 'A guia deve ter identidade própria.');
+  await page.evaluate(async ({root,id})=>{try{await window.dk.openBrowser(root,'https://example.com',{x:0,y:0,width:100,height:100},id);throw new Error('external accepted');}catch(e){if(!e.message.includes('somente'))throw e;}},{root:fixture,id:browserIdentity});
+  await application.evaluate(({ipcMain})=>{ipcMain.removeHandler('browser:open');ipcMain.handle('browser:open',global.__desktopBrowserOpen);global.__desktopBrowserOpen=null;});
+  const browserViewId = await application.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].contentView.children.find(view=>view.webContents&&view.getVisible())?.webContents.id);
+  assert.ok(browserViewId);
   await page.locator('#browser-back').click();
-  assert.equal(await application.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].contentView.children.length),0);
-  checkpoint('Browser exibe projeto local em processo isolado e libera a visualização ao sair');
+  for (let attempt=0;attempt<100;attempt++) {
+    if (await application.evaluate(({BrowserWindow},id)=>BrowserWindow.getAllWindows()[0].contentView.children.find(view=>view.webContents?.id===id)?.getVisible()===false,browserViewId)) break;
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  assert.equal(await application.evaluate(({BrowserWindow},id)=>BrowserWindow.getAllWindows()[0].contentView.children.find(view=>view.webContents?.id===id)?.getVisible(),browserViewId),false);
+  assert.equal(await application.evaluate(({webContents},id)=>!!webContents.fromId(id),browserViewId),true);
+  checkpoint('Browser isolado permanece na guia ao voltar ao terminal');
   await page.getByRole('button', { name: 'Desligar serviço web', exact: true }).click();
   await page.getByRole('button', { name: 'Iniciar serviço web', exact: true }).waitFor();
   await assert.rejects(fetch(serviceUrl));
   checkpoint('Aba Serviços inicia o protótipo, abre a prévia e encerra o servidor');
   assert.equal(await page.locator('#open-browser').isDisabled(),true);
   await page.getByRole('button',{name:'Iniciar serviço web',exact:true}).click();
-  await page.waitForFunction(()=>document.querySelector('#browser-address').value.startsWith('http://127.0.0.1:'));
-  const restartedUrl = await page.locator('#browser-address').inputValue();
+  const restartedUrl = await waitForServiceAddress(page, fixture, 'custom:web');
   assert.equal(await (await fetch(restartedUrl)).text(), 'DK_PREVIEW_OK');
   await page.locator('#browser-back').click();
   assert.equal(await page.locator('#open-browser').isEnabled(),true);
@@ -293,7 +321,7 @@ async function main() {
   await page.getByRole('button',{name:'Desligar serviço start',exact:true}).waitFor();
   assert.equal(await page.locator('#open-browser').isDisabled(),true);
   await page.getByRole('button',{name:'Iniciar serviço dev',exact:true}).click();
-  await page.waitForFunction(()=>document.querySelector('#browser-address').value.startsWith('http://127.0.0.1:'));
+  await waitForServiceAddress(page, other, 'custom:dev');
   assert.equal(await page.locator('#open-browser').isEnabled(),true);
   const choices=await page.evaluate(other=>window.dk.listServices(other),other);
   assert.equal(choices.find(item=>item.id==='custom:dev').status,'running');

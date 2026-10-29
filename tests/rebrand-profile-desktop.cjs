@@ -124,7 +124,9 @@ async function close() {
     openedProject = true;
     if (process.env.DK_REBRAND_PREVIOUS_EXECUTABLE) await page.locator('.terminal-pane[data-ready=true]').waitFor();
     else await startProjectTerminal(page);
-    await page.getByRole('button', { name: 'Tema SEA', exact: true }).click();
+    const theme = page.getByRole('button', { name: 'Tema SEA', exact: true });
+    if (await theme.getAttribute('aria-pressed') !== 'true') await theme.click();
+    assert.equal(await theme.getAttribute('aria-pressed'), 'true');
     await page.locator('#profile-show').click();
     await page.getByLabel('Tamanho da fonte').selectOption('16');
     await page.getByLabel('Linhas de histórico').selectOption('20000');
@@ -154,6 +156,21 @@ async function close() {
     await page.locator('#launcher-recents .launcher-recent').filter({ hasText: 'Projeto preservado' }).waitFor();
     assert.ok(JSON.parse(fs.readFileSync(settingsFile, 'utf8')).projects.includes(project));
     assert.equal(fs.existsSync(path.join(appData, 'SEA Dock', 'settings.json')), false, 'A nova marca não deve iniciar um perfil paralelo.');
+
+    // A escolha alternativa também deve sobreviver a um reinício completo.
+    await page.locator('#launcher [data-route="settings"]').click();
+    await page.getByRole('checkbox', { name: 'Tema SEA', exact: true }).uncheck();
+    assert.equal(await page.evaluate(() => localStorage.getItem('seaTheme')), 'false');
+    await close();
+
+    await launch();
+    await expectPaths(oldProfile);
+    assert.equal(await page.evaluate(() => localStorage.getItem('seaTheme')), 'false');
+    assert.equal(await page.locator('body').evaluate(node => node.classList.contains('theme-sea')), false);
+    assert.equal(await page.locator('#theme-toggle').getAttribute('aria-pressed'), 'false');
+    assert.equal(await page.evaluate(() => localStorage.getItem('sea-rebrand-fixture')), 'valor preservado');
+    await page.locator('#launcher [data-route="settings"]').click();
+    assert.equal(await page.getByRole('checkbox', { name: 'Tema SEA', exact: true }).isChecked(), false);
     await close();
 
     // A preferência explícita ainda isola dados e não altera o perfil legado.
@@ -162,6 +179,8 @@ async function close() {
     await expectPaths(overrideProfile);
     assert.equal(await page.evaluate(() => localStorage.getItem('sea-rebrand-fixture')), null);
     assert.equal(await page.locator('#launcher-recents .launcher-recent').count(), 0);
+    assert.equal(await page.evaluate(() => localStorage.getItem('seaTheme')), 'true', 'Um perfil novo deve iniciar com o tema SEA.');
+    assert.equal(await page.locator('body').evaluate(node => node.classList.contains('theme-sea')), true);
     await close();
     assert.equal(fs.readFileSync(settingsFile, 'utf8'), oldSettings);
     console.log('✓ SEA Dock preserva o perfil e a origem legados e respeita perfil explícito isolado');
