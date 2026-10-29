@@ -3,7 +3,8 @@ const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
-const { readState, writeState, projectInfo, kitInfo, loginEnvironment, actionSpec, folderForFile, directory } = require('./core.cjs');
+const { readState, writeState, projectInfo, kitInfo, loginEnvironment, actionSpec, folderForFile, directory, executable } = require('./core.cjs');
+const { dependencyPlan, detectPackageManager } = require('./dependency-cache.cjs');
 const { Terminals } = require('./terminals.cjs');
 const { Services } = require('./services.cjs');
 const { Extensions } = require('./extensions.cjs');
@@ -219,6 +220,19 @@ async function confirmPlugin(root, pluginId, actionId, revision) {
 }
 async function startTerminal(id, size) {
   const session = terminals.get(id), action = session.spec?.pluginAction;
+  const preparation = session.spec?.dependencyInstall;
+  if (preparation) {
+    pluginProject(session.cwd);
+    const now = dependencyPlan(session.cwd);
+    if (windowClosing || (pluginProjectGenerations.get(session.cwd) || 0) !== preparation.generation ||
+        !now.ok || now.revision !== preparation.revision || now.manager !== preparation.manager || JSON.stringify(now.args) !== JSON.stringify(preparation.args)) {
+      throw new Error('O projeto mudou antes de iniciar a preparação. Tente novamente.');
+    }
+    if (preparation.fileIdentity) {
+      const stat = fs.statSync(session.spec.file);
+      if ([stat.dev, stat.ino, stat.size, stat.mtimeMs, stat.ctimeMs].join(':') !== preparation.fileIdentity) throw new Error('O gerenciador mudou antes de iniciar. Tente novamente.');
+    }
+  }
   if (action) {
     const root = session.cwd;
     const assertProject = () => {
@@ -421,6 +435,40 @@ function registerHandlers() {
     if (action != null && typeof action !== 'string') throw new Error('Ação inválida.');
     const spec = action == null ? null : action.startsWith('extension:') ? extensions.spec(action.slice(10)) : actionSpec(action, info, kit && kitInfo(kit.path), env);
     return terminals.create(info, spec);
+  });
+  handle('dependency:plan', root => {
+    const result = detectPackageManager(project(root).path);
+    if (result.ok && result.binaryLock) return { ok: false, error: 'Este projeto usa bun.lockb; prepare-o pelo terminal para controlar uma possível conversão.' };
+    return result;
+  });
+  handle('dependency:prepare', async root => {
+    const info = pluginProject(root), owner = window;
+    const generation = pluginProjectGenerations.get(info.path) || 0;
+    if (!owner || owner.isDestroyed() || windowClosing) throw new Error('A janela está sendo encerrada.');
+    const before = dependencyPlan(info.path);
+    if (!before.ok) throw new Error(before.error);
+    const answer = await dialog.showMessageBox(owner, {
+      type: 'question', message: 'Preparar dependências do projeto?',
+      detail: `Projeto: ${info.path}\nComando: ${[before.manager, ...before.args].join(' ')}\n\n${before.notice}\n\nOs scripts têm as permissões da sua conta.`,
+      buttons: ['Cancelar', 'Preparar'], defaultId: 0, cancelId: 0, noLink: true,
+    });
+    if (answer.response !== 1) return null;
+    pluginProject(info.path);
+    if (window !== owner || owner.isDestroyed() || windowClosing || (pluginProjectGenerations.get(info.path) || 0) !== generation) throw new Error('O projeto mudou durante a confirmação.');
+    const after = dependencyPlan(info.path);
+    if (!after.ok || after.revision !== before.revision || after.manager !== before.manager || JSON.stringify(after.args) !== JSON.stringify(before.args)) throw new Error('O projeto mudou durante a confirmação. Tente novamente.');
+    let file, args, fileIdentity = null;
+    if (process.platform === 'win32') {
+      file = env.ComSpec || 'cmd.exe';
+      args = ['/d', '/s', '/c', [after.manager, ...after.args].join(' ')];
+    } else {
+      file = executable(after.manager, env);
+      if (!file) throw new Error(`${after.manager} não foi encontrado no PATH.`);
+      const stat = fs.statSync(file);
+      fileIdentity = [stat.dev, stat.ino, stat.size, stat.mtimeMs, stat.ctimeMs].join(':');
+      args = after.args;
+    }
+    return terminals.create(info, { file, args, label: 'Preparar dependências', kind: 'action', dependencyInstall: { revision: after.revision, manager: after.manager, args: after.args, generation, fileIdentity } });
   });
   handle('terminal:split', async (root, id, agent) => {
     const info = project(root);

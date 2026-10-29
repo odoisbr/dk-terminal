@@ -12,6 +12,7 @@ type ClaudePlugin = { status: 'installed' | 'missing' | 'disabled' | 'no-claude'
 type SessionInfo = { id: string; cwd: string; label: string; kind: 'action' | 'shell' | 'extension'; cwdFallback?: boolean };
 type TerminalSize = { cols: number; rows: number };
 type Service = { id: string; name: string; role?: 'frontend' | 'backend' | null; status: 'starting' | 'running' | 'stopping' | 'stopped' | 'failed'; pid: number | null; exitCode: number | null; url: string | null; log: string };
+type DependencyPlan = { ok: true; manager: string } | { ok: false; error: string; reason?: string };
 type DirectoryEntry = { name: string; relative: string; kind: 'directory' | 'file' | 'link' };
 type DirectoryListing = { relative: string; entries: DirectoryEntry[]; truncated: boolean };
 type GraphNode = { id: string; label: string; category: string; dependencies: string[]; state: string; attempts: number; blocked: string; depth: number };
@@ -96,6 +97,8 @@ interface Window {
     closeBrowser(path: string, id: string): Promise<boolean>;
     onBrowserChanged(callback: (event: { path: string; id: string; loading: boolean; url?: string; title?: string; error?: string }) => void): () => void;
     createTerminal(path: string, action?: string): Promise<SessionInfo>;
+    prepareDependencies(path: string): Promise<SessionInfo | null>;
+    dependencyPlan(path: string): Promise<DependencyPlan>;
     splitTerminal(path: string, id: string, agent?: string): Promise<SessionInfo | null>;
     startTerminal(id: string, size: TerminalSize): Promise<void>;
     writeTerminal(id: string, data: string): Promise<void>;

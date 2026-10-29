@@ -79,6 +79,8 @@ contextBridge.exposeInMainWorld('dk', Object.freeze({
   closeBrowser: (path, id) => invoke('browser:close', path, id),
   onBrowserChanged: callback => listen('browser:changed', callback),
   createTerminal: (path, action) => invoke('terminal:create', path, action),
+  prepareDependencies: path => invoke('dependency:prepare', path),
+  dependencyPlan: path => invoke('dependency:plan', path),
   splitTerminal: (path, id, agent) => invoke('terminal:split', path, id, agent),
   startTerminal: (id, size) => invoke('terminal:start', id, size),
   writeTerminal: (id, data) => invoke('terminal:write', id, data),

@@ -123,6 +123,7 @@ const projectWorkspaceViews = new Map<string, 'terminal' | 'editor'>();
 const closingProjects = new Set<string>();
 const changingBranches = new Set<string>();
 const projectServices = new Map<string, Service[]>();
+const projectDependencyPlans = new Map<string, DependencyPlan>();
 const serviceLogs = new Set<string>();
 const paneGroups = new Map<string, { ids: string[]; direction: 'right' | 'down' }>();
 type InspectorPanel = 'context' | 'services' | 'files' | 'usage' | 'git';
@@ -349,9 +350,11 @@ function renderExtensions() {
 }
 function renderPreviewAction() {
   const available = installedExtensions.some(item => item.id === 'browser' && item.available);
-  const running = current && (projectServices.get(current.path) || []).some(item => item.status === 'running' && isPreviewService(item));
-  const control = button('open-browser'); control.disabled = !available || !running;
-  control.title = control.disabled ? 'Inicie um serviço de front-end para visualizar o protótipo' : 'Visualizar protótipo';
+  const services = current ? projectServices.get(current.path) || [] : [];
+  const running = services.some(item => item.status === 'running' && isPreviewService(item));
+  const staticPreview = !services.some(item => item.id !== 'static:preview' && isPreviewService(item)) && services.some(item => item.id === 'static:preview' && item.status !== 'stopping');
+  const control = button('open-browser'); control.disabled = !available || (!running && !staticPreview);
+  control.title = control.disabled ? 'Inicie um serviço de front-end para visualizar o protótipo' : staticPreview && !running ? 'Iniciar prévia estática' : 'Visualizar protótipo';
 }
 function isPreviewService(service: Service) {
   if (service.role) return service.role === 'frontend';
@@ -363,6 +366,16 @@ function renderServices() {
   const list = $('service-list'); list.replaceChildren();
   const items = current ? projectServices.get(current.path) || [] : [];
   $('service-count').textContent = String(items.filter(s => ['running', 'starting', 'stopping'].includes(s.status)).length);
+  const plan = current && projectDependencyPlans.get(current.path);
+  if (current && plan && (plan.ok || plan.reason !== 'missing')) {
+    const root = current.path, section = document.createElement('div'); section.className = 'service-row';
+    const description = document.createElement('small');
+    description.textContent = plan.ok ? `Gerenciador: ${plan.manager} · usa o cache configurado` : plan.error;
+    const prepare = document.createElement('button'); prepare.id = 'prepare-dependencies'; prepare.className = 'button'; prepare.textContent = 'Preparar dependências';
+    prepare.disabled = !plan.ok;
+    prepare.onclick = () => run(() => newSession(undefined, undefined, undefined, () => api.prepareDependencies(root)));
+    section.append(description, prepare); list.append(section);
+  }
   if (!items.length) {
     const empty = document.createElement('p'); empty.className = 'no-projects';
     empty.textContent = 'Nenhum serviço definido. Scripts dev, start e preview aparecem aqui.'; list.append(empty);
@@ -423,7 +436,7 @@ function updateService(root: string, service: Service) {
   }
 }
 async function loadServices(root: string, valid: () => boolean = () => true) {
-  try { const services = await api.listServices(root); if (!valid()) return; projectServices.set(root, services); }
+  try { const [services, plan] = await Promise.all([api.listServices(root), api.dependencyPlan(root)]); if (!valid()) return; projectServices.set(root, services); projectDependencyPlans.set(root, plan); }
   catch (error) { if (!valid()) return; notify(error); }
   if (!valid()) return;
   if (current?.path === root) renderPreviewAction();
@@ -733,8 +746,9 @@ async function openBrowserView(requestedService?: string) {
   const services = projectServices.get(root) || [];
   const webServices = services.filter(service => isPreviewService(service));
   const running = webServices.filter(service => service.status === 'running');
-  if (!requestedService && !running.length) { if (created) await closeBrowserTab(root); if (current?.path === root) renderPreviewAction(); return; }
-  const candidate = requestedService ? webServices.find(service => service.id === requestedService) || null : running.length === 1 ? running[0] : null;
+  const staticPreview = !webServices.some(service => service.id !== 'static:preview') ? webServices.find(service => service.id === 'static:preview' && service.status !== 'stopping') : undefined;
+  if (!requestedService && !running.length && !staticPreview) { if (created) await closeBrowserTab(root); if (current?.path === root) renderPreviewAction(); return; }
+  const candidate = requestedService ? webServices.find(service => service.id === requestedService) || null : running.length === 1 ? running[0] : running.length ? null : staticPreview || null;
   expected.selectedService = candidate?.id || '';
   if (current?.path === root && mainView === 'browser') renderBrowserServices();
   if (candidate) await startBrowserService(root, candidate, expected);

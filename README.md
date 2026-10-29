@@ -45,6 +45,10 @@ O rodapé mostra CPU e RAM dos processos do SEA Dock. Passe o cursor sobre os in
 
 Serviços são iniciados somente por uma ação do usuário. O aplicativo acompanha os processos que ele próprio iniciou. Comandos abertos diretamente em um terminal ou em outro aplicativo não são descobertos automaticamente. Ao desligar um serviço, o aplicativo encerra seu grupo de processos; ao fechar a janela, também encerra os serviços gerenciados. A inicialização não instala dependências do projeto.
 
+Quando há `index.html` na raiz, **Serviços → Prévia estática** abre HTML, CSS e JavaScript diretamente, sem instalar pacotes nem criar terminal. O servidor local não lista diretórios nem entrega arquivos ocultos ou `node_modules`; outros aplicativos locais ainda podem acessar os arquivos servidos. Ele não compila JSX, TypeScript ou projetos que dependam de um servidor de framework ou backend. Nesses casos, use o serviço próprio do projeto.
+
+Para projetos com `package.json`, **Preparar dependências** apresenta o gerenciador detectado e pede confirmação antes de iniciar uma sessão de instalação. npm e pnpm priorizam o cache configurado e baixam o que faltar; Yarn e Bun usam suas configurações de cache. O aplicativo não muda configurações globais nem troca gerenciador, e não usa `npm ci`. Scripts de instalação podem executar com as permissões do usuário. Conflitos de lockfile ou gerenciador, workspaces detectados acima do projeto e `bun.lockb` exigem resolução manual; a versão declarada em `packageManager` depende da ferramenta instalada. O cache pode reduzir downloads e espaço, mas não garante economia de memória dos servidores.
+
 Para serviços de outras linguagens, crie `dk-terminal.services.json` na pasta do projeto:
 
 ```json
