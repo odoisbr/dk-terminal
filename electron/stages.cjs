@@ -629,7 +629,7 @@ async function evaluateTracked(root, { kitPath } = {}) {
     return false;
   }
   for (const [id, name] of [['L1', 'regras'], ['L2', 'requisitos']]) {
-    if (!dependent(id, [name], 'Lista de objetos com id; ao menos um item')) set(id, data[name].length ? 'concluido' : 'pendente', data[name].length ? `${data[name].length} itens registrados.` : records[name].motivo || 'Registro ausente ou vazio.', fileOf([name]), 'Lista de objetos com id; ao menos um item');
+    if (!dependent(id, [name], 'Lista de objetos com id; ao menos um item')) set(id, data[name].length ? 'concluido' : 'pendente', data[name].length ? (data[name].length === 1 ? "1 item registrado." : `${data[name].length} itens registrados.`) : records[name].motivo || 'Registro ausente ou vazio.', fileOf([name]), 'Lista de objetos com id; ao menos um item');
   }
   function needsRegisters(id, rule, names = ['regras', 'requisitos']) {
     if (dependent(id, names, rule)) return true;

@@ -133,6 +133,85 @@ O [planejamento M0–M4](docs/planejamento/README.md) descreve as evoluções pr
 
 Referências: [Codex CLI](https://learn.chatgpt.com/docs/codex/cli) e [Claude Code](https://code.claude.com/docs/en/overview).
 
+### Etapas e catálogo
+
+A barra de etapas fica visível na área de trabalho apenas para projetos DK reconhecidos pela presença de `projeto.yml` ou `.dk/projeto.json`. Em pastas comuns que não são projetos DK, a barra permanece oculta. A barra exibe quatro etapas fixas, o botão para recarregar e o botão do catálogo. Ao abrir uma etapa, a interface apresenta seus critérios, procedência, detalhes, atalhos de correção e as skills correspondentes do catálogo. Se o plugin DK estiver ausente ou desativado, um aviso informa a indisponibilidade dos critérios do kit e desabilita as correções.
+
+O SEA Dock usa quatro das etapas do kit: Levantar, Entender, Entregar e Prototipar. Essa escolha de etapas é revisável. Etapas como audit, handoff e git não entram na barra. A barra preserva a ordem fixa: 1. Levantar, 2. Entender, 3. Entregar e 4. Prototipar. O cálculo e a avaliação das regras foram portados da versão 1.7.0-rc.14 do Design Kit (módulos `registry.py`, `lacunas.py`, `cobertura.py`, `projeto.py` e `base_prototipo.py`). Os campos `fase_atual` e `fases_concluidas` do manifesto não definem aprovação. Eles aparecem apenas como dados informativos.
+
+#### Estados e liberação em cascata
+
+Cada critério e cada etapa assumem um de três estados: Concluído, Pendente ou Indisponível.
+- **Concluído**: todos os requisitos do critério foram atendidos e comprovados nos arquivos lidos.
+- **Pendente**: indica falta de dado no projeto. Ocorre quando arquivos, chaves ou registros estão ausentes, listas estão vazias ou o registro não oferece o sinal esperado (como a ausência de `traceability.json` ou de arestas `implementa_regra`).
+- **Indisponível**: indica falha de leitura ou erro estrutural. Ocorre em JSON ou YAML com sintaxe inválida, arquivos que excedem limites numéricos, links simbólicos que apontam para fora do projeto, SHA-256 divergente em adoção ou ausência do kit para critérios dependentes dele.
+
+A etapa fica Indisponível se contiver ao menos um critério indisponível. Fica Concluída se todos os critérios estiverem concluídos. Nos demais casos, fica Pendente.
+
+A liberação das etapas opera em cascata estrita. A etapa Levantar começa liberada. Uma etapa seguinte só é liberada quando a etapa imediatamente anterior estiver concluída. Enquanto a etapa anterior não for concluída, a etapa seguinte exibe o estado visual Bloqueada. Os critérios da etapa bloqueada continuam sendo lidos e calculados normalmente para consulta. Suas ações de correção ficam desabilitadas até o desbloqueio.
+
+#### Critérios das etapas
+
+| Etapa | Critério | Arquivo lido | Regra |
+| --- | --- | --- | --- |
+| Levantar | L1: Registro de regras com ≥1 item | `registros.regras` (v2) ou `registry/business-rules.json` ou `registry/regras.json` | JSON regular com lista de objetos ou envelope com chave única `itens` ou `items`. Cada item exige `id` em texto não vazio. Ao menos um item registrado. |
+| Levantar | L2: Registro de requisitos com ≥1 item | `registros.requisitos` (v2) ou `registry/requirements.json` ou `registry/requisitos.json` | JSON regular com lista de objetos ou envelope com chave única `itens` ou `items`. Cada item exige `id` em texto não vazio. Ao menos um item registrado. |
+| Levantar | L3: Todo requisito e regra com procedência | Registros de requisitos e regras | No esquema canônico, campo `sources` não vazio em cada item. No esquema DK, campo `fonte` não vazio (texto, lista ou objeto com `arquivo` e `citacao`). |
+| Levantar | L4: Nenhuma lacuna CRÍTICA em AUSENTE ou PENDENTE | `<kit>/templates/checklist-discovery.json` junto a regras, requisitos, pendências e decisões | Porte de `lacunas.py`. Busca sinais nos textos por regex. Nenhuma pergunta de prioridade CRÍTICA pode ficar AUSENTE (sem menção) ou PENDENTE (sem resposta). COBERTO exige ao menos duas respostas validadas. |
+| Entender | E1: Toda referência de sources existe em fontes ou evidências | `sources.json` e `evidence.json` (canônico) | Toda referência listada no campo `sources` de requisitos e regras deve existir como identificador em fontes ou evidências. |
+| Entender | E2: Nenhuma regra sem requisito e nenhum RF sem regra | `traceability.json` (canônico) ou `requisitos.json` (esquema DK) | No esquema canônico, exige relações com `relation` igual a `implementa_regra`. Nenhuma regra sem aresta `to`. Nenhum requisito RF ou FUNCIONAL sem aresta `from`. No esquema DK, confere o campo `deriva_de`. |
+| Entender | E3: Nenhuma prova documental resolvida só por relato | `pending.json` ou `pendencias.json` | Nenhum item com status `resolvida_por_relato`, com `pendencia_de_prova` preenchido e cujo enunciado mencione escrita, escrito ou documental. |
+| Entregar | D1: Documento de requisitos existe (canônico ou adotado) | `pastas.levantamento/requisitos` (padrão `1-levantamento/requisitos`) ou `.dk/adocoes.json` | Ao menos um arquivo regular com extensão de documento permitida (`.html`, `.md`, `.txt`, `.rst`, `.adoc`, `.markdown`, `.pdf`, `.docx`) ou adoção válida com arquivo existente e SHA-256 coincidente se declarado. |
+| Entregar | D2: Documento de visão existe | `pastas.levantamento/visao` (padrão `1-levantamento/visao`) ou `.dk/adocoes.json` | Ao menos um arquivo regular de documento permitido ou adoção válida com SHA-256 coincidente se declarado. |
+| Entregar | D3: Todo requisito citado em algum entregável | Texto de documentos em `requisitos`, `visao` e `atas` (exclui `.pdf` e `.docx`) | Todo identificador de requisito de L2 deve constar literalmente no texto dos entregáveis, respeitando as fronteiras de palavra `(?<![A-Za-z0-9_])ID(?![A-Za-z0-9_])`. |
+| Entregar | D4: checklist-dod presente (só contexto portal) | `.dk/projeto.json` e `pastas.entregaveis` (padrão `3-entregaveis`) | Aplica-se apenas quando o campo `contexto` for `portal`. Nos demais contextos o critério é omitido. Exige ao menos um documento regular na pasta de entregáveis. |
+| Prototipar | P1: Pasta do protótipo contém telas HTML | `.dk/projeto.json` (`prototipo.pasta`), `pastas.design/prototipo` ou `2-design/prototipo` | Ao menos um arquivo `.html` ou `.htm` na pasta do protótipo, em busca com profundidade de até 4 níveis. |
+| Prototipar | P2: Base declarada e design system presente | `.dk/projeto.json` (`prototipo.design_system`) | Validação estrutural de `base_prototipo.py`. A pasta declarada em `caminho` deve existir no projeto e cada arquivo listado no array `carga` deve existir. No modo `submodule`, confere apenas a existência física da pasta e dos arquivos. |
+
+#### Correções e ações
+
+As correções dos critérios só ocorrem após clique explícito da pessoa. Nenhuma ação é executada sem clique.
+- Para os critérios E1 e E2 da etapa Entender, o botão executa a ação `entender` diretamente pela CLI oficial do kit (`python3 <kit>/cli/dk entender --projeto <pasta> --json`), utilizando o executável Python validado da instalação do kit. Nunca executa comando `dk` do PATH.
+- Para os demais critérios (L1 a L4, E3, D1 a D4, P1 e P2), o botão copia o comando da respectiva skill para a área de transferência (como `/dk:dk-levantar`, `/dk:dk-entender`, `/dk:dk-entregar` ou `/dk:dk-prototipar`).
+- A cópia do comando não inicia agentes nem injeta prompts automaticamente. A pessoa cola o comando na sessão desejada do terminal ou do agente.
+
+#### Origens do catálogo
+
+O painel de catálogo reúne itens de três origens:
+1. **Kit instalado**: skills em `<kit>/skills/*/SKILL.md`. Quando o kit não está instalado ou o plugin DK está inativo, o catálogo do kit fica indisponível e exibe aviso. Não há varredura de `.dk/skills-ativas/`.
+2. **Projeto**: catálogo `project-design`, que reúne o arquivo `DESIGN.md` da raiz do projeto (se existir) e a declaração de design system de `.dk/projeto.json` (`prototipo.design_system`), carregando o corpo de `<caminho>/DESIGN.md` quando presente.
+3. **Plugins v2**: catálogos declarados por manifestos ativos via `contributes.catalogs`, dos tipos `skills` ou `design-systems`.
+
+As entradas de catálogos nunca se sobrescrevem. Cada entrada recebe um identificador qualificado no formato `<catalogId>/<nome>` e indicação visual de sua origem (Kit, Projeto ou Plugin `<nome>`). A listagem segue a ordem Kit, Projeto e Plugins, com ordenação alfabética em cada grupo. O leitor apresenta o corpo em texto simples dentro de `<pre>` e exibe apenas campos permitidos do frontmatter (`name`, `description`, `argument-hint`, `allowed-tools` e `forma-da-saida`). O leitor não interpreta HTML nem executa scripts.
+
+#### Atualização e eventos
+
+A interface atualiza o estado das etapas e dos catálogos por meio de observadores de arquivos (`fs.watch`), com agrupamento de eventos por debounce de 400 ms. Alterações em plugins ou instalação e atualização do kit invalidam os caches automaticamente. A qualquer momento, o botão **Recarregar etapas** na barra e o botão **Recarregar catálogo** no painel forçam a releitura completa do disco. Ao trocar de projeto ou fechar a janela, observadores e caches da raiz ativa são encerrados imediatamente. O kit não possui observadores contínuos. Quando o sistema operacional recusa a observação de pastas, o aplicativo exibe aviso para usar o botão Recarregar.
+
+#### Limites numéricos
+
+Limites aplicados na leitura das etapas e catálogos:
+- **Manifesto**: `projeto.yml` até 256 KiB, com limite de 50 aliases YAML e chaves únicas.
+- **Registros JSON**: até 4 MiB e até 5.000 itens por arquivo de registro (`regras`, `requisitos`, `fontes`, `evidencias`, `rastreabilidade`, `pendencias`, `decisoes`).
+- **Checklist de discovery**: arquivo até 256 KiB e até 5.000 itens.
+- **Documentos de entregáveis**: até 2 MiB por arquivo de texto regular, no máximo 32 documentos por pasta de entregáveis e até 8 MiB somados de texto lido.
+- **Adoções**: lista de até 5.000 itens em `.dk/adocoes.json`, arquivos com hash SHA-256 até 16 MiB por arquivo e limite total de 64 MiB por leitura.
+- **Protótipo**: busca até profundidade 4 e limite de 2.000 entradas inspecionadas, ignorando `node_modules`, `.git` e `design-system`.
+- **Identificadores de requisitos (D3)**: limite de 256 caracteres por ID.
+- **Catálogos**: arquivos Markdown até 64 KiB (arquivos maiores geram erro e têm leitura recusada), frontmatter até 8 KiB (YAML com até 8 aliases e chaves únicas, com fallback por regex), até 64 entradas por origem (a 65ª marca o catálogo como truncado), até 512 entradas por diretório, profundidade fixa `<raiz>/<nome>/ARQUIVO`, nomes no padrão `^[a-z0-9][a-z0-9-]{0,63}$` e identificadores de catálogo até 128 caracteres.
+- **Observadores**: limite de até 16 observadores (`fs.watch`) por projeto nas etapas e até 16 nos catálogos.
+- **Segurança de caminho**: todas as leituras usam `realpath` contido na raiz e recusam links simbólicos para fora do projeto ou ciclos (`O_NOFOLLOW`).
+
+#### Verificações não realizadas
+
+A verificação das etapas é estrutural e documental. O aplicativo não realiza:
+- Consistência semântica ou adequação conceitual entre requisitos e regras de negócio. Essa avaliação depende de revisão humana.
+- Validação das regras avançadas de gabarito e padrões do protótipo declaradas em `regras.exigido` ou `regras.proibido`. Elas contêm expressões Python não interpretadas pelo aplicativo.
+- Verificação do estado Git do submódulo do design system. No modo `submodule`, valida-se apenas a existência física da pasta e dos arquivos da carga.
+Para a validação completa de código, regras e submódulo Git do protótipo, utilize o comando `dk prototipar --verificar` no terminal.
+
+O recurso de etapas e catálogos foi executado e testado exclusivamente no macOS. As plataformas Windows e Linux não foram executadas nesta versão. A declaração `contributes.stages` de plugins permanece inerte.
+
 ## Gerar o aplicativo
 
 ```sh
