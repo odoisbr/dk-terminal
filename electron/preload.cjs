@@ -70,6 +70,8 @@ contextBridge.exposeInMainWorld('dk', Object.freeze({
   createBrowserTab: path => invoke('browser:create', path),
   openBrowser: (path, url, bounds, id) => invoke('browser:open', path, url, bounds, id),
   selectBrowser: (path, id) => invoke('browser:select', path, id),
+  onBrowserRequest: callback => listen('browser:request', callback),
+  finishBrowserRequest: (id, ok) => invoke('browser:request-result', id, ok),
   resizeBrowser: bounds => invoke('browser:resize', bounds),
   setBrowserVisible: visible => invoke('browser:visible', visible),
   setBrowserFullscreen: enabled => invoke('browser:fullscreen', enabled),

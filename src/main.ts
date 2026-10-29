@@ -1062,6 +1062,34 @@ api.onChatEvent(event => { if (idleId === event.sessionId) { idleSnapshot = null
 api.onProjectOpened(info => run(async () => { const intent = beginProjectIntent(), snapshot = launcher.captureState(); if (await activate(info, intent)) launcher.completeOpen(snapshot, intent === projectIntent); }));
 api.onOrchestrationChanged(({ path }) => { if (current?.path === path && mainView === 'graph') run(loadGraph); });
 api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.reload()); });
+api.onBrowserRequest(event => {
+  void (async () => {
+    let ok = false;
+    try {
+      const root = event.root;
+      if (current?.path !== root || closingProjects.has(root)) throw new Error('Abra o projeto correspondente antes de visualizar o protótipo.');
+      let tab = browserTabs.get(root);
+      if (!tab) {
+        tab = { id: null, ready: null, url: '', wantedService: '', selectedService: '', waitingForService: false, status: 'Carregando prévia…' };
+        browserTabs.set(root, tab);
+        tab.ready = prepareBrowserTab(root, tab);
+      }
+      const expected = tab;
+      selectMainView('browser');
+      try { if (!await expected.ready) throw new Error('A guia de navegador não está disponível.'); }
+      catch (error) {
+        if (browserTabs.get(root) === expected) { browserTabs.delete(root); if (current?.path === root && mainView === 'browser') selectMainView(workspaceView); else renderTabs(); }
+        throw error;
+      }
+      if (browserTabs.get(root) !== expected || current?.path !== root) throw new Error('Abra o projeto correspondente antes de visualizar o protótipo.');
+      expected.wantedService = ''; expected.selectedService = ''; expected.waitingForService = false;
+      if (mainView === 'browser') renderBrowserServices('');
+      await navigatePreview(root, event.url, expected);
+      ok = current?.path === root && mainView === 'browser' && browserTabs.get(root) === expected && expected.url === event.url;
+    } catch (error) { notify(error); }
+    finally { await api.finishBrowserRequest(event.id, ok).catch(() => {}); }
+  })();
+});
 api.onBrowserChanged(event => {
   const tab = browserTabs.get(event.path); if (!tab || tab.id !== event.id) return;
   setBrowserStatus(event.path, tab, event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : 'Projeto local · A página pode acessar a rede');

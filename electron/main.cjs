@@ -13,6 +13,7 @@ const { treeAction } = require('./tree-actions.cjs');
 const { Orchestration } = require('./orchestration.cjs');
 const { PreviewBrowser } = require('./browser.cjs');
 const { BrowserFullscreen } = require('./browser-fullscreen.cjs');
+const { PreviewBridge } = require('./preview-bridge.cjs');
 const { readProjectFile, saveProjectFile } = require('./files.cjs');
 const { Usage } = require('./usage.cjs');
 const { CodexChat } = require('./codex-chat.cjs');
@@ -59,7 +60,7 @@ function launchFiles(argv, cwd, skip = process.defaultApp ? 2 : 1) {
 const initialFiles = launchFiles(process.argv, process.cwd());
 const primaryInstance = app.requestSingleInstanceLock({ files: initialFiles });
 if (!primaryInstance) app.quit();
-let window, terminals, services, extensions, orchestration, preview, browserFullscreen, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
+let window, terminals, services, extensions, orchestration, preview, previewBridge, browserFullscreen, usage, codexChat, actions, resources, integrations, localRepositories, git, config, stateFile, env;
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false, windowClosing = false, windowCleanupDone = false;
 const selected = new Set();
 const closingProjects = new Set();
@@ -388,6 +389,7 @@ function registerHandlers() {
     const approved = await confirmPlugin(root, pluginId, actionId, revision);
     return approved ? terminals.create(approved.info, approved.spec) : null;
   });
+  handle('browser:request-result', (id, ok) => previewBridge.finish(id, ok));
   handle('browser:create', root => preview.create(browserProject(root).path));
   handle('browser:open', (root, url, bounds, id) => preview.open(window, browserProject(root).path, url, bounds, id));
   handle('browser:select', (root, id) => preview.select(root === null ? null : browserProject(root).path, id));
@@ -420,6 +422,7 @@ function registerHandlers() {
     advancePluginGeneration(info.path);
     try {
       const [result, chats, browserResult] = await Promise.all([terminals.closeProject(info.path), codexChat.closeProject(info.path), closeProjectBrowser(info.path)]);
+      previewBridge.revoke(info.path);
       closedPluginProjects.add(info.path);
       extensions.closeProject(info.path);
       return { ...result, partial: result.partial || browserResult.partial, chats };
@@ -497,7 +500,7 @@ function registerHandlers() {
 }
 function createWindow() {
   allowClose = false; dirtyFiles = []; windowClosing = false; windowCleanupDone = false;
-  codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event) });
+  codexChat = new CodexChat({ env, storeFile: path.join(app.getPath('userData'), 'codex-conversations.json'), emit: event => send('chat:event', event), previewEnvironment: root => previewBridge.environment(root) });
   window = new BrowserWindow({
     width: 1440, height: 920, minWidth: 940, minHeight: 620, backgroundColor: '#101214',
     title: 'SEA Dock', icon: windowIcon(app.getAppPath()), titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -552,7 +555,7 @@ function createWindow() {
   });
   window.on('closed', () => {
     browserFullscreen?.dispose(); browserFullscreen = null;
-    terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
+    previewBridge.revokeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
     const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
     if(reopen){focusRequested=false;const files=pendingFiles.splice(0);if(files.length)openFiles(files);else createWindow();focusWindow();}
   });
@@ -605,7 +608,9 @@ if (primaryInstance) app.whenReady().then(async () => {
   stateFile = path.join(app.getPath('userData'), 'settings.json');
   config = readState(stateFile);
   env = { ...process.env };
-  terminals = new Terminals(send, env);
+  previewBridge = new PreviewBridge(request => { if (!window || window.isDestroyed() || !selected.has(request.root)) throw new Error('Projeto indisponível.'); send('browser:request', request); });
+  try { await previewBridge.start(); } catch (error) { console.error("Prévia integrada indisponível:", error.message); }
+  terminals = new Terminals(send, env, root => previewBridge.environment(root));
   services = new Services(event => send('service:changed', event), env);
   orchestration = new Orchestration(event => send('graph:changed', event));
   preview = new PreviewBrowser(event => send('browser:changed', event), () => {
@@ -636,4 +641,4 @@ if (primaryInstance) app.whenReady().then(async () => {
 }).catch(error => { dialog.showErrorBox('SEA Dock', error.message); app.quit(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
-app.on('will-quit', () => { terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });
+app.on('will-quit', () => { previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });
