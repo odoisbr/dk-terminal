@@ -122,12 +122,12 @@ let focusedPane: 'terminal' | 'editor' = 'terminal';
 let browserWantedService = '', browserURL = '';
 let browserFullscreenActive = false, browserFullscreenDesired = false, browserFullscreenPending = false, browserFullscreenRecovery = false, browserFullscreenRequest = 0;
 let fileEditor: import('./editor').FileEditor | null = null;
-const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, hasUnsaved:()=>!!fileEditor?.hasUnsaved(), changeBranch:async(root,action,name)=>{
+const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, hasUnsaved:()=>!!current && !!fileEditor?.hasUnsaved(current.path), changeBranch:async(root,action,name)=>{
   if(changingBranches.has(root))throw new Error('Aguarde a troca de branch.');
   changingBranches.add(root);
   try {
     if(editorOpening)await editorOpening;
-    if(fileEditor?.hasUnsaved())throw new Error('Salve os arquivos abertos no editor antes de trocar de branch.');
+    if(fileEditor?.hasUnsaved(root))throw new Error('Salve os arquivos abertos no editor antes de trocar de branch.');
     if(fileEditor && !await fileEditor.closeProject(root))throw new Error('A troca de branch foi cancelada.');
     await api.gitBranchAction(root,action,name);
     if(current?.path===root)await loadRootTree();

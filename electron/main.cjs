@@ -115,6 +115,12 @@ function project(root) {
   if (!selected.has(root)) throw new Error('Abra esta pasta pelo seletor de projetos.');
   return projectInfo(root);
 }
+function hasDirtyFilesInProject(root) {
+  return dirtyFiles.some(file => {
+    const rel = path.relative(root, file);
+    return rel && rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel);
+  });
+}
 function advancePluginGeneration(root) {
   const next = (pluginProjectGenerations.get(root) || 0) + 1;
   pluginProjectGenerations.set(root, next);
@@ -227,13 +233,21 @@ function registerHandlers() {
   handle('git:graph', root => git.graph(project(root).path));
   handle('git:branch-action', (root, action, name) => {
     const info=project(root);
-    if(action!=='delete' && dirtyFiles.some(file=>{const rel=path.relative(info.path,file);return rel && rel!=='..'&&!rel.startsWith('..'+path.sep)&&!path.isAbsolute(rel);})) throw new Error('Salve os arquivos abertos no editor antes de trocar de branch.');
+    if(action!=='delete' && hasDirtyFilesInProject(info.path)) throw new Error('Salve os arquivos abertos no editor antes de trocar de branch.');
     return git.branchAction(info.path, action, name);
   });
   handle('git:diff', (root, name) => git.diff(project(root).path, name));
   handle('git:commit-detail', (root, hash) => git.commitDetail(project(root).path, hash));
-  handle('git:commit', (root, names, message) => git.commit(project(root).path, names, message));
-  handle('git:sync', (root, action) => git.sync(project(root).path, action));
+  handle('git:commit', (root, names, message) => {
+    const info = project(root);
+    if (hasDirtyFilesInProject(info.path)) throw new Error('Salve os arquivos abertos no editor antes de criar uma versão. O Git registra o conteúdo salvo no disco.');
+    return git.commit(info.path, names, message);
+  });
+  handle('git:sync', (root, action) => {
+    const info = project(root);
+    if (action === 'pull' && hasDirtyFilesInProject(info.path)) throw new Error('Salve os arquivos abertos no editor antes de atualizar o projeto.');
+    return git.sync(info.path, action);
+  });
   handle('git:gitlab', async (root, destination) => {
     if (!['project','merge-requests','new-merge-request'].includes(destination)) throw new Error('Destino GitLab inválido.');
     const state = await git.status(project(root).path);

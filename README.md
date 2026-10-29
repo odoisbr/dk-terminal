@@ -143,6 +143,7 @@ npm run test:desktop
 npm run test:editor
 npm run test:launcher
 npm run test:browser:fullscreen
+npm run test:git:workflow
 npm run test:all  # suíte completa, incluindo interface gráfica e regressões de projeto
 ```
 
@@ -215,9 +216,11 @@ A conta SEA usa `sea auth login` e a conta GitLab usa `glab auth login` para o h
 
 ### Guia Git
 
-Na guia **Git** do projeto local, confira a branch, os arquivos alterados e a comparação de cada arquivo. Selecione os arquivos e informe uma mensagem para **Salvar versão**; o conteúdo gravado no disco é incluído na versão e os demais arquivos preparados permanecem separados. Salve os arquivos abertos no editor antes de criar uma versão. Se a criação falhar depois da preparação, os arquivos selecionados podem permanecer preparados no Git.
+Na guia **Git** do projeto local, as seções recolhíveis **Alterações** e **Grafo** mostram os arquivos e as versões no mesmo painel. Selecione os arquivos e informe uma mensagem para **Salvar versão**; `⌘ Enter` no Mac ou `Ctrl Enter` nas demais plataformas realiza a mesma ação. A versão inclui o conteúdo integral salvo em disco dos arquivos selecionados, e os demais arquivos preparados permanecem separados. Conflitos devem ser resolvidos antes da seleção. O rascunho da mensagem, a seleção ainda válida e as seções são mantidos por projeto enquanto o aplicativo estiver aberto.
 
-O histórico apresenta até 50 versões recentes; abra uma versão para consultar os arquivos que ela alterou. **Buscar** consulta o remoto, **Atualizar** exige que não haja alterações locais e só aceita atualização sem merge, e **Enviar** envia a branch atual (na primeira vez, usa `origin` como remoto). A autenticação segue a configuração Git do computador; caso precise de interação ou de resolver um conflito, use o terminal. A guia é atualizada ao ser aberta e também pelo botão de atualização.
+Salve os arquivos abertos do projeto no editor antes de criar uma versão ou atualizá-lo. Se a criação falhar depois da preparação, os arquivos selecionados podem permanecer preparados no Git. Hooks configurados no repositório continuam em vigor.
+
+O grafo apresenta até 100 versões das referências disponíveis localmente; abra uma versão para consultar seus detalhes. Em **Ferramentas**, **Buscar** consulta o remoto, **Atualizar** exige que não haja alterações locais e só aceita atualização sem merge, e **Enviar** envia a branch atual (na primeira vez, usa `origin` como remoto). Os indicadores de envio e recebimento usam as referências locais do último buscar. A autenticação segue a configuração Git do computador; caso precise de interação ou de resolver um conflito, use o terminal. A guia é atualizada ao ser aberta e também pelo botão de atualização.
 
 Quando `origin` aponta para um projeto no grupo Design do GitLab SEA, a guia oferece atalhos para o projeto e seus merge requests. Criar merge request abre o formulário do GitLab no navegador; a publicação é confirmada lá. Projetos visualizados remotamente precisam de uma cópia local para essas operações Git.
 

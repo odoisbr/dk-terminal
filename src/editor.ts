@@ -194,7 +194,7 @@ export class FileEditor {
 
   clearTemporaryImages(): void { this.imageCache.clear(); }
 
-  hasUnsaved(): boolean { return [...this.tabs.values()].some(tab => tab.dirty); }
+  hasUnsaved(root?: string): boolean { return [...this.tabs.values()].some(tab => tab.dirty && (!root || tab.root === root)); }
 
   async saveCurrent(): Promise<boolean> {
     const focused = document.activeElement;
