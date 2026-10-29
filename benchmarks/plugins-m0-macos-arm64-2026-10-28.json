@@ -1,0 +1,884 @@
+{
+  "mode": "m0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "samples": [
+    {
+      "label": "projeto_em_repouso",
+      "appMiB": 451.3125,
+      "cpuPercent": 0.66438746730017,
+      "watchers": 0,
+      "samples": [
+        {
+          "appMiB": 455.609375,
+          "cpuPercent": 1.9825415199738432,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 194.171875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 85.09375,
+              "cpuPercent": 1.3216943466492337
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 41.9375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 134.40625,
+              "cpuPercent": 0.6608471733246095
+            }
+          ]
+        },
+        {
+          "appMiB": 451.234375,
+          "cpuPercent": 0.66438746730017,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 194.109375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 80.90625,
+              "cpuPercent": 0.66438746730017
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 41.90625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 134.3125,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 451.3125,
+          "cpuPercent": 0.6589334422386903,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 194.1875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 80.90625,
+              "cpuPercent": 0.6589334422386903
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 41.90625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 134.3125,
+              "cpuPercent": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "terminal_sem_foco",
+      "appMiB": 457.03125,
+      "cpuPercent": 0,
+      "watchers": 0,
+      "samples": [
+        {
+          "appMiB": 461.453125,
+          "cpuPercent": 1.981025571986055,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 197.84375,
+              "cpuPercent": 0.660341857328685
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 85.390625,
+              "cpuPercent": 0.660341857328685
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 41.90625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 136.3125,
+              "cpuPercent": 0.660341857328685
+            }
+          ]
+        },
+        {
+          "appMiB": 457.015625,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 197.640625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 81.25,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 41.90625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 136.21875,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 457.03125,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 197.65625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 81.25,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 41.90625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 136.21875,
+              "cpuPercent": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "cursor_estatico_antes",
+      "appMiB": 457.984375,
+      "cpuPercent": 1.3201629843120728,
+      "watchers": 0,
+      "samples": [
+        {
+          "appMiB": 457.953125,
+          "cpuPercent": 0.6597503210800296,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 198.1875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 81.296875,
+              "cpuPercent": 0.6597503210800296
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 41.90625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 136.5625,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 457.984375,
+          "cpuPercent": 1.3201629843120728,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 198.21875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 81.28125,
+              "cpuPercent": 0.6600814921560364
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 41.90625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 136.578125,
+              "cpuPercent": 0.6600814921560364
+            }
+          ]
+        },
+        {
+          "appMiB": 459.78125,
+          "cpuPercent": 2.64481811864496,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 198.671875,
+              "cpuPercent": 0.66120452966124
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 81.609375,
+              "cpuPercent": 1.32240905932248
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 42.34375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 137.15625,
+              "cpuPercent": 0.66120452966124
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "cursor_piscando",
+      "appMiB": 483.515625,
+      "cpuPercent": 11.236420450445419,
+      "watchers": 0,
+      "samples": [
+        {
+          "appMiB": 483.484375,
+          "cpuPercent": 11.236420450445419,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 200.65625,
+              "cpuPercent": 0.6609659088497248
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 89.046875,
+              "cpuPercent": 3.965795453098393
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 42.265625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 151.515625,
+              "cpuPercent": 6.609659088497307
+            }
+          ]
+        },
+        {
+          "appMiB": 483.515625,
+          "cpuPercent": 10.542451406693552,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 200.65625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 89.046875,
+              "cpuPercent": 3.9534192775100725
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 42.265625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 151.546875,
+              "cpuPercent": 6.589032129183479
+            }
+          ]
+        },
+        {
+          "appMiB": 483.53125,
+          "cpuPercent": 11.869082375551573,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 200.65625,
+              "cpuPercent": 0.6593934653084216
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 89.046875,
+              "cpuPercent": 3.9563607918505292
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 42.265625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 151.5625,
+              "cpuPercent": 7.253328118392623
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "cursor_estatico_depois",
+      "appMiB": 477.640625,
+      "cpuPercent": 0.6609781236896631,
+      "watchers": 0,
+      "samples": [
+        {
+          "appMiB": 477.640625,
+          "cpuPercent": 0.6609781236896631,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 198.796875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 84.75,
+              "cpuPercent": 0.6609781236896631
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 42.265625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 151.828125,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 477.65625,
+          "cpuPercent": 1.3222454965123316,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 198.796875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 84.75,
+              "cpuPercent": 0.6611227482561658
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 42.265625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 151.84375,
+              "cpuPercent": 0.6611227482561658
+            }
+          ]
+        },
+        {
+          "appMiB": 476.953125,
+          "cpuPercent": 0.6595286796610254,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 198.078125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 84.765625,
+              "cpuPercent": 0.6595286796610254
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 42.265625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 151.84375,
+              "cpuPercent": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "configuracoes_abertas_zero_plugins",
+      "appMiB": 468.34375,
+      "cpuPercent": 0,
+      "watchers": 1,
+      "samples": [
+        {
+          "appMiB": 468.34375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 1,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 193.59375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 85.125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 40.53125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 149.09375,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 468.34375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 1,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 193.609375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 85.109375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 40.53125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 149.09375,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 468.359375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 1,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 193.625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 85.109375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 40.53125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 149.09375,
+              "cpuPercent": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "configuracoes_abertas_um_plugin",
+      "appMiB": 431.296875,
+      "cpuPercent": 0,
+      "watchers": 2,
+      "samples": [
+        {
+          "appMiB": 431.640625,
+          "cpuPercent": 0.6596440229578897,
+          "processCount": 4,
+          "watchers": 2,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 155.5625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 88.546875,
+              "cpuPercent": 0.6596440229578897
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 39.765625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 147.765625,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 431.296875,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 2,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 155.5625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 88.53125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 39.765625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 147.4375,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 431.296875,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 2,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 155.5625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 88.53125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 39.765625,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 147.4375,
+              "cpuPercent": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "configuracoes_abertas_32_plugins",
+      "appMiB": 413.359375,
+      "cpuPercent": 0,
+      "watchers": 33,
+      "samples": [
+        {
+          "appMiB": 413.359375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 33,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 151.328125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 82.59375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 39.46875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 139.96875,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 413.359375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 33,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 151.328125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 82.59375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 39.46875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 139.96875,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 413.578125,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 33,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 151.34375,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 82.796875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 39.46875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 139.96875,
+              "cpuPercent": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "configuracoes_fechadas_32_plugins",
+      "appMiB": 414.375,
+      "cpuPercent": 0,
+      "watchers": 0,
+      "samples": [
+        {
+          "appMiB": 414.375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 151.71875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 82.6875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 39.78125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 140.1875,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 414.375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 151.71875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 82.6875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 39.78125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 140.1875,
+              "cpuPercent": 0
+            }
+          ]
+        },
+        {
+          "appMiB": 414.375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "watchers": 0,
+          "parts": [
+            {
+              "type": "Browser",
+              "memoryMiB": 151.71875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "GPU",
+              "memoryMiB": 82.6875,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Utility",
+              "memoryMiB": 39.78125,
+              "cpuPercent": 0
+            },
+            {
+              "type": "Tab",
+              "memoryMiB": 140.1875,
+              "cpuPercent": 0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "loadMs": {
+    "zero": 47,
+    "one": 49,
+    "thirtyTwo": 56
+  },
+  "monitoring": {
+    "status": "observado",
+    "observations": [
+      {
+        "label": "antes_ativar_cursor",
+        "count": 1,
+        "expectedMinimum": 1
+      },
+      {
+        "label": "antes_desativar_cursor",
+        "count": 1,
+        "expectedMinimum": 1
+      },
+      {
+        "label": "zero_plugins",
+        "count": 1,
+        "expectedMinimum": 1
+      },
+      {
+        "label": "um_plugin",
+        "count": 2,
+        "expectedMinimum": 2
+      },
+      {
+        "label": "32_plugins",
+        "count": 33,
+        "expectedMinimum": 33
+      }
+    ],
+    "cleanupConfirmed": true,
+    "reason": null
+  },
+  "cleanupPartial": false,
+  "limits": [
+    "Uma execução, uma janela e um terminal; não representa a variabilidade entre execuções ou máquinas.",
+    "RSS soma processos Electron e pode duplicar páginas compartilhadas; exclui o shell filho.",
+    "CPU soma tempo acumulado dos processos Electron por intervalos de 1,5 s; 100% equivale a um núcleo e não à CPU da máquina inteira.",
+    "A resolução do tempo exibido por ps limita amostras curtas: com centésimos de segundo, um incremento equivale a aproximadamente 0,67 ponto percentual por processo.",
+    "A lista de PIDs é comparada no início e fim de cada amostra, sem garantir a captura de processos transitórios entre eles.",
+    "Observadores contam chamadas fs.watch no processo principal instrumentadas após a abertura do projeto; não incluem todos os recursos do sistema.",
+    "O A/B/A usa a preferência do aplicativo, terminal focado e estilo computado verificado; não mede consumo de energia.",
+    "Nenhum plugin ou agente foi executado."
+  ],
+  "description": "Mac Apple Silicon com 8 GiB; amostras de uma execução isolada após iniciar o M0, com projeto e terminal temporários. O teste A/B/A usa a preferência real de cursor do aplicativo."
+}

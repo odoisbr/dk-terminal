@@ -50,6 +50,11 @@ let window, terminals, services, extensions, orchestration, preview, usage, code
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false, windowClosing = false, windowCleanupDone = false;
 const selected = new Set();
 const closingProjects = new Set();
+// A recent project may be reopened, but closing it revokes plugin access until then.
+const closedPluginProjects = new Set();
+const pendingPluginPrompts = new Set();
+const pluginProjectIdentities = new Map();
+const pluginProjectGenerations = new Map();
 let kit = null;
 const pluginMonitor = new ClaudePluginMonitor();
 let prepared = false, finishBoot, startupProject = null;
@@ -99,7 +104,7 @@ function handle(channel, handler) {
   ipcMain.handle(channel, async (event, ...args) => {
     try {
       authorize(event);
-      if(windowClosing && ['terminal:create','terminal:split','terminal:start','chat:send','service:start','action:run'].includes(channel)) throw new Error('O aplicativo está encerrando as sessões.');
+      if(windowClosing && ['terminal:create','terminal:split','terminal:start','chat:send','service:start','action:run','plugin:execute'].includes(channel)) throw new Error('O aplicativo está encerrando as sessões.');
       return { ok: true, value: await handler(...args) };
     }
     catch (error) { return { ok: false, error: error.message || 'Não foi possível concluir a ação.' }; }
@@ -109,16 +114,104 @@ function project(root) {
   if (!selected.has(root)) throw new Error('Abra esta pasta pelo seletor de projetos.');
   return projectInfo(root);
 }
+function advancePluginGeneration(root) {
+  const next = (pluginProjectGenerations.get(root) || 0) + 1;
+  pluginProjectGenerations.set(root, next);
+  return next;
+}
+function rememberPluginIdentity(root) {
+  const stat = fs.statSync(root);
+  if (!stat.isDirectory()) throw new Error('Pasta de projeto inválida.');
+  pluginProjectIdentities.set(root, { dev: stat.dev, ino: stat.ino });
+}
 function remember(root) {
   const info = projectInfo(root);
   selected.add(info.path);
+  rememberPluginIdentity(info.path);
+  advancePluginGeneration(info.path);
+  closedPluginProjects.delete(info.path);
   if (!config.projects.includes(info.path)) config.projects = [...config.projects, info.path].slice(-12);
   save();
   return info;
 }
 function bootstrap() {
-  const projects = config.projects.flatMap(root => { try { const info = projectInfo(root); selected.add(info.path); return [info]; } catch { return []; } });
+  const projects = config.projects.flatMap(root => { try { const info = projectInfo(root); selected.add(info.path); if (!pluginProjectIdentities.has(info.path)) rememberPluginIdentity(info.path); return [info]; } catch { return []; } });
   return { projects, startupProject, remoteProjects: (config.remoteProjects || []).filter(item => item.path.startsWith('design/')), kit: kit ? { path: kit.path } : null, extensions: extensions.list(), extensionErrors: extensions.errors, platform: process.platform, version: app.getVersion() };
+}
+function knownProject(root) {
+  const info = project(root);
+  const identity = pluginProjectIdentities.get(root), actual = fs.statSync(root);
+  if (info.path !== root || !identity || !actual.isDirectory() || actual.dev !== identity.dev || actual.ino !== identity.ino) throw new Error('A pasta do projeto mudou. Selecione-a novamente para continuar.');
+  return info;
+}
+function pluginProject(root) {
+  const info = knownProject(root);
+  if (closingProjects.has(info.path) || closedPluginProjects.has(info.path)) throw new Error('Abra o projeto antes de usar seus plugins.');
+  return info;
+}
+function displayPluginValue(value) {
+  // Keep invisible direction/format controls visible in the confirmation so
+  // they cannot reorder or hide parts of an executable, path or argument.
+  return JSON.stringify(value).replace(/[\p{Cf}\u007f-\u009f\u2028\u2029]/gu, character => {
+    const code = character.codePointAt(0).toString(16);
+    return character.length === 1 ? `\\u${code.padStart(4, '0')}` : `\\u{${code}}`;
+  });
+}
+async function confirmPlugin(root, pluginId, actionId, revision) {
+  const info = pluginProject(root);
+  const generation = pluginProjectGenerations.get(info.path) || 0;
+  const ownerWindow = window;
+  if (!ownerWindow || ownerWindow.isDestroyed() || windowClosing) throw new Error('A janela está sendo encerrada.');
+  if (typeof pluginId !== 'string' || typeof actionId !== 'string' || typeof revision !== 'string' || !/^[a-f0-9]{64}$/.test(revision)) throw new Error('Ação de plugin inválida. Atualize a lista e tente novamente.');
+  if (pendingPluginPrompts.has(info.path)) throw new Error('Conclua a confirmação de plugin já aberta.');
+  pendingPluginPrompts.add(info.path);
+  let host;
+  try {
+    // Use a short-lived snapshot without watchers. UI reloads or hiding the
+    // panel cannot invalidate a confirmation while it is being displayed.
+    host = extensions.forVerification(env);
+    await host.listPlugins(info.path);
+    const before = await host.pluginSpec(info.path, pluginId, actionId, revision);
+    if (window !== ownerWindow || ownerWindow.isDestroyed() || windowClosing || (pluginProjectGenerations.get(info.path) || 0) !== generation) throw new Error('O projeto ou a janela mudou; tente novamente.');
+    // JSON encoding keeps control characters and each argument visible without
+    // suggesting that the command is passed through a shell.
+    const detail = `Ação: ${displayPluginValue(before.label)}\nProjeto: ${displayPluginValue(info.path)}\nExecutável: ${displayPluginValue(before.file)}\nDestino real: ${displayPluginValue(before.executableIdentity.realpath)}\nArgumentos: ${displayPluginValue(before.args)}\n\nO programa terá as permissões da sua conta neste computador.`;
+    const answer = await dialog.showMessageBox(ownerWindow, { type: 'question', message: 'Executar ação de plugin?', detail, buttons: ['Cancelar', 'Executar'], defaultId: 0, cancelId: 0, noLink: true });
+    if (answer.response !== 1) return null;
+    if (window !== ownerWindow || ownerWindow.isDestroyed() || windowClosing || (pluginProjectGenerations.get(info.path) || 0) !== generation) throw new Error('O projeto ou a janela mudou; tente novamente.');
+    const current = pluginProject(root);
+    const after = await host.pluginSpec(current.path, pluginId, actionId, revision);
+    if (before.revision !== after.revision || before.file !== after.file || before.label !== after.label || JSON.stringify(before.args) !== JSON.stringify(after.args) || JSON.stringify(before.executableIdentity) !== JSON.stringify(after.executableIdentity)) throw new Error('O plugin ou seu executável mudou durante a confirmação. Atualize a lista e tente novamente.');
+    // Recheck after asynchronous file I/O, in case the project closed meanwhile.
+    pluginProject(root);
+    if (window !== ownerWindow || ownerWindow.isDestroyed() || windowClosing || (pluginProjectGenerations.get(info.path) || 0) !== generation) throw new Error('O projeto ou a janela mudou; tente novamente.');
+    return { info: current, spec: { ...after, pluginAction: { pluginId, actionId, revision, generation } } };
+  } finally {
+    host?.close();
+    pendingPluginPrompts.delete(info.path);
+  }
+}
+async function startTerminal(id, size) {
+  const session = terminals.get(id), action = session.spec?.pluginAction;
+  if (action) {
+    const root = session.cwd;
+    const assertProject = () => {
+      pluginProject(root);
+      if (windowClosing || (pluginProjectGenerations.get(root) || 0) !== action.generation) throw new Error('O projeto mudou antes do início da ação.');
+      if (terminals.get(id) !== session || session.state !== 'pending') throw new Error('A sessão do plugin não está mais disponível.');
+    };
+    assertProject();
+    let host;
+    try {
+      host = extensions.forVerification(env);
+      await host.listPlugins(root);
+      const actual = await host.pluginSpec(root, action.pluginId, action.actionId, action.revision);
+      if (actual.file !== session.spec.file || actual.label !== session.spec.label || JSON.stringify(actual.args) !== JSON.stringify(session.spec.args) || JSON.stringify(actual.executableIdentity) !== JSON.stringify(session.spec.executableIdentity)) throw new Error('O plugin ou seu executável mudou antes de iniciar. Atualize a lista e tente novamente.');
+    } finally { host?.close(); }
+    // No asynchronous work between the last identity check and starting PTY.
+    assertProject();
+  }
+  return terminals.start(id, size);
 }
 function registerHandlers() {
   handle('app:bootstrap', async () => { await bootReady; const state = bootstrap(); startupProject = null; return state; });
@@ -214,7 +307,7 @@ function registerHandlers() {
     catch (error) { if (error.code === 'EEXIST') throw new Error('Já existe uma pasta com esse nome no local escolhido.'); throw error; }
     return remember(target);
   });
-  handle('project:activate', root => remember(project(root).path));
+  handle('project:activate', root => remember(knownProject(root).path));
   handle('tree:list', (root, relative) => listDirectory(project(root).path, relative));
   handle('tree:action', (root, relative, action) => treeAction(project(root).path, relative, action, {shell,clipboard,ShareMenu,window}));
   handle('file:read', (root, relative) => readProjectFile(project(root).path, relative));
@@ -240,11 +333,21 @@ function registerHandlers() {
   handle('action:cancel', root => actions.cancel(project(root).path));
   handle('graph:list', root => orchestration.list(project(root).path));
   handle('graph:watch', root => orchestration.watch(root === null ? null : project(root).path));
+  handle('plugin:list', root => extensions.listPlugins(root === null ? null : pluginProject(root).path));
+  handle('plugin:reload', root => extensions.reloadPlugins(root === null ? null : pluginProject(root).path));
+  handle('plugin:stop-watching', () => { extensions.close(); });
+  handle('plugin:execute', async (root, pluginId, actionId, revision) => {
+    const approved = await confirmPlugin(root, pluginId, actionId, revision);
+    return approved ? terminals.create(approved.info, approved.spec) : null;
+  });
   handle('browser:open', (root, url, bounds) => preview.open(window, project(root).path, url, bounds));
   handle('browser:resize', bounds => preview.resize(bounds));
   handle('browser:close', () => preview.close());
   handle('project:forget', root => {
     project(root);
+    advancePluginGeneration(root);
+    closedPluginProjects.add(root);
+    extensions.closeProject(root);
     config.projects = config.projects.filter(p => p !== root);
     save();
     // Existing sessions keep their working directory until explicitly closed.
@@ -254,8 +357,11 @@ function registerHandlers() {
     const info = project(root);
     if (closingProjects.has(info.path)) throw new Error('O projeto já está sendo encerrado.');
     closingProjects.add(info.path);
+    advancePluginGeneration(info.path);
     try {
       const [result, chats] = await Promise.all([terminals.closeProject(info.path), codexChat.closeProject(info.path)]);
+      closedPluginProjects.add(info.path);
+      extensions.closeProject(info.path);
       return { ...result, chats };
     } finally { closingProjects.delete(info.path); }
   });
@@ -270,8 +376,23 @@ function registerHandlers() {
     const spec = action == null ? null : action.startsWith('extension:') ? extensions.spec(action.slice(10)) : actionSpec(action, info, kit && kitInfo(kit.path), env);
     return terminals.create(info, spec);
   });
-  handle('terminal:split', (root, id, agent) => { const info=project(root); if(closingProjects.has(info.path)) throw new Error('O projeto está sendo encerrado.'); return terminals.split(info.path, id, extensions, agent); });
-  handle('terminal:start', (id, size) => terminals.start(id, size));
+  handle('terminal:split', async (root, id, agent) => {
+    const info = project(root);
+    if (closingProjects.has(info.path)) throw new Error('O projeto está sendo encerrado.');
+    const original = terminals.get(id);
+    if (original.cwd !== info.path) throw new Error('Este terminal pertence a outro projeto.');
+    if (!agent && original.spec?.pluginAction) {
+      const { pluginId, actionId, revision } = original.spec.pluginAction;
+      const approved = await confirmPlugin(info.path, pluginId, actionId, revision);
+      if (!approved) return null;
+      if (terminals.get(id) !== original || windowClosing) throw new Error('A sessão original foi encerrada.');
+      pluginProject(root);
+      // Plugin actions always start in their project root, including a split.
+      return terminals.create(approved.info, approved.spec);
+    }
+    return terminals.split(info.path, id, extensions, agent);
+  });
+  handle('terminal:start', (id, size) => startTerminal(id, size));
   handle('terminal:write', (id, data) => terminals.write(id, data));
   handle('terminal:resize', (id, size) => terminals.resize(id, size));
   handle('terminal:ack', (id, count) => terminals.acknowledge(id, count));
@@ -294,7 +415,7 @@ function createWindow() {
   window.webContents.on('will-attach-webview', event => event.preventDefault());
   window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   window.webContents.session.setPermissionCheckHandler(() => false);
-  window.webContents.on('render-process-gone', () => { void terminals.closeAllAndWait().catch(() => {}); });
+  window.webContents.on('render-process-gone', () => { extensions.close(); void terminals.closeAllAndWait().catch(() => {}); });
   window.once('ready-to-show', () => window.show());
   window.on('close', event => {
     if (dirtyFiles.length && !allowClose) {
@@ -330,7 +451,7 @@ function createWindow() {
     });
   });
   window.on('closed', () => {
-    terminals.closeAll(); services.closeAll(); orchestration.close(); preview.close(); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
+    terminals.closeAll(); services.closeAll(); extensions.close(); orchestration.close(); preview.close(); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); window = null; dirtyFiles = [];
     const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
     if(reopen){focusRequested=false;const files=pendingFiles.splice(0);if(files.length)openFiles(files);else createWindow();focusWindow();}
   });
@@ -368,7 +489,7 @@ if (primaryInstance) app.whenReady().then(async () => {
   git = new Git(env);
   localRepositories = new LocalRepositories('/Volumes/SEA', env);
   resources = new ResourceMonitor(() => app.getAppMetrics(), { getTerminals: () => [...terminals.resourceRoots(), ...(codexChat?.resourceRoots() || [])] });
-  extensions = new Extensions([path.join(app.getAppPath(), 'extensions'), path.join(app.getPath('userData'), 'extensions')], env);
+  extensions = new Extensions([path.join(app.getAppPath(), 'extensions'), path.join(app.getPath('userData'), 'extensions')], env, event => send('plugin:changed', event));
   registerHandlers(); menu(); createWindow();
   app.on('activate', () => { if (!window) createWindow(); });
   env = await loginEnvironment();
@@ -385,4 +506,4 @@ if (primaryInstance) app.whenReady().then(async () => {
 }).catch(error => { dialog.showErrorBox('DK Terminal', error.message); app.quit(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
-app.on('will-quit', () => { terminals?.closeAll(); services?.closeAll(); orchestration?.close(); preview?.close(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });
+app.on('will-quit', () => { terminals?.closeAll(); services?.closeAll(); extensions?.close(); orchestration?.close(); preview?.close(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); });

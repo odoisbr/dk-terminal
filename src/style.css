@@ -144,6 +144,9 @@ h2 { font-size: 22px; font-weight: 450; letter-spacing: -.6px; margin: 15px 0 0;
 #terminal-host.split .terminal-pane { position: relative; inset: auto; min-width: 0; min-height: 0; background: var(--terminal); }
 #terminal-host.split .terminal-pane.focused { box-shadow: inset 0 0 0 1px #dff79388; }
 .terminal-pane { position: absolute; inset: 0; padding: 17px 10px 10px 18px; }
+/* Preserve a visible cursor while honoring the user's low-CPU preference, even
+   when a terminal application requests a blinking cursor via an escape code. */
+.terminal-cursor-static .xterm .xterm-cursor-blink { animation: none !important; }
 .xterm { height: 100%; }
 .xterm-viewport { scrollbar-color: #3b454a transparent; scrollbar-width: thin; }
 .terminal-footer { height: 31px; border-top: 1px solid #262c30; display: flex; justify-content: space-between; align-items: center; padding: 0 13px; color: #8b989f; font-size: 9px; flex-shrink: 0; }
@@ -526,8 +529,9 @@ body.appearance-glass {
 /* Explorador: hierarquia, áreas de clique e tipos de arquivo mais legíveis. */
 .context-panel { background: color-mix(in srgb, var(--base) 94%, var(--accent) 3%); border: 1px solid var(--line); border-radius: 10px; }
 .context-panel .inspector-tabs { margin: 0 9px; gap: 1px; }
-.context-panel .inspector-tabs button { flex: 0 0 auto; font-size: 10px; padding: 12px 3px 10px; white-space: nowrap; }
+.context-panel .inspector-tabs button { flex: 0 0 auto; min-height: 44px; font-size: 10px; padding: 12px 3px 10px; white-space: nowrap; }
 .context-panel .inspector-tabs button[aria-selected="true"] { font-weight: 600; }
+.context-panel .inspector-tabs button:focus-visible { outline-offset: -3px; }
 .context-panel .inspector-panel { padding: 14px 10px 12px; }
 .tree-project-heading { gap: 9px; padding: 0 1px 13px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
 .tree-project-symbol { display: inline-flex; align-items: center; justify-content: center; width: 31px; height: 31px; flex: 0 0 31px; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius: 8px; }

@@ -15,6 +15,9 @@ import { renderUsage } from './usage';
 import { Launcher } from './launcher';
 import { GitView } from './git-view';
 import { TreeMenu } from './tree-menu';
+import { createPluginsPanel } from './plugins';
+import { ViewRegistry } from './views';
+import './plugins.css';
 
 const paths: Record<string, string> = {
   home: '<path d="M3 11 12 3l9 8M5 10v10h14V10M9 20v-6h6v6"/>',
@@ -105,8 +108,16 @@ const serviceLogs = new Set<string>();
 const paneGroups = new Map<string, { ids: string[]; direction: 'right' | 'down' }>();
 let selectedPanel: 'context' | 'services' | 'files' | 'usage' | 'git' = 'files';
 let treeProject: string | null = null;
-let mainView: 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'action' = 'terminal';
+type MainView = 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'action';
+let mainView: MainView = 'terminal';
 let workspaceView: 'terminal' | 'editor' = 'terminal';
+const views = new ViewRegistry<MainView>();
+views.register('terminal', [$('terminal-view')]);
+views.register('editor', [$('terminal-view'), $('editor-view')]);
+views.register('graph', [$('graph-view')]);
+views.register('browser', [$('browser-view')]);
+views.register('chat', [$('chat-view')]);
+views.register('action', [$('action-view')]);
 let focusedPane: 'terminal' | 'editor' = 'terminal';
 let browserWantedService = '', browserURL = '';
 let fileEditor: import('./editor').FileEditor | null = null;
@@ -129,24 +140,57 @@ let chatOpening: Promise<import('./chat').CodexChatView> | null = null;
 const actionResults = new Map<string, DkActionResult>();
 const runningActions = new Set<string>();
 
-const preferenceDefaults = { fontSize: 13, scrollback: 10000, idleMinutes: 30, idleMemoryMiB: 64, idleAlerts: true };
+const preferenceDefaults = { fontSize: 13, scrollback: 10000, idleMinutes: 30, idleMemoryMiB: 64, idleAlerts: true, cursorBlink: false };
 const preferenceValues = { fontSize: [11,12,13,14,15,16,18], scrollback: [1000,5000,10000,20000], idleMinutes: [15,30,60,120], idleMemoryMiB: [32,64,128,256,512] };
 const preferences = { ...preferenceDefaults };
 try {
   const saved = JSON.parse(localStorage.getItem('terminalPreferences') || '{}');
   for (const key of ['fontSize','scrollback','idleMinutes','idleMemoryMiB'] as const) if (preferenceValues[key].includes(saved[key])) preferences[key] = saved[key];
   if (typeof saved.idleAlerts === 'boolean') preferences.idleAlerts = saved.idleAlerts;
+  if (typeof saved.cursorBlink === 'boolean') preferences.cursorBlink = saved.cursorBlink;
 } catch {}
+document.body.classList.toggle('terminal-cursor-static', !preferences.cursorBlink);
 function applyPreferences() {
   try { localStorage.setItem('terminalPreferences', JSON.stringify(preferences)); } catch {}
+  document.body.classList.toggle('terminal-cursor-static', !preferences.cursorBlink);
   for (const session of sessions.values()) { session.terminal.options.fontSize = preferences.fontSize; session.terminal.options.scrollback = preferences.scrollback; }
+  updateTerminalVisibility();
   renderIdleNotice(); requestAnimationFrame(fitActive);
 }
+let pluginsPanel: ReturnType<typeof createPluginsPanel> | null = null;
 const launcher = new Launcher({
   openLocal: async () => { const info = await api.selectProject(); if (info) { await activate(info); launcher.hide(); } },
   activateProject: async info => { await activate(await api.activateProject(info.path)); },
   getProjects: () => recentProjects, hasProject: () => !!current, getRemoteProjects: () => remoteProjects,
   rememberRemote: item => { remoteProjects = [{id:item.id,name:item.name,path:item.path}, ...remoteProjects.filter(existing=>existing.id!==item.id)].slice(0,12); },
+  mountPlugins: host => {
+    const panel: ReturnType<typeof createPluginsPanel> = createPluginsPanel(host, {
+      list: root => api.listPlugins(root),
+      reload: root => api.reloadPlugins(root),
+      execute: async (root, pluginId, actionId, revision) => {
+        if (current?.path !== root) throw new Error('Selecione o projeto do plugin antes de executar a ação.');
+        if (busy || closingProjects.has(root)) throw new Error('Aguarde a sessão atual terminar de abrir ou o projeto terminar de fechar.');
+        const opened = await newSession(undefined, undefined, undefined, async () => {
+          const session = await api.executePlugin(root, pluginId, actionId, revision);
+          if (session && current?.path !== root) {
+            await api.closeTerminal(session.id);
+            throw new Error('O projeto selecionado mudou. Selecione-o novamente para executar a ação.');
+          }
+          return session;
+        });
+        if (opened && current?.path === root && pluginsPanel === panel) { launcher.hide(); active()?.terminal.focus(); fitActive(); }
+      },
+    });
+    pluginsPanel = panel;
+    run(() => panel.setProject(current?.path || null, current?.title || current?.name));
+    return () => {
+      panel.destroy();
+      if (pluginsPanel === panel) {
+        pluginsPanel = null;
+        run(() => api.stopWatchingPlugins());
+      }
+    };
+  },
   preferences, applyPreferences, theme: setSeaTheme, glass: setGlassAppearance, glassAmount: setGlassTransparency, getGlassAmount: () => glassTransparency, sidebar, notify,
 });
 function notify(error: unknown) {
@@ -435,11 +479,7 @@ function selectMainView(view: typeof mainView) {
   mainView = view;
   updateTerminalVisibility();
   if (view === 'terminal' || view === 'editor') workspaceView = view;
-  $('terminal-view').hidden = view !== 'terminal' && view !== 'editor';
-  $('graph-view').hidden = view !== 'graph';
-  $('browser-view').hidden = view !== 'browser'; $('editor-view').hidden = view !== 'editor';
-  $('chat-view').hidden = view !== 'chat';
-  $('action-view').hidden = view !== 'action';
+  views.select(view);
   if (view !== 'browser') { api.closeBrowser().catch(() => {}); browserURL = ''; }
   if (view === 'graph') run(loadGraph);
   else api.watchOrchestrations(null).catch(() => {});
@@ -590,7 +630,7 @@ function updateTerminalVisibility() {
   for (const session of sessions.values()) {
     const visible = workspaceVisible && !session.element.hidden;
     if (session.terminal.options.screenReaderMode !== visible) session.terminal.options.screenReaderMode = visible;
-    const blink = visible && session.id === activeId && document.hasFocus();
+    const blink = preferences.cursorBlink && visible && !session.exited && session.id === activeId && document.hasFocus();
     if (session.terminal.options.cursorBlink !== blink) session.terminal.options.cursorBlink = blink;
   }
 }
@@ -664,6 +704,7 @@ async function activate(info: Project) {
   await opening;
   if (current?.path !== info.path) { api.closeBrowser().catch(() => {}); browserURL = ''; browserWantedService = ''; $('browser-placeholder').hidden = false; $<HTMLInputElement>('browser-address').value = ''; }
   current = info;
+  if (pluginsPanel) run(() => pluginsPanel!.setProject(info.path, info.title || info.name));
   fileEditor?.setProject(info.path);
   syncTreeSelection();
   if (mainView === 'chat' && chatView) await chatView.open(info.path);
@@ -693,9 +734,11 @@ async function activate(info: Project) {
 async function openProject() {
   const info = await api.selectProject(); if (info) { await activate(info); launcher.hide(); }
 }
-async function newSession(action?: string, duplicate?: string, agent?: string) {
-  if (!current || busy || closingProjects.has(current.path)) return;
-  if (mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
+async function newSession(action?: string, duplicate?: string, agent?: string, create?: () => Promise<SessionInfo | null>) {
+  if (!current || busy || closingProjects.has(current.path)) return false;
+  const previousFocus = activeId;
+  // A cancelled plugin prompt must leave the current browser/chat/graph intact.
+  if (!create && !duplicate && mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
   busy = true;
   const agentId = agent || (action?.startsWith('extension:') ? action.slice(10) : undefined);
   const agentName = installedExtensions.find(item => item.id === agentId)?.name;
@@ -707,7 +750,9 @@ async function newSession(action?: string, duplicate?: string, agent?: string) {
   let terminal: Terminal | undefined;
   let element: HTMLDivElement | undefined;
   try {
-    info = duplicate ? await api.splitTerminal(current.path, duplicate, agent) : await api.createTerminal(current.path, action);
+    info = (create ? await create() : duplicate ? await api.splitTerminal(current.path, duplicate, agent) : await api.createTerminal(current.path, action)) || undefined;
+    if (!info) return false; // The user cancelled a plugin confirmation.
+    if ((create || duplicate) && mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
     if (duplicate && info.cwdFallback) notify('Não foi possível identificar a pasta atual; o novo terminal abriu na última pasta conhecida.');
     const [{ Terminal }, { FitAddon }] = await Promise.all([import('@xterm/xterm'), import('@xterm/addon-fit')]);
     terminal = new Terminal({
@@ -731,9 +776,11 @@ async function newSession(action?: string, duplicate?: string, agent?: string) {
     session.lastSize = { cols: terminal.cols, rows: terminal.rows };
     session.started = true; element.dataset.ready = 'true'; terminal.options.disableStdin = false;
     renderTabs(); terminal.focus(); fitActive();
+    return true;
   } catch (error) {
     if (info) { sessions.delete(info.id); await api.closeTerminal(info.id).catch(() => {}); }
-    startup?.remove(); terminal?.dispose(); element?.remove(); focusSession(duplicate && sessions.has(duplicate) ? duplicate : null);
+    startup?.remove(); terminal?.dispose(); element?.remove();
+    if (info || terminal || element) focusSession(duplicate && sessions.has(duplicate) ? duplicate : previousFocus && sessions.has(previousFocus) ? previousFocus : null);
     throw error;
   } finally { busy = false; release(); }
 }
@@ -820,6 +867,7 @@ api.onServiceChanged(({ path, service }) => updateService(path, service));
 api.onChatEvent(event => { if (idleId === event.sessionId) { idleSnapshot = null; renderIdleNotice(); } chatView?.handle(event); });
 api.onProjectOpened(info => run(async () => { await activate(info); launcher.hide(); }));
 api.onOrchestrationChanged(({ path }) => { if (current?.path === path && mainView === 'graph') run(loadGraph); });
+api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.reload()); });
 api.onBrowserChanged(event => {
   if (current?.path !== event.path || mainView !== 'browser') return;
   $('browser-status').textContent = event.error ? `Falha na prévia: ${event.error}` : event.loading ? 'Carregando prévia…' : 'Projeto local · A página pode acessar a rede';

@@ -79,12 +79,17 @@ interface Window {
     listOrchestrations(path: string): Promise<GraphListing>;
     watchOrchestrations(path: string | null): Promise<void>;
     onOrchestrationChanged(callback: (event: { path: string }) => void): () => void;
+    listPlugins(path: string | null): Promise<import('./plugins').PluginSnapshot>;
+    reloadPlugins(path: string | null): Promise<import('./plugins').PluginSnapshot>;
+    stopWatchingPlugins(): Promise<void>;
+    executePlugin(path: string, pluginId: string, actionId: string, revision: string): Promise<SessionInfo | null>;
+    onPluginsChanged(callback: (event: { path: string }) => void): () => void;
     openBrowser(path: string, url: string, bounds: PreviewBounds): Promise<{ url: string }>;
     resizeBrowser(bounds: PreviewBounds): Promise<void>;
     closeBrowser(): Promise<void>;
     onBrowserChanged(callback: (event: { path: string; loading: boolean; url?: string; title?: string; error?: string }) => void): () => void;
     createTerminal(path: string, action?: string): Promise<SessionInfo>;
-    splitTerminal(path: string, id: string, agent?: string): Promise<SessionInfo>;
+    splitTerminal(path: string, id: string, agent?: string): Promise<SessionInfo | null>;
     startTerminal(id: string, size: TerminalSize): Promise<void>;
     writeTerminal(id: string, data: string): Promise<void>;
     resizeTerminal(id: string, size: TerminalSize): Promise<void>;

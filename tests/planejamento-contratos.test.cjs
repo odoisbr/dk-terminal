@@ -31,7 +31,7 @@ test('contratos declaram a ordem aprovada entre M1, M2, M3 e M4', () => {
   // A declaração do contrato não substitui um gate que leia o estado real.
 });
 
-test('gerador reproduz os contratos atuais em caminho com espaços', t => {
+test('gerador preserva a estrutura dos contratos e calcula alvos atuais em caminho com espaços', t => {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dk plano com espaços '));
   t.after(() => fs.rmSync(temporary, { recursive: true, force: true }));
   const inputs = new Set(['docs/coordenacoes/gerar.mjs']);
@@ -47,7 +47,26 @@ test('gerador reproduz os contratos atuais em caminho com espaços', t => {
   const generate = () => spawnSync(process.execPath, [path.join(temporary, 'docs/coordenacoes/gerar.mjs')], { cwd: temporary, encoding: 'utf8' });
   const first = generate(); assert.equal(first.status, 0, first.stderr);
   const target = path.join(temporary, 'docs/coordenacoes/M3-preview-bridge.json'), one = fs.readFileSync(target);
-  for (const file of [...files, 'host-claude-code.json']) assert.deepEqual(fs.readFileSync(path.join(temporary, 'docs/coordenacoes', file)), fs.readFileSync(path.join(root, 'docs/coordenacoes', file)), file);
+  // Contracts are frozen planning snapshots. Targets may legitimately appear or
+  // change while a milestone is being implemented, so compare their structure
+  // and independently verify the freshly generated target hashes.
+  const withoutTargetSnapshots = contract => {
+    for (const task of contract.tarefas) if (task.contrato_tarefa) {
+      task.contrato_tarefa.alvos = task.contrato_tarefa.alvos.map(({ arquivo }) => ({ arquivo }));
+    }
+    return contract;
+  };
+  for (const file of files) {
+    const generated = JSON.parse(fs.readFileSync(path.join(temporary, 'docs/coordenacoes', file)));
+    for (const task of generated.tarefas) for (const target of task.contrato_tarefa?.alvos || []) {
+      const source = path.join(temporary, target.arquivo);
+      if (fs.existsSync(source)) assert.equal(target.sha256, sha(fs.readFileSync(source)), `${file}: ${target.arquivo}`);
+      else assert.equal(target.ausente, true, `${file}: ${target.arquivo}`);
+    }
+    const saved = JSON.parse(fs.readFileSync(path.join(root, 'docs/coordenacoes', file)));
+    assert.deepEqual(withoutTargetSnapshots(generated), withoutTargetSnapshots(saved), file);
+  }
+  assert.deepEqual(fs.readFileSync(path.join(temporary, 'docs/coordenacoes/host-claude-code.json')), fs.readFileSync(path.join(root, 'docs/coordenacoes/host-claude-code.json')));
   const next = generate(); assert.equal(next.status, 0, next.stderr); assert.deepEqual(fs.readFileSync(target), one);
   const contract = JSON.parse(one), earlier = contract.tarefas.find(task => task.id === 'm3-anterior');
   assert.match(earlier.objetivo, /COORD-PLUGINS-M2/);

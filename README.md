@@ -23,7 +23,7 @@ O `postinstall` recompila o node-pty para a versão exata do Electron. Execute `
 4. Use **Auditoria**, **Validar projeto** ou **Diagnóstico** para abrir o resultado renderizado, com opção **Ver JSON** para inspecionar os dados originais.
 5. A aba **Serviços**, no painel da direita, reconhece scripts `dev`, `start`, `serve`, `preview`, `watch`, `worker` e `api` do `package.json`, inclusive variantes como `dev:api`. Inicie ou desligue cada serviço pelo botão ao lado. A saída e o endereço local aparecem nessa aba.
 6. O botão no topo da área de trabalho recolhe ou expande a sidebar.
-7. As abas **Contexto**, **Serviços**, **Pasta** e **Consumo** organizam o painel do projeto. **Pasta** abre por padrão ao entrar em um projeto, mostra a árvore de arquivos e expande cada diretório sob demanda; o botão de atualizar relê a árvore. Clique em um arquivo para abri-lo no editor. Textos UTF-8 até 2 MiB podem ser editados com realce de sintaxe, abas e `⌘S`; imagens até 4 MiB têm prévia. Binários e arquivos maiores ficam somente para consulta de metadados. Alterações não salvas são protegidas ao fechar, e uma revisão externa impede sobrescrever mudanças de outro programa. Links simbólicos são identificados e não expandidos pela interface; o aplicativo recusa a navegação para fora da raiz selecionada. Diretórios grandes mostram até 500 entradas por abertura.
+7. As abas **Pasta**, **Git**, **Contexto**, **Serviços** e **Consumo** organizam o painel do projeto. **Pasta** abre por padrão ao entrar em um projeto, mostra a árvore de arquivos e expande cada diretório sob demanda; o botão de atualizar relê a árvore. Clique em um arquivo para abri-lo no editor. Textos UTF-8 até 2 MiB podem ser editados com realce de sintaxe, abas e `⌘S`; imagens até 4 MiB têm prévia. Binários e arquivos maiores ficam somente para consulta de metadados. Alterações não salvas são protegidas ao fechar, e uma revisão externa impede sobrescrever mudanças de outro programa. Links simbólicos são identificados e não expandidos pela interface; o aplicativo recusa a navegação para fora da raiz selecionada. Diretórios grandes mostram até 500 entradas por abertura.
 8. Editor e terminais compartilham a mesma área de painéis e suas abas aparecem juntas. Fechar a última aba de arquivo encerra a visualização do editor. Os botões de divisão abrem até quatro terminais independentes, à direita ou abaixo. A nova sessão usa a pasta atual e, para integrações de agente abertas pelo DK, o mesmo tipo do painel selecionado. O menu de divisão com agente permite abrir Claude, Codex ou outra extensão instalada em uma nova sessão do terminal. A conversa e o histórico em execução permanecem na sessão original. `⌘D` divide à direita e `⌘⇧D` divide abaixo. A ação **Separar painel ativo do split** retira o terminal selecionado do grupo e preserva sua sessão; os demais painéis continuam agrupados. A visualização única recolhe o split sem encerrar as outras sessões.
 9. O botão **Expandir terminal**, na barra de sessões, amplia a área de trabalho, mantém a sidebar de projetos visível e permite restaurá-la sem encerrar o terminal. Atalho: `⌘⇧E` no Mac, `Ctrl⇧E` nas demais plataformas.
 
@@ -93,6 +93,33 @@ Para criar outra extensão declarativa, adicione uma pasta em `extensions/` na f
 ```
 
 Reabra o aplicativo para carregar novas extensões. A versão 1 de extensões de terceiros aceita manifestos para comandos de terminal e não carrega JavaScript de terceiros. Browser e o painel Codex são integrações internas do aplicativo. Não há um host de extensões VS Code/VSIX. Os comandos recebem as permissões normais da conta do sistema e só são iniciados pelo usuário.
+
+### Plugins por projeto
+
+Em **Perfil e configurações → Plugins**, consulte os plugins do aplicativo, do perfil e do projeto selecionado. Para adicionar uma ação ao projeto, crie `.dk/plugins/exemplo/plugin.json`:
+
+```json
+{
+  "schema": 2,
+  "id": "exemplo",
+  "name": "Ferramentas do projeto",
+  "version": "1.0.0",
+  "permissions": ["process:spawn"],
+  "contributes": {
+    "actions": [
+      { "id": "versao", "title": "Ver versão do Node", "command": "node", "args": ["--version"] }
+    ]
+  }
+}
+```
+
+Cada ação exige `process:spawn`, uma ferramenta disponível no `PATH` e confirmação antes de abrir sua sessão. O diálogo mostra o executável, todos os argumentos e o projeto; o manifesto é verificado novamente após a confirmação e antes de iniciar o terminal. Dividir uma sessão de plugin também pede confirmação. Os comandos são passados como programa e argumentos separados; uma ação ainda pode escolher um interpretador, como `sh`, como executável.
+
+**Permissões declaradas não são um isolamento do sistema.** Um programa iniciado pelo plugin tem as permissões normais da sua conta, inclusive sobre arquivos acessíveis fora do projeto. Confira a ação, o destino real do executável e a origem antes de executá-la. A verificação de identidade reduz o risco de troca do arquivo, mas a execução por caminho não é atômica contra todas as alterações concorrentes do sistema. `preview:bridge` e `agent:run`, assim como visualizações, painéis, etapas e catálogos declarados, ainda não estão disponíveis; os manifestos não carregam JavaScript no aplicativo. Se duas origens declararem o mesmo ID, prevalece aplicativo, depois perfil, depois projeto, e o conflito é informado.
+
+Os manifestos têm limite de 16 KiB, as ações aceitam até 32 argumentos com 8 KiB no total, e cada origem inspeciona até 32 pastas. Alterações no projeto são observadas enquanto as configurações estiverem abertas; ao sair, o monitoramento é encerrado. Se a observação não estiver disponível, use **Recarregar plugins**. As extensões de terminal v1 continuam funcionando. No Windows, comandos `.cmd` não são executados pelo host v2, pois precisam de um interpretador de comandos. O fluxo foi testado no macOS; Windows e Linux ainda precisam de validação real. Teste a integração com `npm run test:plugins`.
+
+O teste local `node benchmarks/plugins-m0.cjs`, após `npm run build`, mede a preferência de cursor e a liberação dos observadores usando um projeto temporário no macOS ou Linux. Uma [medição de referência](benchmarks/plugins-m0-macos-arm64-2026-10-28.json) contém as amostras e limitações; RSS soma processos e pode contar páginas compartilhadas mais de uma vez.
 
 O [planejamento M0–M4](docs/planejamento/README.md) descreve as evoluções propostas de plugins, agentes, edição visual e auditoria; esses marcos ainda não fazem parte da pré-release.
 
@@ -177,7 +204,7 @@ O botão **Tema SEA** ativa ou desativa a identidade visual SEA e guarda a prefe
 
 A tela inicial reúne separadamente projetos recentes locais e remotos. Fechar um projeto na barra lateral encerra seus terminais e conversas de agentes, preserva o histórico e pergunta sobre arquivos não salvos. Os serviços iniciados pela guia Serviços são gerenciados separadamente e continuam ativos até serem desligados. Projetos do grupo `design` e seus subgrupos no GitLab SEA abrem em modo de consulta, com a árvore, arquivos de texto UTF-8 e imagens PNG, JPEG, GIF ou WebP da branch padrão, sem criar uma cópia local. Para editar ou executar, use **Preparar cópia local**, escolha a pasta de destino e aguarde a criação da cópia pelo GitLab CLI; uma pasta existente não é sobrescrita. A leitura remota requer rede e uma conta GitLab com acesso ao projeto. A lista destaca projetos com cópia encontrada no volume SEA e, ao abrir um projeto remoto, oferece essas pastas locais cujo Git `origin` corresponde ao projeto. A busca ignora pastas ocultas, dependências e saídas de build; pode ser parcial em volumes grandes e oferece continuar a busca.
 
-Em **Perfil e configurações**, escolha tema, efeito de vidro e nível de transparência (opcionais e persistentes), sidebar, tamanho da fonte, histórico do terminal e parâmetros dos avisos de inatividade. A tela verifica SEA CLI, Claude, Codex (opcional), Python, pnpm, Node.js, Git e GitLab CLI. A consulta ocorre na abertura do aplicativo, pois a distribuição atual é um aplicativo empacotado e não um instalador. Não instala ferramentas automaticamente.
+Em **Perfil e configurações**, escolha tema, efeito de vidro e nível de transparência (opcionais e persistentes), sidebar, tamanho da fonte, histórico do terminal e parâmetros dos avisos de inatividade. O cursor fica estático por padrão para reduzir o uso de CPU; a opção **Cursor piscando** permite ativar a animação e é persistida. A tela verifica SEA CLI, Claude, Codex (opcional), Python, pnpm, Node.js, Git e GitLab CLI. A consulta ocorre na abertura do aplicativo, pois a distribuição atual é um aplicativo empacotado e não um instalador. Não instala ferramentas automaticamente.
 
 A conta SEA usa `sea auth login` e a conta GitLab usa `glab auth login` para o host SEA; são autenticações separadas. O DK abre as ferramentas oficiais em um terminal temporário e não registra nem armazena tokens em configuração própria. Para a leitura remota e a cópia, o GitLab CLI precisa estar instalado e autenticado. Os tempos de rede e as permissões de acesso dependem dos serviços e das contas do usuário.
 
