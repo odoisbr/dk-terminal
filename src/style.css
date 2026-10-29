@@ -641,3 +641,6 @@ body.appearance-glass {
 .inspector-rail button:focus-visible { outline-offset: -2px; }
 .appearance-glass .inspector-rail { background: var(--glass-surface); border-color: var(--glass-line); backdrop-filter: var(--glass-blur); }
 @media (max-width: 1050px) { .project-inspector .context-panel { width: 235px; } }
+/* Status do plugin DK: a versão (inclusive "vX → vY") quebra linha em vez de sumir na reticência. */
+.kit-summary #kit-description { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.kit-button[aria-busy="true"] { cursor: progress; }

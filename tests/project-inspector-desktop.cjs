@@ -1,3 +1,4 @@
+const { openFolderDialog } = require('./helpers/open-folder.cjs');
 const { startProjectTerminal } = require('./helpers/project-session.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
@@ -171,7 +172,7 @@ async function expectProject(directory, title) {
     // Com o painel aberto, trocar de projeto mostra a Pasta do projeto atual.
     await openProjectPanel(page, 'files');
     await app.evaluate(({ dialog }, directory) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] }); }, second);
-    await page.locator('#open-project').click();
+    await openFolderDialog(app);
     await expectProject(second, 'Projeto B oficial');
     await assertOpened('files');
     await page.locator('.tree-file[data-relative="outro.txt"]').waitFor();

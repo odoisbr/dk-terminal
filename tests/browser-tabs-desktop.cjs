@@ -1,3 +1,4 @@
+const { openFolderDialog } = require('./helpers/open-folder.cjs');
 const { _electron: electron } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -147,7 +148,7 @@ async function assertCanvas(id) {
     assert.equal((await view(a.id)).visible, true);
 
     await app.evaluate(({ dialog }, folder) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] }); }, second);
-    await page.locator('#open-project').click(); await projectPath(second);
+    await openFolderDialog(app); await projectPath(second);
     assert.equal((await view(a.id)).visible, false);
     assert.equal(await page.locator('#browser-tab').count(), 0);
     assert.equal(await page.locator('.terminal-pane:visible').count(), 0);

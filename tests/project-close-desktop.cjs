@@ -1,3 +1,4 @@
+const { openFolderDialog } = require('./helpers/open-folder.cjs');
 const { startProjectTerminal } = require('./helpers/project-session.cjs');
 const { openProjectPanel } = require('./helpers/project-inspector.cjs');
 const { _electron: electron } = require('playwright');
@@ -18,7 +19,7 @@ let app;
     await page.locator('.tree-file').filter({hasText:'nota.txt'}).click();await page.locator('.cm-content').click();await page.keyboard.insertText(' alteração');
     await page.waitForFunction(()=>!!document.querySelector('.dk-editor-dirty[aria-label="Alterações não salvas"]'));
     await app.evaluate(({dialog}, dir) => { global.__choice=2;global.__promptCount=0;dialog.showMessageBox=async()=>{global.__promptCount++;return {response:global.__choice};};dialog.showOpenDialog = async () => ({canceled:false, filePaths:[dir]}); }, second);
-    await page.locator('#open-project').click(); await page.getByText('Segundo', { exact:true }).first().waitFor();
+    await openFolderDialog(app); await page.getByText('Segundo', { exact:true }).first().waitFor();
     await startProjectTerminal(page);
     const secondId=await page.locator('.terminal-pane[data-ready=true]:visible').getAttribute('id');
     const old = page.locator('.project-row').filter({has: page.locator('.project-select[title="Primeiro"]')});

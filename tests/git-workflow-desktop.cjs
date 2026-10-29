@@ -1,3 +1,4 @@
+const { openFolderDialog } = require('./helpers/open-folder.cjs');
 const { startProjectTerminal } = require('./helpers/project-session.cjs');
 const { openProjectPanel } = require('./helpers/project-inspector.cjs');
 const { _electron: electron } = require('playwright');
@@ -177,7 +178,7 @@ let app, page;
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1440, 920));
     console.log('✓ Alterações e grafo coexistem, são acessíveis por teclado e preservam o rascunho');
 
-    await page.locator('#open-project').click();
+    await openFolderDialog(app);
     await page.waitForFunction(directory => document.querySelector('#breadcrumb-project')?.dataset.projectPath === directory, second);
     await openProjectPanel(page, 'git');
     await page.getByLabel('Selecionar outro.txt').waitFor();
