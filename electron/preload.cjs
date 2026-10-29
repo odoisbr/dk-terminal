@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('dk', Object.freeze({
   selectProject: () => invoke('project:select'),
   createProject: name => invoke('project:create', name),
   activateProject: path => invoke('project:activate', path),
+  setActiveProject: path => invoke('project:set-active', path),
   forgetProject: path => invoke('project:forget', path),
   closeProjectSessions: path => invoke('project:close-sessions', path),
   checkClaudePlugin: path => invoke('kit:plugin-check', path),

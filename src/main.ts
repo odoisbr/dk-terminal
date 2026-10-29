@@ -291,6 +291,7 @@ function createProjectRow(info: Project) {
     projects = projects.filter(project => project.path !== info.path); openedProjects.delete(info.path);
     if (current?.path === info.path) {
       current = null; activeId = null;
+      void pluginsPanel?.setProject(null);
       fileEditor?.setProject('');
       selectMainView('terminal');
       renderProject(); focusSession(null, false);
@@ -930,11 +931,15 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   if (intent < appliedProjectIntent) return false;
   await opening;
   if (intent < appliedProjectIntent) return false;
+  info = await api.activateProject(info.path);
+  if (intent < appliedProjectIntent) return false;
   if (closingProjects.has(info.path)) throw new Error('Aguarde o encerramento do projeto.');
   appliedProjectIntent = intent;
   const generation = ++activationGeneration;
   const projectChanged = current?.path !== info.path;
   current = info; openedProjects.add(info.path);
+  // Publish only the applied selection, with no await between this and current.
+  void api.setActiveProject(info.path).catch(notify);
   const valid = () => generation === activationGeneration && current?.path === info.path && !closingProjects.has(info.path);
   const projectIndex = projects.findIndex(p => p.path === info.path);
   if (projectIndex >= 0) projects[projectIndex] = info;
@@ -1103,7 +1108,7 @@ api.onServiceChanged(({ path, service }) => updateService(path, service));
 api.onChatEvent(event => { if (idleId === event.sessionId) { idleSnapshot = null; renderIdleNotice(); } chatView?.handle(event); });
 api.onProjectOpened(info => run(async () => { const intent = beginProjectIntent(), snapshot = launcher.captureState(); if (await activate(info, intent)) launcher.completeOpen(snapshot, intent === projectIntent); }));
 api.onOrchestrationChanged(({ path }) => { if (current?.path === path && mainView === 'graph') run(loadGraph); });
-api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.reload()); });
+api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.setProject(path, current?.title || current?.name)); });
 api.onExtensionsChanged(list => { installedExtensions = list; renderExtensions(); });
 api.onBrowserRequest(event => {
   void (async () => {

@@ -67,6 +67,7 @@ interface Window {
     selectProject(): Promise<Project | null>;
     createProject(name: string): Promise<Project | null>;
     activateProject(path: string): Promise<Project>;
+    setActiveProject(path: string): Promise<void>;
     forgetProject(path: string): Promise<Bootstrap>;
     closeProjectSessions(path: string): Promise<{closed:number;chats:number;partial:boolean}>;
     checkClaudePlugin(path: string | null): Promise<ClaudePlugin>;
