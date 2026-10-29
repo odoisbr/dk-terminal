@@ -139,6 +139,25 @@ npm run package
 
 A saída fica em `release/`. O pacote inclui o node-pty fora do arquivo ASAR e mantém apenas as dependências necessárias ao processo principal; as bibliotecas visuais já estão compiladas em `dist/` e são carregadas sob demanda. É gerado para a plataforma e arquitetura atuais. No Mac, abra `release/SEA Dock-darwin-arm64/SEA Dock.app` em uma máquina Apple Silicon ou a pasta `darwin-x64` em Intel. A compilação local usa assinatura ad hoc para integridade, mas não inclui assinatura de distribuição nem notarização.
 
+### `sea` CLI embutido
+
+O pacote inclui o `sea` CLI (gem `sea-cli`) com um Ruby portátil, em `Resources/sea-cli`, porque a gem exige Ruby 3.2 ou mais recente e o macOS traz apenas o 2.6. A pasta entra no **fim** do `PATH` das sessões do aplicativo: uma instalação própria do usuário continua tendo prioridade. Nenhum token é lido ou gravado pelo aplicativo; o login segue por `sea auth login`.
+
+```sh
+npm run vendor:sea-cli   # gera vendor/sea-cli (não versionado) e prova com `sea version`
+```
+
+O script baixa o Ruby portátil do Homebrew com verificação de sha256 e usa a gem do cache local do RubyGems, de `SEA_CLI_GEM=<arquivo.gem>` ou do gem source do Dashboard quando `SEA_DASHBOARD_TOKEN` estiver definido. Sem `vendor/sea-cli`, `npm run package` avisa e gera o pacote sem o CLI.
+
+### DMG assinado e notarizado
+
+```sh
+xcrun notarytool store-credentials sea-dock   # uma vez: Apple ID, senha de app e Team ID
+DK_NOTARY_PROFILE=sea-dock npm run release
+```
+
+`scripts/release.mjs` compila, assina os binários do Ruby embutido, empacota e assina o aplicativo com hardened runtime (`build/entitlements.mac.plist`), notariza e grampeia o aplicativo, gera o DMG com `hdiutil`, assina, notariza e grampeia o DMG e confere o resultado com `codesign`, `stapler` e `spctl`. A identidade é a única "Developer ID Application" do keychain, ou a indicada em `DK_SIGN_IDENTITY`. Opções: `--skip-notarize` (só assina, para teste local) e `--without-sea-cli`. A saída é `release/SEA-Dock-<versão>-<arquitetura>.dmg`.
+
 ## Verificar
 
 ```sh
