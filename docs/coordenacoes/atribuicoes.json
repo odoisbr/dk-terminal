@@ -14,6 +14,11 @@
     "claude": {
       "cli": "ferramenta Agent da sessão orquestradora",
       "versao_verificada": "2.1.312"
+    },
+    "ruflo": {
+      "cli": "agentes ruflo-core pela ferramenta Agent (plugin ruflo 0.2.11)",
+      "versao_verificada": "ruflo-core 0.2.11",
+      "nota": "servidor MCP do ruflo indisponível sem instalação local; console em nível de leitura"
     }
   },
   "perfis": {
@@ -76,6 +81,20 @@
       "modelo": "gpt-6-astra",
       "esforco": "high",
       "uso": "Revisão independente só leitura; discordância exige evidência ou teste"
+    },
+    "pesquisador": {
+      "host": "ruflo",
+      "agente": "ruflo-core:researcher",
+      "modelo": "opus",
+      "esforco": "high",
+      "uso": "Referências e técnicas antes do desenho; só leitura"
+    },
+    "revisor-ruflo": {
+      "host": "ruflo",
+      "agente": "ruflo-core:reviewer",
+      "modelo": "opus",
+      "esforco": "high",
+      "uso": "Revisão cruzada alternativa ao revisor Claude; só leitura"
     }
   },
   "regras": [
