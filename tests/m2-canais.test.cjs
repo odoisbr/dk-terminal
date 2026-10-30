@@ -422,7 +422,7 @@ test('activate só reabre AgentRunView quando muda o projeto ou o agente está a
       projectWorkspaceViews: new Map(), lastActive: new Map(), sessions: new Map(), activeId: null,
       mainView, workspaceView: 'terminal', selectedPanel: null,
       agentView: { async open(root) { calls.push(root); } }, chatView: null,
-      rememberRecent() {}, syncTreeSelection() {}, renderProject() {}, selectMainView() {}, focusSession() {},
+      rememberRecent() {}, syncTreeSelection() {}, renderProject() {}, selectMainView() {}, visualView: null, async leaveVisual() { return true; }, focusSession() {},
       async loadServices() {}, async refreshClaudePlugin() {}, notify(error) { throw error; },
     });
     vm.runInContext(stripTypeScriptTypes(sourceFunction(source, 'activate')), context);

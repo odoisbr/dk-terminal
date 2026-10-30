@@ -87,7 +87,7 @@ function rendererActivation(call) {
     closingProjects: new Set(), openedProjects: new Set(), projects: [], pluginsPanel: null, fileEditor: null,
     projectWorkspaceViews: new Map(), lastActive: new Map(), sessions: new Map(), activeId: null,
     mainView: 'terminal', workspaceView: 'terminal', selectedPanel: null,
-    rememberRecent() {}, syncTreeSelection() {}, renderProject() {}, selectMainView() {}, focusSession() {},
+    rememberRecent() {}, syncTreeSelection() {}, renderProject() {}, selectMainView() {}, visualView: null, async leaveVisual() { return true; }, focusSession() {},
     async loadServices() {}, async refreshClaudePlugin() {}, notify(error) { throw error; },
   });
   vm.runInContext(stripTypeScriptTypes(`${source.match(/^function beginProjectIntent.*$/m)[0]}\n${sourceFunction(source, 'activate')}`), context);
