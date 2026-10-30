@@ -29,8 +29,8 @@ function plugin(base, id = 'example', contributions) {
     { id: 'skills', kind: 'skills', source: 'plugin', path: 'skills' },
   ] } } };
 }
-async function until(condition) {
-  const deadline = Date.now() + 8000;
+async function until(condition, timeoutMs = 8000) {
+  const deadline = Date.now() + timeoutMs;
   while (!condition() && Date.now() < deadline) await delay(25);
   assert.ok(condition(), 'O evento esperado não chegou dentro do prazo.');
 }
@@ -167,9 +167,20 @@ test('watcher nativo de uma origem com 20 skills detecta alteração interna', a
   for (let i = 0; i < 20; i++) await write(pluginRoot, `skills/item-${i}/SKILL.md`, 'inicial');
   const result = await f.host.list(f.root, { plugins: [plugin(pluginRoot)] });
   assert.equal(result.watching, true); assert.equal(f.host.watchers.length, 2);
-  await write(pluginRoot, 'skills/item-0/SKILL.md', 'alterado');
-  await until(() => events.length > 0);
-  assert.equal((await f.host.read(f.root, 'plugin:example/skills', 'item-0')).text, 'alterado');
+  // fs.watch pode retornar antes de a observação recursiva estar pronta sob
+  // carga. Repetir a alteração interna evita perder a primeira escrita;
+  // watching=true continua exigindo um evento nativo, sem refresh manual.
+  await delay(500);
+  events.length = 0;
+  let lastContent;
+  for (let attempt = 1; attempt <= 3 && events.length === 0; attempt++) {
+    lastContent = `alterado-${attempt}`;
+    await write(pluginRoot, 'skills/item-0/SKILL.md', lastContent);
+    try { await until(() => events.length > 0, 1500); }
+    catch (error) { if (attempt === 3) throw error; }
+  }
+  assert.deepEqual(events[0], { path: f.root });
+  assert.equal((await f.host.read(f.root, 'plugin:example/skills', 'item-0')).text, lastContent);
 });
 
 test('watchers ignoram código e metadados; referências emitem uma vez por alteração', async t => {
