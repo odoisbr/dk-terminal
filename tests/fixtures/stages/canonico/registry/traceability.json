@@ -1,0 +1,14 @@
+[
+  {"from": "RF-001", "to": "SRC-001", "relation": "origem", "created_at": "2026-08-14T14:30:00+00:00"},
+  {"from": "RF-002", "to": "SRC-001", "relation": "origem", "created_at": "2026-08-14T14:30:00+00:00"},
+  {"from": "RNF-001", "to": "SRC-001", "relation": "origem", "created_at": "2026-08-14T14:30:00+00:00"},
+  {"from": "BR-001", "to": "SRC-001", "relation": "origem", "created_at": "2026-08-14T14:30:00+00:00"},
+  {"from": "BR-002", "to": "SRC-001", "relation": "origem", "created_at": "2026-08-14T14:30:00+00:00"},
+  {"from": "RF-001", "to": "BR-001", "relation": "implementa_regra", "created_at": "2026-08-14T14:31:00+00:00"},
+  {"from": "RF-002", "to": "BR-002", "relation": "implementa_regra", "created_at": "2026-08-14T14:31:00+00:00"},
+  {"from": "BR-001", "to": "EVD-001", "relation": "fundamenta_se_em", "created_at": "2026-08-14T14:32:00+00:00"},
+  {"from": "BR-002", "to": "EVD-002", "relation": "fundamenta_se_em", "created_at": "2026-08-14T14:32:00+00:00"},
+  {"from": "RF-001", "to": "LI-004", "relation": "realiza_feature", "created_at": "2026-08-14T14:33:00+00:00"},
+  {"from": "RF-002", "to": "LI-004", "relation": "realiza_feature", "created_at": "2026-08-14T14:33:00+00:00"},
+  {"from": "RNF-001", "to": "LI-009", "relation": "realiza_feature", "created_at": "2026-08-14T14:33:00+00:00"}
+]

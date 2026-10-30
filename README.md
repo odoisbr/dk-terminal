@@ -133,6 +133,140 @@ O [planejamento M0–M4](docs/planejamento/README.md) descreve as evoluções pr
 
 Referências: [Codex CLI](https://learn.chatgpt.com/docs/codex/cli) e [Claude Code](https://code.claude.com/docs/en/overview).
 
+### Etapas e catálogo
+
+A barra de etapas fica visível na área de trabalho apenas para projetos DK reconhecidos pela presença de `projeto.yml` ou `.dk/projeto.json`. Em pastas comuns que não são projetos DK, a barra permanece oculta. A barra exibe quatro etapas fixas, o botão para recarregar e o botão do catálogo. Ao abrir uma etapa, a interface apresenta seus critérios, procedência, detalhes, atalhos de correção e as skills correspondentes do catálogo. Se o plugin DK estiver ausente ou desativado, um aviso informa a indisponibilidade dos critérios do kit e desabilita as correções.
+
+O SEA Dock usa quatro das etapas do kit: Levantar, Entender, Entregar e Prototipar. Essa escolha de etapas é revisável. Etapas como audit, handoff e git não entram na barra. A barra preserva a ordem fixa: 1. Levantar, 2. Entender, 3. Entregar e 4. Prototipar. O cálculo e a avaliação das regras foram portados da versão 1.7.0-rc.14 do Design Kit (módulos `registry.py`, `lacunas.py`, `cobertura.py`, `projeto.py` e `base_prototipo.py`). Os campos `fase_atual` e `fases_concluidas` do manifesto não definem aprovação. Eles aparecem apenas como dados informativos.
+
+#### Estados e liberação em cascata
+
+Cada critério e cada etapa assumem um de três estados: Concluído, Pendente ou Indisponível.
+- **Concluído**: todos os requisitos do critério foram atendidos e comprovados nos arquivos lidos.
+- **Pendente**: indica falta de dado no projeto. Ocorre quando arquivos, chaves ou registros estão ausentes, listas estão vazias ou o registro não oferece o sinal esperado (como a ausência de `traceability.json` ou de arestas `implementa_regra`).
+- **Indisponível**: indica falha de leitura ou erro estrutural. Ocorre em JSON ou YAML com sintaxe inválida, arquivos que excedem limites numéricos, links simbólicos que apontam para fora do projeto, SHA-256 divergente em adoção ou ausência do kit para critérios dependentes dele.
+
+A etapa fica Indisponível se contiver ao menos um critério indisponível. Fica Concluída se todos os critérios estiverem concluídos. Nos demais casos, fica Pendente.
+
+A liberação das etapas opera em cascata estrita. A etapa Levantar começa liberada. Uma etapa seguinte só é liberada quando a etapa imediatamente anterior estiver concluída. Enquanto a etapa anterior não for concluída, a etapa seguinte exibe o estado visual Bloqueada. Os critérios da etapa bloqueada continuam sendo lidos e calculados normalmente para consulta. Suas ações de correção ficam desabilitadas até o desbloqueio.
+
+#### Critérios das etapas
+
+| Etapa | Critério | Arquivo lido | Regra |
+| --- | --- | --- | --- |
+| Levantar | L1: Registro de regras com ≥1 item | `registros.regras` (v2) ou `registry/business-rules.json` ou `registry/regras.json` | JSON regular com lista de objetos ou envelope com chave única `itens` ou `items`. Cada item exige `id` em texto não vazio. Ao menos um item registrado. |
+| Levantar | L2: Registro de requisitos com ≥1 item | `registros.requisitos` (v2) ou `registry/requirements.json` ou `registry/requisitos.json` | JSON regular com lista de objetos ou envelope com chave única `itens` ou `items`. Cada item exige `id` em texto não vazio. Ao menos um item registrado. |
+| Levantar | L3: Todo requisito e regra com procedência | Registros de requisitos e regras | No esquema canônico, campo `sources` não vazio em cada item. No esquema DK, campo `fonte` não vazio (texto, lista ou objeto com `arquivo` e `citacao`). |
+| Levantar | L4: Nenhuma lacuna CRÍTICA em AUSENTE ou PENDENTE | `<kit>/templates/checklist-discovery.json` junto a regras, requisitos, pendências e decisões | Porte de `lacunas.py`. Busca sinais nos textos por regex. Nenhuma pergunta de prioridade CRÍTICA pode ficar AUSENTE (sem menção) ou PENDENTE (sem resposta). COBERTO exige ao menos duas respostas validadas. |
+| Entender | E1: Toda referência de sources existe em fontes ou evidências | `sources.json` e `evidence.json` (canônico) | Toda referência listada no campo `sources` de requisitos e regras deve existir como identificador em fontes ou evidências. |
+| Entender | E2: Nenhuma regra sem requisito e nenhum RF sem regra | `traceability.json` (canônico) ou `requisitos.json` (esquema DK) | No esquema canônico, exige relações com `relation` igual a `implementa_regra`. Nenhuma regra sem aresta `to`. Nenhum requisito RF ou FUNCIONAL sem aresta `from`. No esquema DK, confere o campo `deriva_de`. |
+| Entender | E3: Nenhuma prova documental resolvida só por relato | `pending.json` ou `pendencias.json` | Nenhum item com status `resolvida_por_relato`, com `pendencia_de_prova` preenchido e cujo enunciado mencione escrita, escrito ou documental. |
+| Entregar | D1: Documento de requisitos existe (canônico ou adotado) | `pastas.levantamento/requisitos` (padrão `1-levantamento/requisitos`) ou `.dk/adocoes.json` | Ao menos um arquivo regular com extensão de documento permitida (`.html`, `.md`, `.txt`, `.rst`, `.adoc`, `.markdown`, `.pdf`, `.docx`) ou adoção válida com arquivo existente e SHA-256 coincidente se declarado. |
+| Entregar | D2: Documento de visão existe | `pastas.levantamento/visao` (padrão `1-levantamento/visao`) ou `.dk/adocoes.json` | Ao menos um arquivo regular de documento permitido ou adoção válida com SHA-256 coincidente se declarado. |
+| Entregar | D3: Todo requisito citado em algum entregável | Texto de documentos em `requisitos`, `visao` e `atas` (exclui `.pdf` e `.docx`) | Todo identificador de requisito de L2 deve constar literalmente no texto dos entregáveis, respeitando as fronteiras de palavra `(?<![A-Za-z0-9_])ID(?![A-Za-z0-9_])`. |
+| Entregar | D4: checklist-dod presente (só contexto portal) | `.dk/projeto.json` e `pastas.entregaveis` (padrão `3-entregaveis`) | Aplica-se apenas quando o campo `contexto` for `portal`. Nos demais contextos o critério é omitido. Exige ao menos um documento regular na pasta de entregáveis. |
+| Prototipar | P1: Pasta do protótipo contém telas HTML | `.dk/projeto.json` (`prototipo.pasta`), `pastas.design/prototipo` ou `2-design/prototipo` | Ao menos um arquivo `.html` ou `.htm` na pasta do protótipo, em busca com profundidade de até 4 níveis. |
+| Prototipar | P2: Base declarada e design system presente | `.dk/projeto.json` (`prototipo.design_system`) | Validação estrutural de `base_prototipo.py`. A pasta declarada em `caminho` deve existir no projeto e cada arquivo listado no array `carga` deve existir. No modo `submodule`, confere apenas a existência física da pasta e dos arquivos. |
+
+#### Correções e ações
+
+As correções dos critérios só ocorrem após clique explícito da pessoa. Nenhuma ação é executada sem clique.
+- Para os critérios E1 e E2 da etapa Entender, o botão executa a ação `entender` diretamente pela CLI oficial do kit (`python3 <kit>/cli/dk entender --projeto <pasta> --json`), utilizando o executável Python validado da instalação do kit. Nunca executa comando `dk` do PATH.
+- Para os demais critérios (L1 a L4, E3, D1 a D4, P1 e P2), o botão copia o comando da respectiva skill para a área de transferência (como `/dk:dk-levantar`, `/dk:dk-entender`, `/dk:dk-entregar` ou `/dk:dk-prototipar`).
+- A cópia do comando não inicia agentes nem injeta prompts automaticamente. A pessoa cola o comando na sessão desejada do terminal ou do agente.
+
+#### Origens do catálogo
+
+O painel de catálogo reúne itens de três origens:
+1. **Kit instalado**: skills em `<kit>/skills/*/SKILL.md`. Quando o kit não está instalado ou o plugin DK está inativo, o catálogo do kit fica indisponível e exibe aviso. Não há varredura de `.dk/skills-ativas/`.
+2. **Projeto**: catálogo `project-design`, que reúne o arquivo `DESIGN.md` da raiz do projeto (se existir) e a declaração de design system de `.dk/projeto.json` (`prototipo.design_system`), carregando o corpo de `<caminho>/DESIGN.md` quando presente.
+3. **Plugins v2**: catálogos declarados por manifestos ativos via `contributes.catalogs`, dos tipos `skills` ou `design-systems`.
+
+As entradas de catálogos nunca se sobrescrevem. Cada entrada recebe um identificador qualificado no formato `<catalogId>/<nome>` e indicação visual de sua origem (Kit, Projeto ou Plugin `<nome>`). A listagem segue a ordem Kit, Projeto e Plugins, com ordenação alfabética em cada grupo. O leitor apresenta o corpo em texto simples dentro de `<pre>` e exibe apenas campos permitidos do frontmatter (`name`, `description`, `argument-hint`, `allowed-tools` e `forma-da-saida`). O leitor não interpreta HTML nem executa scripts.
+
+#### Atualização e eventos
+
+A interface atualiza o estado das etapas e dos catálogos por meio de observadores de arquivos (`fs.watch`), com agrupamento de eventos por debounce de 400 ms. Alterações em plugins ou instalação e atualização do kit invalidam os caches automaticamente. A qualquer momento, o botão **Recarregar etapas** na barra e o botão **Recarregar catálogo** no painel forçam a releitura completa do disco. Ao trocar de projeto ou fechar a janela, observadores e caches da raiz ativa são encerrados imediatamente. O kit não possui observadores contínuos. Quando o sistema operacional recusa a observação de pastas, o aplicativo exibe aviso para usar o botão Recarregar.
+
+#### Limites numéricos
+
+Limites aplicados na leitura das etapas e catálogos:
+- **Manifesto**: `projeto.yml` até 256 KiB, com limite de 50 aliases YAML e chaves únicas.
+- **Registros JSON**: até 4 MiB e até 5.000 itens por arquivo de registro (`regras`, `requisitos`, `fontes`, `evidencias`, `rastreabilidade`, `pendencias`, `decisoes`).
+- **Checklist de discovery**: arquivo até 256 KiB e até 5.000 itens.
+- **Documentos de entregáveis**: até 2 MiB por arquivo de texto regular, no máximo 32 documentos por pasta de entregáveis e até 8 MiB somados de texto lido.
+- **Adoções**: lista de até 5.000 itens em `.dk/adocoes.json`, arquivos com hash SHA-256 até 16 MiB por arquivo e limite total de 64 MiB por leitura.
+- **Protótipo**: busca até profundidade 4 e limite de 2.000 entradas inspecionadas, ignorando `node_modules`, `.git` e `design-system`.
+- **Identificadores de requisitos (D3)**: limite de 256 caracteres por ID.
+- **Catálogos**: arquivos Markdown até 64 KiB (arquivos maiores geram erro e têm leitura recusada), frontmatter até 8 KiB (YAML com até 8 aliases e chaves únicas, com fallback por regex), até 64 entradas por origem (a 65ª marca o catálogo como truncado), até 512 entradas por diretório, profundidade fixa `<raiz>/<nome>/ARQUIVO`, nomes no padrão `^[a-z0-9][a-z0-9-]{0,63}$` e identificadores de catálogo até 128 caracteres.
+- **Observadores**: limite de até 16 observadores (`fs.watch`) por projeto nas etapas e até 16 nos catálogos.
+- **Segurança de caminho**: todas as leituras usam `realpath` contido na raiz e recusam links simbólicos para fora do projeto ou ciclos (`O_NOFOLLOW`).
+
+#### Verificações não realizadas
+
+A verificação das etapas é estrutural e documental. O aplicativo não realiza:
+- Consistência semântica ou adequação conceitual entre requisitos e regras de negócio. Essa avaliação depende de revisão humana.
+- Validação das regras avançadas de gabarito e padrões do protótipo declaradas em `regras.exigido` ou `regras.proibido`. Elas contêm expressões Python não interpretadas pelo aplicativo.
+- Verificação do estado Git do submódulo do design system. No modo `submodule`, valida-se apenas a existência física da pasta e dos arquivos da carga.
+Para a validação completa de código, regras e submódulo Git do protótipo, utilize o comando `dk prototipar --verificar` no terminal.
+
+O recurso de etapas e catálogos foi executado e testado exclusivamente no macOS. As plataformas Windows e Linux não foram executadas nesta versão. A declaração `contributes.stages` de plugins permanece inerte.
+
+### Tarefas com Claude
+
+O runner de tarefas executa comandos pontuais com a CLI oficial do Claude. A comunicação ocorre por entrada e saída padrão em formato JSON estruturado (`stream-json`), utilizando o protocolo de controle da ferramenta. O painel apresenta o texto em tempo real, as ferramentas acionadas, os resultados parciais, o uso de tokens e o custo acumulado. O runner não altera arquivos sem confirmação prévia. Ele não possui modo autônomo, não oferece modo somente leitura e não executa scripts externos ao projeto.
+
+O processo usa a CLI oficial instalada no computador e a autenticação já existente na conta do usuário (`claude auth login`). O SEA Dock não lê tokens de acesso, não armazena credenciais e não gerencia arquivos de autenticação do provedor. A inicialização passa os argumentos `-p`, `--input-format stream-json`, `--output-format stream-json`, `--include-partial-messages`, `--replay-user-messages`, `--permission-prompts host`, `--permission-prompt-tool stdio` e `--permission-mode manual`. O prompt composto de sistema é gravado em um arquivo temporário privado em `userData/agent-runs/<runId>/system-prompt.md`, com permissão de acesso estrita 0600. Esse arquivo fica fora da árvore do projeto e é apagado ao término do turno. O primeiro turno recebe um identificador único via `--session-id`. Os turnos seguintes na mesma sessão usam `--resume`.
+
+O controle de segurança opera em modo manual fixo. As opções `bypassPermissions`, `auto`, `dontAsk` e `acceptEdits` não são permitidas. Se o processo iniciar com modo de permissão diferente de `manual`, a execução é abortada imediatamente. A execução usa `--setting-sources user,local`. Arquivos de configuração commitados no repositório não são carregados. Cada ação proposta pela CLI (leitura de arquivo, escrita em disco ou comando de terminal) gera um cartão de autorização. O usuário deve escolher entre "Permitir uma vez" ou "Recusar". Sugestões automáticas de permissão enviadas pela CLI (`permission_suggestions`) nunca são aplicadas nem salvas em disco.
+
+O tempo limite padrão é de 15 minutos por turno de execução, com valores aceitos entre 1 e 120 minutos. Ao atingir o prazo configurado, o aplicativo exibe uma solicitação de decisão com as opções "Continuar 15 min" ou "Interromper". O processo continua ativo enquanto aguarda a resposta. Nenhuma execução é finalizada automaticamente por tempo ou inatividade.
+
+O usuário pode cancelar a tarefa ativa a qualquer instante pelo botão Interromper. O cancelamento recusa todas as aprovações pendentes e envia um pedido de interrupção via protocolo. Se a CLI não encerrar em 5 segundos, o aplicativo envia o sinal `SIGTERM`. Após mais 1 segundo sem encerramento, envia o sinal `SIGKILL`. Processos descendentes são identificados e encerrados. O conteúdo produzido até a interrupção permanece visível na interface e no histórico, sinalizado com o estado parcial.
+
+Limites numéricos aplicados pelo runner:
+- Execuções ativas: no máximo 2 por projeto e no máximo 3 no aplicativo inteiro.
+- Fila de espera: até 4 tarefas aguardando início por aplicativo.
+- Prazos: entre 1 e 120 minutos por turno, com padrão de 15 minutos.
+- Inicialização: tempo limite de 20 segundos para a confirmação de início.
+- Linhas de protocolo: limite de 1 MiB por linha recebida; valores superiores cancelam a execução.
+- Linhas inválidas: 3 ocorrências de JSON corrompido cancelam o processo.
+- Mensagem do usuário: até 64 KiB incluindo o envelope estruturado.
+- Texto por mensagem: até 256 KiB, com marcador visível de truncamento quando excedido.
+- Entrada de autorização: até 16 KiB por pedido de ferramenta.
+- Saída de ferramenta (`tool_result`): até 64 KiB por resultado.
+- Prompt composto: limite total de 96 KiB somando todas as camadas (guia do aplicativo até 32 KiB, skill ativa até 24 KiB, design system até 24 KiB, instruções em AGENTS.md até 16 KiB, etapa ativa até 4 KiB e caminhos de arquivos até 8 KiB com no máximo 200 itens).
+- Histórico em disco: arquivo privado `agent-runs.json` com permissão 0600, fora do projeto, com limite de 8 MiB, até 30 execuções e texto final de até 64 KiB por item.
+- Eventos em memória: anel circular com capacidade para 500 eventos por execução.
+
+O assistente Codex não utiliza este runner. O Codex permanece no seu painel de conversa próprio (`electron/codex-chat.cjs`), operando via `codex app-server` com seus limites independentes de 2 turnos ativos. A consulta de recursos do runner responde que o Codex está indisponível para este componente e direciona para o painel correspondente.
+
+A detecção de capacidade consulta o executável `claude` no `PATH` do sistema e guarda o resultado em cache com base no caminho, na data de modificação e no tamanho do arquivo. A ferramenta requer a versão 2.1.312 ou superior da CLI e a presença das opções de controle por stdio no comando de ajuda. Também exige a confirmação dinâmica do modo `manual` na mensagem inicial de inicialização. Se o binário não atender aos requisitos ou rejeitar os argumentos, o botão "Tarefa com Claude" permanece desabilitado ou exibe o motivo da recusa, acompanhado da opção "Abrir no terminal oficial".
+
+A identificação estática de opções não comprova o funcionamento da assinatura do usuário ou da aprovação via stdio. Até a realização da rodada manual de validação com a CLI oficial, a interface exibe o aviso "Protocolo não confirmado com a CLI oficial".
+
+O runner de tarefas com Claude foi executado e testado unicamente no macOS. Os ambientes Windows e Linux não foram executados nesta versão.
+
+#### Gate entre marcos
+
+A transição entre marcos do projeto é controlada por scripts determinísticos de verificação. O script `scripts/gate-marco.mjs` avalia o cumprimento das tarefas e das evidências sem modificar o disco. O script `scripts/evidencia-marco.mjs` registra os dados de teste, os arquivos alvos e o resultado da rodada oficial em `.dk/coordenacoes/evidencias/COORD-PLUGINS-M2.verificacao.json`. A lista de pacotes e arquivos auditados é versionada em `docs/coordenacoes/pacotes-M2.json`.
+
+O arquivo de evidência é autodeclarado no repositório. A integridade do marco é garantida pela execução do gate pelo orquestrador e pelo bloqueio de aprovações automáticas. O script de evidência recusa execução em ambientes automatizados de agentes e exige confirmação manual digitada em terminal interativo. Agentes não gravam aprovações nem liberam marcos.
+
+### Editor visual de protótipos HTML
+
+Arquivos `.html` e `.htm` do projeto abrem no editor visual pelo botão "Editar visualmente" do editor de código. O documento aparece num iframe isolado, com `sandbox="allow-scripts"` e sem a mesma origem do aplicativo. Um clique seleciona o elemento, e o painel ao lado mostra o que pode ser editado: texto de elementos folha, atributos permitidos (`id`, `class`, `title`, `lang`, `dir`, `hidden`, `role`, `aria-label`, `href` em links e `src`, `alt`, `width` e `height` em imagens) e 30 propriedades de estilo com gramática fechada. Nenhuma alteração é aplicada ao digitar; cada uma exige o botão "Aplicar".
+
+O arquivo do usuário só muda ao salvar. A edição troca apenas a faixa de texto do elemento alterado, sem reserializar o documento: BOM, finais de linha (inclusive mistos e `\r` solitário), entidades, comentários e formatação do restante continuam byte a byte. Os identificadores `data-dk-node` e a ponte de comunicação existem só na cópia servida ao iframe e nunca são gravados. Cada edição passa por verificação dupla: prefixo e sufixo idênticos e reanálise da árvore com o alvo na mesma posição. Se a verificação falhar, a edição é recusada e o arquivo continua como estava.
+
+A cópia é servida pelo esquema `dk-preview://`, com um token aleatório por abertura e uma geração por edição. Documentos de gerações antigas respondem 410. A política de segurança do documento bloqueia rede, formulários, workers e frames; só carregam CSS, imagens e fontes de dentro do projeto, com limites de tamanho e de quantidade por geração. Os scripts do próprio documento ficam desativados no modo de edição, e a interface avisa quantos scripts e manipuladores foram ignorados. Recursos externos não carregam, e a interface informa quantos foram bloqueados e de quais hosts. Para ver o comportamento com scripts, use a prévia normal.
+
+Desfazer e refazer atuam só na cópia em memória, com até 200 entradas e 8 MiB de histórico. Salvar grava os bytes exatos com escrita atômica e confere a revisão do disco: se o arquivo mudou por fora, nada é gravado, a cópia e o histórico são mantidos, e a pessoa escolhe entre recarregar (descartando as alterações) ou continuar editando. Alterações não salvas no editor visual contam como trabalho pendente ao fechar a janela, trocar de projeto ou trocar de branch. Se o aplicativo cair, o que não foi salvo se perde.
+
+O processamento roda num worker com prazo de 5 segundos por operação e limite de memória. Documentos que excedem os limites são recusados com motivo: acima de 2 MiB, fora de UTF-8, com `charset` diferente de UTF-8, com marcadores `<?` ou `<%` fora de comentários, `frameset` ou `plaintext`, terminados dentro de comentário ou elemento de texto bruto, com aninhamento de 512 níveis, mais de 256 atributos numa tag, mais de 200 mil elementos ou análise acima de 1,5 segundo. Elementos criados implicitamente pelo navegador, clonados por HTML mal aninhado, ou dentro de `template`, SVG ou MathML podem ser selecionados, mas ficam somente leitura com o motivo exibido.
+
+Limites conhecidos desta versão: protótipos montados por JavaScript mostram no editor visual só o HTML estático do arquivo, porque os scripts ficam desativados; projetos React e servidores de desenvolvimento não são editáveis visualmente; um `meta refresh` para endereço externo deixa a área de edição vazia até a próxima alteração (nenhum tráfego sai); o editor visual foi testado só no macOS.
+
 ## Gerar o aplicativo
 
 ```sh
@@ -177,6 +311,7 @@ npm run test:project:race
 npm run test:launcher:race
 npm run test:rebrand:profile
 npm run test:git:workflow
+npm run test:visual
 npm run test:all  # suíte completa, incluindo interface gráfica e regressões de projeto
 ```
 
@@ -271,6 +406,7 @@ Todas as sessões exportam `SEA_DOCK_AGENTS_MD=<caminho do guia>` e têm o coman
 - `electron/preload.cjs`: API limitada exposta à interface isolada.
 - `electron/terminals.cjs`: sessões PTY, fluxo de saída, redimensionamento e encerramento.
 - `electron/core.cjs`: inspeção de pastas, comandos DK e persistência.
+- `electron/html-patch.cjs`, `electron/visual-session.cjs`, `electron/visual-patch-worker.cjs`, `electron/visual-protocol.cjs` e `electron/visual-bridge.js`: editor visual (patch por faixa, sessão e worker, esquema `dk-preview://` e ponte do iframe).
 - `src/`: interface, terminal e tokens visuais próprios deste aplicativo.
 
 Os projetos recentes e a localização do kit ficam em `settings.json`, na pasta de dados do aplicativo. A saída dos terminais comuns e as credenciais não são gravadas pelo SEA Dock. O painel Codex mantém seu histórico privado conforme descrito acima. O shell e os programas que você executar mantêm seu comportamento normal, inclusive seu próprio histórico.

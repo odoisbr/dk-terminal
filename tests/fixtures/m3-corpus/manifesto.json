@@ -1,0 +1,1055 @@
+[
+  {
+    "arquivo": "bom-crlf.html",
+    "caso": "bom-crlf",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": true,
+      "eol": "crlf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 88
+    },
+    "sha256": "d4b2142facbccf705de6e2471e8bf1ef0752031c88ed39ee7d396279b0a0c72e"
+  },
+  {
+    "arquivo": "lf.html",
+    "caso": "lf",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 80
+    },
+    "sha256": "135b934475cd558159aeb86a0cc984866cf4c43c00192df29806c3d58d6e4bff"
+  },
+  {
+    "arquivo": "eol-mistos.html",
+    "caso": "eol-mistos",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "mixed",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 83
+    },
+    "sha256": "cc4c620790bc07c759270337154643253e5952a7c30884b10fd9aadf1db1c565"
+  },
+  {
+    "arquivo": "cr-solitario.html",
+    "caso": "cr-solitario",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": true,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 80
+    },
+    "sha256": "136b7853b6a24e6d627db54231dc403699ada131707bbea54d114e355de5a4ed"
+  },
+  {
+    "arquivo": "sem-doctype.html",
+    "caso": "sem-doctype",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": null,
+      "quirks_esperado": true,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 62
+    },
+    "sha256": "83b6c2be0bd973cd9e04a2919e782952ccc7c1ff9139e50dec54e44bb45704e3"
+  },
+  {
+    "arquivo": "doctype-legado.html",
+    "caso": "doctype-legado",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">",
+      "quirks_esperado": true,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 117
+    },
+    "sha256": "1aaed3f2e89fd24b47f9b3473a85cc3ecea766a81d7eda1af333c7be340e00f7"
+  },
+  {
+    "arquivo": "comentarios-doctype-html.html",
+    "caso": "comentarios-doctype-html",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 143
+    },
+    "sha256": "82e5a5a1cebdf696f1cb58b6ab8f23bb450241e8604e12c3c9ff00b5ae8a38a8"
+  },
+  {
+    "arquivo": "entidades-nomeadas.html",
+    "caso": "entidades-nomeadas",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 131
+    },
+    "sha256": "c5f464e34cf1fcf5dccf9bb78b81b78646baccd8ddf1ced6c875cc69f0a59f17"
+  },
+  {
+    "arquivo": "entidades-numericas.html",
+    "caso": "entidades-numericas",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 132
+    },
+    "sha256": "cfd26ae810394d267caf738a41620a25f58036b8acd6e7738390592f5baeb7df"
+  },
+  {
+    "arquivo": "entidade-sem-ponto-virgula.html",
+    "caso": "entidade-sem-ponto-virgula",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 108
+    },
+    "sha256": "a8016a39133a60d98d362156530f8865176fc845df0bf138236f771b5a8a8b87"
+  },
+  {
+    "arquivo": "entidade-nbsp.html",
+    "caso": "entidade-nbsp",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 108
+    },
+    "sha256": "ce908f6ad4ae7fec1f6d118bfbba49655bf7488e4e8eab89eda1d8445c347f6b"
+  },
+  {
+    "arquivo": "template.html",
+    "caso": "template",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 152
+    },
+    "sha256": "1046748b817c8f278040a81c02036249aad313e9c60fb6a8d0e6dcbf8c24d3eb"
+  },
+  {
+    "arquivo": "svg-style-title.html",
+    "caso": "svg-style-title",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 217
+    },
+    "sha256": "4dbb80521ba24fb8441c59b388cf5e39a9ca7e017e9275e952652fb532c9060e"
+  },
+  {
+    "arquivo": "textarea.html",
+    "caso": "textarea",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 133
+    },
+    "sha256": "a0c3dde26ccc13cf84be2330b4b0bd5308e15cb9b98c71c290230e3c8f92998b"
+  },
+  {
+    "arquivo": "title.html",
+    "caso": "title",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 97
+    },
+    "sha256": "2a73bc8df34963aeccfd6489fd7734dee49d04db1ddbf211ed5bb290767d237c"
+  },
+  {
+    "arquivo": "script.html",
+    "caso": "script",
+    "esperado": "editavel",
+    "avisos": [
+      "scripts"
+    ],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 179
+    },
+    "sha256": "42908840383c9c6b8087114f6d6d9221d3690ef1811ab7a3e65f7fa0f1e09fdd"
+  },
+  {
+    "arquivo": "style.html",
+    "caso": "style",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 150
+    },
+    "sha256": "1e04cfa2fed6cf66777d1f45a36764fca9c017affc707629ef1169eb2fbe0bfd"
+  },
+  {
+    "arquivo": "noscript.html",
+    "caso": "noscript",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 132
+    },
+    "sha256": "93799997b2650d398f932031a8499abcd1501f5e0addb425673032dafa685f71"
+  },
+  {
+    "arquivo": "xmp.html",
+    "caso": "xmp",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 124
+    },
+    "sha256": "41c2a24d5b92da9103ce4c192acc10d6f63ea739e3ad3a1669153fef30b5f362"
+  },
+  {
+    "arquivo": "tabela-sem-tbody.html",
+    "caso": "tabela-sem-tbody",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 136
+    },
+    "sha256": "46dbf98493cb1dd816861d302cdbd43eab2c24eeb82a54c56b03e23b9c2e5465"
+  },
+  {
+    "arquivo": "formatacao-cruzada.html",
+    "caso": "formatacao-cruzada",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 108
+    },
+    "sha256": "fc792ff3f2f4e608d68cee05581cf60067fc14f34e82804a120bb0a8444d8beb"
+  },
+  {
+    "arquivo": "atributos-sem-aspas.html",
+    "caso": "atributos-sem-aspas",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 137
+    },
+    "sha256": "f7ff35039769993fbd30c967490d3c0f12e0204499fa21cd76deec5b8410e507"
+  },
+  {
+    "arquivo": "atributos-aspas-simples.html",
+    "caso": "atributos-aspas-simples",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 133
+    },
+    "sha256": "b74145ce4f1c11d8d3ae00248403cd951c9e873bcce8b06bfee7a03fe5ac1a93"
+  },
+  {
+    "arquivo": "atributos-duplicados.html",
+    "caso": "atributos-duplicados",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 152
+    },
+    "sha256": "4822a5a22d43321be7e5d51920820c50f3295976a02cc4cb2f81fa00ace180fe"
+  },
+  {
+    "arquivo": "atributos-maiusculos.html",
+    "caso": "atributos-maiusculos",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 145
+    },
+    "sha256": "d14119cc6526cc3f5e971d61c6cff584c8356522e55b8b65e5e8b11cd0c966d0"
+  },
+  {
+    "arquivo": "void.html",
+    "caso": "void",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 160
+    },
+    "sha256": "b7e0ab12cdb8020e54a4479017b43928d8d7d3dcfd332ad4afbff6aeef1f60a7"
+  },
+  {
+    "arquivo": "svg-auto-fechamento.html",
+    "caso": "svg-auto-fechamento",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 175
+    },
+    "sha256": "8f6031538e9dcf08fa3a5e2b5309559202bc098f98ae1945946e2eba03abb337"
+  },
+  {
+    "arquivo": "css-comentario.html",
+    "caso": "css-comentario",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 149
+    },
+    "sha256": "bf90eaa68d0076b7896691a64c97925eb39d85a9510c84647db35744c427e237"
+  },
+  {
+    "arquivo": "css-url.html",
+    "caso": "css-url",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 157
+    },
+    "sha256": "b0da0660d8519b7d2d0690dbd91f783d90b029b0889a2c7c2afc20d11f8bb5a3"
+  },
+  {
+    "arquivo": "css-important.html",
+    "caso": "css-important",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 144
+    },
+    "sha256": "28ba28e30c3de8d0bead7fd711c792e8c01901ec7f9269dee1c9c0e045210ab9"
+  },
+  {
+    "arquivo": "base.html",
+    "caso": "base",
+    "esperado": "editavel",
+    "avisos": [
+      "base"
+    ],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 113
+    },
+    "sha256": "172f5941cf2b5ebe7dc9ad222b08ae62c97dd420ff7755ed17b54c7b1521f779"
+  },
+  {
+    "arquivo": "meta-refresh.html",
+    "caso": "meta-refresh",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 132
+    },
+    "sha256": "2f1d63f104d11c40fb87aaf256498201f83e9d52801bcf3fb19cb95f229c2b62"
+  },
+  {
+    "arquivo": "charset-latin1.html",
+    "caso": "charset-latin1",
+    "esperado": "recusa",
+    "motivo_recusa": "meta-charset-nao-utf8",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 113
+    },
+    "sha256": "2e076fa682e335d5356aae70d47cc98d950c318affa575fe5a01e85b3aff35f2"
+  },
+  {
+    "arquivo": "charset-http-equiv-latin1.html",
+    "caso": "charset-http-equiv-latin1",
+    "esperado": "recusa",
+    "motivo_recusa": "meta-charset-nao-utf8",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 162
+    },
+    "sha256": "dfe4e4b0726efd4deed7550ff5e37532cec3de1cd2bd5aa2a2196e5587c96d07"
+  },
+  {
+    "arquivo": "php-fora-comentario.html",
+    "caso": "php-fora-comentario",
+    "esperado": "recusa",
+    "motivo_recusa": "instrucao-servidor",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 112
+    },
+    "sha256": "133920ebc1a8a559f8013de736e07c935ef2e63859fde2669d3f4dc5bb7cd38b"
+  },
+  {
+    "arquivo": "asp-fora-comentario.html",
+    "caso": "asp-fora-comentario",
+    "esperado": "recusa",
+    "motivo_recusa": "instrucao-servidor",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 119
+    },
+    "sha256": "4e67b781fc5f2a1ccd32372c4ecb497f2cb04e81afd32957a6968c709e804a48"
+  },
+  {
+    "arquivo": "marcadores-em-comentario.html",
+    "caso": "marcadores-em-comentario",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 165
+    },
+    "sha256": "5e60e182f9c98c5707a62bdc6a50e7ee0127141a46cc10b084218a8d43ec187b"
+  },
+  {
+    "arquivo": "comentario-aberto.html",
+    "caso": "comentario-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "comentario-aberto",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 76
+    },
+    "sha256": "724e3801443151eca19e5b3cc1c23bdc5b11ed91ce79821475e8c63ce9d4489e"
+  },
+  {
+    "arquivo": "textarea-aberto.html",
+    "caso": "textarea-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "rcdata-aberto",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 56
+    },
+    "sha256": "a77f1ee57aa8505114d754513c09a1339fb282c9eb042539aed2eee18926dd1c"
+  },
+  {
+    "arquivo": "title-aberto.html",
+    "caso": "title-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "rcdata-aberto",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 53
+    },
+    "sha256": "3cf7319a1e3f7062ae3da30158d1431133d1b7e42e46096fe892348d3f0ff909"
+  },
+  {
+    "arquivo": "script-aberto.html",
+    "caso": "script-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "rawtext-aberto",
+    "avisos": [
+      "scripts"
+    ],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 54
+    },
+    "sha256": "9f183b6b060e91422db90d72ab864403d80b8a5fa508163d464da2e89ac8c130"
+  },
+  {
+    "arquivo": "style-aberto.html",
+    "caso": "style-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "rawtext-aberto",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 53
+    },
+    "sha256": "07c7a91d4468bb84dea40957d33c42a9606cc53e44febf0c9bf25b577abe5ce0"
+  },
+  {
+    "arquivo": "noscript-aberto.html",
+    "caso": "noscript-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "rawtext-aberto",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 56
+    },
+    "sha256": "5dfc752f071cb6daa36f7268c7b62391ee61147b393280d3dc27deff896b9ec8"
+  },
+  {
+    "arquivo": "xmp-aberto.html",
+    "caso": "xmp-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "rawtext-aberto",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 51
+    },
+    "sha256": "492363d6708e5e1502e71f06e8fce065f995acda317b693b1fd858359731da74"
+  },
+  {
+    "arquivo": "iframe-aberto.html",
+    "caso": "iframe-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "rawtext-aberto",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 54
+    },
+    "sha256": "4fcd02baf248a62675627f02c74a4ebbbd02ef52239651fd7feeac12e66150e8"
+  },
+  {
+    "arquivo": "noembed-aberto.html",
+    "caso": "noembed-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "rawtext-aberto",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 55
+    },
+    "sha256": "53cb75758ad82683e309a45ad261c143e409569c830c92efe58b6f5c09faed8f"
+  },
+  {
+    "arquivo": "noframes-aberto.html",
+    "caso": "noframes-aberto",
+    "esperado": "recusa",
+    "motivo_recusa": "rawtext-aberto",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 56
+    },
+    "sha256": "b251dbba5569008f611c51c63ad331a2306765b23c09b21a818c961d0a6209f3"
+  },
+  {
+    "arquivo": "utf8-emoji.html",
+    "caso": "utf8-emoji",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 145
+    },
+    "sha256": "beeb01ee45edeeb7b9ddf34a6ac8ed54be0ce93a669787cc14921da75ba9b893"
+  },
+  {
+    "arquivo": "nul.html",
+    "caso": "nul",
+    "esperado": "recusa",
+    "motivo_recusa": "nul",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": true,
+      "utf8": true,
+      "tamanho": 103
+    },
+    "sha256": "9f354b2bdc989a4462d9afcdd7f84dcc41c5b837759aeec73415193dad6d3545"
+  },
+  {
+    "arquivo": "latin1.html",
+    "caso": "latin1",
+    "esperado": "recusa",
+    "motivo_recusa": "nao-utf8",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": false,
+      "tamanho": 109
+    },
+    "sha256": "e6ba91fa9b57ab239d6b780cddf00681e9fea0d3c84655deca34fdac53459f76"
+  },
+  {
+    "arquivo": "limite-2-mib.html",
+    "caso": "limite-2-mib",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 2097152
+    },
+    "sha256": "50e3cc5539e2d407aad8beaba899d8c8dd751c3db44f6b9d3bbafbd3dbb3ceb1"
+  },
+  {
+    "arquivo": "limite-2-mib-mais-um.html",
+    "caso": "limite-2-mib-mais-um",
+    "esperado": "recusa",
+    "motivo_recusa": "documento-maior-2-mib",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 2097153
+    },
+    "sha256": "3118ef64e40a865f0b68cc734e0743723cf31d28bbb2d96fcfee8a7e750b35b9"
+  },
+  {
+    "arquivo": "data-dk-node-autor.html",
+    "caso": "data-dk-node-autor",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 132
+    },
+    "sha256": "b7d312567b77fb9c32bd0f2149d784641a349c04070614678e76f084bf9ad63f"
+  },
+  {
+    "arquivo": "noop-prepare-encode.html",
+    "caso": "noop-prepare-encode",
+    "esperado": "editavel",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": true,
+      "eol": "mixed",
+      "loneCR": true,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 160
+    },
+    "sha256": "5944ecec0622f2398620b43213e4370ae0cd7d886c16f452dea08f27f167c29e"
+  },
+  {
+    "arquivo": "extensao-txt.txt",
+    "caso": "extensao-txt",
+    "esperado": "recusa",
+    "motivo_recusa": "extensao-nao-html",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 111
+    },
+    "sha256": "b648073bddaa4f81ea0444016f3944f9098dd27fc30482bed825e12087d41386"
+  },
+  {
+    "arquivo": "extensao-xhtml.xhtml",
+    "caso": "extensao-xhtml",
+    "esperado": "recusa",
+    "motivo_recusa": "extensao-nao-html",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 113
+    },
+    "sha256": "15efcf2942016e6d694cc30fe2ca3a63cc468785d7c8643ead402a78703587c8"
+  },
+  {
+    "arquivo": "frameset.html",
+    "caso": "frameset",
+    "esperado": "recusa",
+    "motivo_recusa": "frameset",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 134
+    },
+    "sha256": "f067a4ed5116c8da10f2a9debc95813b16ac6fb723b803250bc29292cf9ff47f"
+  },
+  {
+    "arquivo": "plaintext.html",
+    "caso": "plaintext",
+    "esperado": "recusa",
+    "motivo_recusa": "plaintext",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 102
+    },
+    "sha256": "6f35da32afbd5a4111bcb247a28595095b02c210c4c9d26e0e428129869ee468"
+  },
+  {
+    "arquivo": "editor-codigo-sujo.html",
+    "caso": "editor-codigo-sujo",
+    "esperado": "recusa",
+    "motivo_recusa": "editor-codigo-sujo",
+    "avisos": [],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 149
+    },
+    "contexto": {
+      "editor_codigo_sujo": true
+    },
+    "sha256": "71ce471e0ab3e80bf6f1a44caa3eb7f260a7f4e6cac193213ba13de6fe90b054"
+  },
+  {
+    "arquivo": "interpolacao.html",
+    "caso": "interpolacao",
+    "esperado": "editavel",
+    "avisos": [
+      "interpolacao"
+    ],
+    "caracteristicas": {
+      "bom": false,
+      "eol": "lf",
+      "loneCR": false,
+      "doctype": "<!doctype html>",
+      "quirks_esperado": false,
+      "nul": false,
+      "utf8": true,
+      "tamanho": 118
+    },
+    "sha256": "5fb97a7de0a37209ab6e77cbfd09a98dfdfb76f46e30f571148cae6b33615812"
+  }
+]

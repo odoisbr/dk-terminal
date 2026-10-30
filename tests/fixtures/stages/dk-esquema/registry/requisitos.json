@@ -1,0 +1,11 @@
+[
+  {
+    "id": "RF-001",
+    "titulo": "Objetivo do usuário dentro do escopo",
+    "fonte": {
+      "arquivo": "ata.md",
+      "citacao": "Exemplo sintético"
+    },
+    "deriva_de": "RN-001"
+  }
+]

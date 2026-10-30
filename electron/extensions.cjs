@@ -129,6 +129,17 @@ function inside(root, target) {
   return relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`));
 }
 function sameIdentity(a, b) { return a.dev === b.dev && a.ino === b.ino && a.isDirectory() && b.isDirectory(); }
+async function checkProjectIdentity(requested, identity) {
+  try {
+    const realpath = await fs.promises.realpath(requested);
+    const stat = await fs.promises.stat(requested);
+    const canonicalStat = await fs.promises.stat(realpath);
+    // Path spelling can differ in case or Unicode normalization. Pin both the
+    // requested directory and the native containment root to the authorized inode.
+    if (!stat.isDirectory() || stat.dev !== identity.dev || stat.ino !== identity.ino || !sameIdentity(stat, canonicalStat)) throw new Error();
+    return realpath;
+  } catch { throw new Error('O projeto mudou durante a leitura.'); }
+}
 async function directoryIdentity(target, boundary) {
   const stat = await fs.promises.lstat(target);
   if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('Diretório inválido ou link simbólico não permitido.');
@@ -335,6 +346,7 @@ class Extensions {
     this.env = env; this.items = new Map(); this.errors = [];
     this.roots = [...roots]; this.legacyFolders = new Map(); this.onChange = typeof onChange === 'function' ? onChange : null;
     this.activeRoot = null; this.requestedRoot = null; this.records = new Map(); this.watchers = []; this.timer = null; this.epoch = 0; this.watchFailure = null;
+    this.watched = new Map(); this.inflight = null;
     if (snapshot?.token === VERIFICATION_SNAPSHOT) {
       this.roots = Object.freeze(this.roots);
       this.items = snapshot.items; this.legacyFolders = snapshot.legacyFolders; this.errors = snapshot.errors;
@@ -393,6 +405,24 @@ class Extensions {
     clearTimeout(this.timer); this.timer = null;
     for (const watcher of this.watchers) { try { watcher.close(); } catch {} }
     this.watchers = [];
+    this.watched.clear();
+  }
+  _pruneWatchers(keep) {
+    for (const [dir, entry] of this.watched) if (!keep(dir)) {
+      try { entry.watcher.close(); } catch {}
+      this.watched.delete(dir);
+    }
+    this.watchers = [...this.watched.values()].map(entry => entry.watcher);
+  }
+  _notifyChange(root, epoch) {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      if (epoch !== this.epoch || this.activeRoot !== root) return;
+      if (this.inflight) this.inflight.dirty = true;
+      else this.onChange({ path: this.requestedRoot });
+    }, DEBOUNCE_MS);
+    this.timer.unref?.();
   }
   closeProject(root) {
     if (typeof root !== 'string') return;
@@ -401,48 +431,94 @@ class Extensions {
   }
   close() {
     this.epoch++; this._stopWatchers(); this.activeRoot = null; this.requestedRoot = null; this.records = new Map(); this.watchFailure = null;
+    this.inflight = null;
   }
-  async listPlugins(root = null) { return this._load(root); }
-  async reloadPlugins(root = null) { return this._load(root); }
+  async listPlugins(root = null, identity = null) { return this._load(root, identity); }
+  async reloadPlugins(root = null, identity = null) { return this._load(root, identity, true); }
   async _readPackedManifest(trusted, file) { return readPackedManifest(trusted, file); }
-  async _load(root) {
+  async _load(root, identity, reload = false) {
     if (root !== null && (typeof root !== 'string' || root.length > 8192 || root.includes('\0') || !path.isAbsolute(root))) throw new Error('Pasta de projeto inválida.');
     const requested = root === null ? null : path.resolve(root);
-    if (this.requestedRoot !== requested) this.watchFailure = null;
-    this.requestedRoot = requested;
-    const epoch = ++this.epoch;
-    this._stopWatchers(); this.records = new Map(); this.activeRoot = null;
-    let project = null;
-    if (requested !== null) {
-      project = await fs.promises.realpath(requested);
-      if (!(await fs.promises.stat(project)).isDirectory()) throw new Error('Pasta de projeto inválida.');
+    const authorized = identity && { realpath: identity.realpath, dev: identity.dev, ino: identity.ino };
+    const pending = this.inflight;
+    if (pending && pending.requested === requested &&
+        ((!authorized && !pending.authorized) || (authorized && pending.authorized &&
+          authorized.dev === pending.authorized.dev && authorized.ino === pending.authorized.ino))) {
+      if (reload && this.watchFailure) { this.watchFailure = null; pending.dirty = true; }
+      return pending.promise;
     }
+    if (this.requestedRoot !== requested || pending) this.close();
+    if (reload) this.watchFailure = null;
+    this.requestedRoot = requested;
+    const flight = { requested, authorized, identity: authorized, epoch: this.epoch, dirty: false, promise: null };
+    this.inflight = flight;
+    flight.promise = (async () => {
+      try {
+        // Standalone hosts also pin the inode before resolving the path. IPC
+        // callers supply the identity already authorized by the main process.
+        if (requested !== null && !flight.identity) {
+          const stat = await fs.promises.stat(requested);
+          const realpath = await fs.promises.realpath(requested);
+          if (!stat.isDirectory()) throw new Error('Pasta de projeto inválida.');
+          flight.identity = { realpath, dev: stat.dev, ino: stat.ino };
+        }
+        let result = await this._scan(flight);
+        if (flight.dirty) {
+          flight.dirty = false;
+          result = await this._scan(flight);
+        }
+        return result;
+      } catch (error) {
+        if (this.inflight === flight) { this._stopWatchers(); this.records = new Map(); this.activeRoot = null; }
+        throw error;
+      } finally {
+        if (this.inflight === flight) {
+          this.inflight = null;
+          // Continuous edits get a subsequent debounced notification, never
+          // an unbounded loop or a notification swallowed by coalescing.
+          if (flight.dirty && this.activeRoot && this.onChange) this._notifyChange(this.activeRoot, flight.epoch);
+        }
+      }
+    })();
+    return flight.promise;
+  }
+  async _scan({ requested, identity, epoch }) {
     if (epoch !== this.epoch) throw new Error('Projeto alterado durante a leitura de plugins.');
+    const project = requested === null ? null : await checkProjectIdentity(requested, identity);
+    if (epoch !== this.epoch) throw new Error('Projeto alterado durante a leitura de plugins.');
+    this.records = new Map();
     this.activeRoot = project;
     const records = new Map(), errors = [], watchDirs = [];
     const roots = this.roots.map((value, index) => ({ value, origin: index === 0 ? 'app' : 'user', index }));
     if (project) roots.push({ value: path.join(project, '.dk', 'plugins'), origin: 'project', project });
-    for (const item of roots) await this._readRoot(item, records, errors, watchDirs);
+    for (const item of roots) await this._readRoot(item, records, errors, watchDirs, epoch);
     if (epoch !== this.epoch || this.activeRoot !== project) throw new Error('Projeto alterado durante a leitura de plugins.');
     const availability = new Map();
     for (const record of records.values()) for (const action of record.item.contributes.actions) {
       if (!availability.has(action.command)) availability.set(action.command, await resolveExecutable(action.command, this.env));
     }
     if (epoch !== this.epoch || this.activeRoot !== project) throw new Error('Projeto alterado durante a leitura de plugins.');
-    this.records = records;
-    if (project && this.onChange) await this._watch(project, epoch, watchDirs);
+    if (project) await checkProjectIdentity(requested, identity);
     if (epoch !== this.epoch || this.activeRoot !== project) throw new Error('Projeto alterado durante a leitura de plugins.');
+    this._pruneWatchers(dir => watchDirs.some(entry => entry.dir === dir));
+    this.records = records;
     if (this.watchFailure) errors.push(this.watchFailure);
     return { plugins: [...records.values()].map(record => pluginInfo(record, availability)), errors };
   }
-  async _readRoot(info, records, errors, watchDirs) {
+  async _readRoot(info, records, errors, watchDirs, epoch) {
     let root, trusted = null;
+    const watch = async (dir, filter) => {
+      watchDirs.push({ dir, filter });
+      if (this.onChange) await this._watch(info.project, epoch, [{ dir, filter }]);
+    };
     try {
       if (info.project) {
+        await watch(info.project, '.dk');
         const dk = path.join(info.project, '.dk');
-        if (!(await regularExists(dk))) { watchDirs.push({ dir: info.project, filter: '.dk' }); return; }
+        if (!(await regularExists(dk))) return;
         await directoryIdentity(dk, info.project);
-        if (!(await regularExists(info.value))) { watchDirs.push({ dir: dk, filter: 'plugins' }); return; }
+        await watch(dk, 'plugins');
+        if (!(await regularExists(info.value))) return;
         await directoryIdentity(info.value, info.project);
         root = info.value;
       } else {
@@ -451,7 +527,7 @@ class Extensions {
         await directoryIdentity(root, root);
         trusted = await trustedPackagedAsar(info, root);
       }
-      if (info.project) watchDirs.push({ dir: root });
+      if (info.project) await watch(root);
       const entries = [];
       let scanned = 0;
       const stream = await fs.promises.opendir(root);
@@ -463,11 +539,15 @@ class Extensions {
           entries.push(entry.name);
         }
       } finally { try { await stream.close(); } catch {} }
+      if (info.project && epoch === this.epoch) {
+        const allowed = new Set([...watchDirs.map(entry => entry.dir), ...entries.map(name => path.join(root, name))]);
+        this._pruneWatchers(dir => allowed.has(dir));
+      }
       for (const name of entries) {
         const folder = path.join(root, name);
         try {
           await directoryIdentity(folder, info.project || root);
-          if (info.project) watchDirs.push({ dir: folder, filter: ['plugin.json', 'extension.json'] });
+          if (info.project) await watch(folder, ['plugin.json', 'extension.json']);
           const v2 = path.join(folder, 'plugin.json'), v1 = path.join(folder, 'extension.json');
           const hasV2 = await regularExists(v2), hasV1 = await regularExists(v1);
           if (hasV2 && hasV1) throw new Error('Pasta com dois manifestos.');
@@ -494,25 +574,28 @@ class Extensions {
   }
   async _watch(root, epoch, dirs) {
     if (this.watchFailure) return;
-    for (const { dir, filter } of dirs.slice(0, ROOT_LIMIT + 1)) {
+    for (const { dir, filter } of dirs) {
       try {
-        await directoryIdentity(dir, root);
+        const stat = await directoryIdentity(dir, root);
         if (epoch !== this.epoch || this.activeRoot !== root || this.watchFailure) return;
+        const previous = this.watched.get(dir);
+        if (previous && sameIdentity(previous.stat, stat)) continue;
+        // fs.watch follows the old inode across renames. Replace watchers on
+        // changed ancestors and their descendants before reading the new tree.
+        this._pruneWatchers(candidate => !inside(dir, candidate));
+        if (this.watchers.length >= ROOT_LIMIT + 3) throw new Error('Limite de observadores atingido.');
         const watcher = fs.watch(dir, { persistent: false }, (_event, file) => {
-          if (epoch !== this.epoch || this.activeRoot !== root) return;
+          if (epoch !== this.epoch || this.activeRoot !== root || this.watched.get(dir)?.watcher !== watcher) return;
           if (filter && file != null && !(Array.isArray(filter) ? filter : [filter]).includes(String(file))) return;
-          clearTimeout(this.timer);
-          this.timer = setTimeout(() => {
-            this.timer = null;
-            if (epoch === this.epoch && this.activeRoot === root) this.onChange({ path: root });
-          }, DEBOUNCE_MS);
-          this.timer.unref?.();
+          if (this.inflight) this.inflight.dirty = true;
+          else this._notifyChange(root, epoch);
         });
         watcher.on('error', () => {
-          if (epoch !== this.epoch || this.activeRoot !== root) return;
+          if (epoch !== this.epoch || this.activeRoot !== root || this.watched.get(dir)?.watcher !== watcher) return;
           this._stopWatchers(); this.watchFailure = 'Monitoramento de plugins indisponível; use Recarregar para atualizar manualmente.';
-          this.onChange({ path: root });
+          this.onChange({ path: this.requestedRoot });
         });
+        this.watched.set(dir, { stat, watcher });
         this.watchers.push(watcher);
       } catch {
         if (epoch !== this.epoch || this.activeRoot !== root) return;

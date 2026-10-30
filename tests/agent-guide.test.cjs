@@ -15,7 +15,19 @@ const temp = t => { const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpd
 test('o guia existe, é curto e cobre dock-preview, sea, serviços e o limite de tokens', () => {
   const text = fs.readFileSync(GUIDE, 'utf8');
   assert.ok(text.split('\n').length <= 80, 'o guia entra no contexto de toda sessão: mantenha-o curto');
-  for (const needle of ['dock-preview <alvo> [--titulo "Texto"]', 'sea help', 'Detectados nas sessões', 'dock-agents', 'SEA_DOCK_AGENTS_MD', 'DK_TERMINAL_PREVIEW_TOKEN', 'abre o protótipo']) assert.ok(text.includes(needle), needle);
+  for (const needle of [
+    'dock-preview <alvo> [--titulo "Texto"]',
+    'sea help',
+    'Detectados nas sessões',
+    'dock-agents',
+    'SEA_DOCK_AGENTS_MD',
+    'DK_TERMINAL_PREVIEW_TOKEN',
+    'abre o protótipo',
+    'não declare etapa concluída', 'com a fonte real',
+    '/dk:<nome-da-skill>',
+    'Não tente contornar aprovação nem pedir bypass',
+    'só rodam após clique e confirmação da pessoa',
+  ]) assert.ok(text.includes(needle), needle);
   assert.equal(guide.agentGuidePath({ isPackaged: false, appPath: root }), GUIDE);
   assert.equal(guide.agentGuidePath({ isPackaged: true, resourcesPath: '/nao/existe' }), null);
   assert.deepEqual(guide.agentGuideEnvironment(GUIDE), { SEA_DOCK_AGENTS_MD: GUIDE });

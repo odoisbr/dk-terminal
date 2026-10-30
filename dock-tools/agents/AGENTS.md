@@ -39,6 +39,22 @@ O `sea` (CLI do Sea Dashboard) está disponível nas sessões. Para tarefas, pro
 
 Em projeto DK (com `projeto.yml` ou `.dk/`), se as skills `dk:*` estiverem disponíveis (Claude Code com o plugin DK), use-as: elas seguem o fluxo do Design Kit.
 
+## Etapas do DK
+
+A barra de etapas do DK (levantar, entender, entregar, prototipar) tem critérios que vêm dos registros do projeto. Para avançar uma etapa, trabalhe nos registros e documentos indicados pelo critério pendente; não declare etapa concluída. Registre só o que tem origem nos documentos do projeto, com a fonte real; se faltar dado, pergunte à pessoa em vez de preencher.
+
+## Catálogo de skills e design systems
+
+O catálogo reúne skills e design systems. Com o plugin DK ativo, as skills do kit são invocadas como `/dk:<nome-da-skill>` no Claude Code (ex.: `/dk:dk-levantar`).
+
+## Tarefas com Claude
+
+No runner de tarefas com Claude, operações que exigem permissão aparecem como cartão de aprovação no app. Aguarde a decisão da pessoa; se for recusada, não repita nem busque outro caminho. Não tente contornar aprovação nem pedir bypass.
+
+## Plugins por projeto
+
+Plugins por projeto em `.dk/plugins` definem ações locais. Suas ações só rodam após clique e confirmação da pessoa; não crie nem altere plugins sem pedido explícito.
+
 ## Este guia
 
 `dock-agents` imprime este guia; a variável `SEA_DOCK_AGENTS_MD` traz o caminho do arquivo.

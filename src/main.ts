@@ -20,9 +20,14 @@ import { createPluginsPanel } from './plugins';
 import { ViewRegistry } from './views';
 import { playSeaMotion } from './sea-motion.mjs';
 import './plugins.css';
+import { createCatalogPanel } from './catalog';
+import { createStageBar } from './stages';
+import './stages.css';
+import './agent-run.css';
 import { installDebugCapture } from './debug';
 import { DetectedServicesView } from './session-services';
 import { icon, setIconButton } from './icons';
+import type { VisualApi } from './visual-editor';
 
 installDebugCapture();
 
@@ -43,10 +48,11 @@ app.innerHTML = `
   <main class="workspace">
     <header class="titlebar"><button id="toggle-sidebar" class="icon-button sidebar-toggle" aria-label="Recolher sidebar" aria-expanded="true" title="Recolher sidebar">${icon('sidebar')}</button><span class="breadcrumb">Workspace ${icon('chevron')} <strong id="breadcrumb-project"><span id="project-title">Início</span></strong></span><div class="titlebar-actions"><button id="reveal-project" class="icon-button" aria-label="Abrir pasta do projeto no Finder" title="Abrir pasta do projeto no Finder" hidden>${icon('reveal')}</button><button id="launcher-show" class="icon-button" aria-label="Página inicial" title="Página inicial">${icon('home')}</button><button id="profile-show" class="icon-button" aria-label="Perfil e configurações" title="Perfil e configurações">${icon('settings')}</button><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" title="Alternar tema SEA">Tema SEA</button><span class="local-badge"><span class="status-dot ready"></span>Ambiente local</span></div></header>
     <div class="action-bar"><span class="action-label">AÇÕES DK</span><button class="button action" data-action="audit" disabled>${icon('fileSearch')}Auditoria</button><button class="button action" data-action="validate" disabled>${icon('checkCircle')}Validar projeto</button><button class="button action" data-action="doctor" disabled>${icon('activity')}Diagnóstico</button><button class="button action" id="show-graph" disabled>${icon('graph')}Orquestração</button><span class="action-hint" id="action-hint">Instale ou ative o plugin DK para executar as ações.</span></div>
+    <div id="stage-bar" class="stage-bar" aria-label="Etapas do DK" hidden></div>
     <div id="extension-bar" class="extension-bar" aria-label="Extensões de agentes" hidden></div>
     <div class="work-area">
       <section id="terminal-view" class="terminal-card" aria-label="Área de trabalho do projeto">
-        <div class="terminal-toolbar"><div class="workspace-tabs"><div id="tabs" role="tablist" aria-label="Guias do projeto"></div><div id="file-tabs"></div></div><div class="terminal-controls"><button id="single-terminal" class="icon-button" aria-label="Visualização única" title="Visualização única" hidden>${icon('single')}</button><button id="detach-pane" class="icon-button" aria-label="Separar painel ativo do split" title="Separar painel ativo do split" hidden>${icon('detach')}</button><button id="split-right" class="icon-button" aria-label="Dividir terminal à direita" title="Dividir à direita (⌘ D)" disabled>${icon('split')}</button><button id="split-down" class="icon-button" aria-label="Dividir terminal abaixo" title="Dividir abaixo (⌘ ⇧ D)" disabled>${icon('splitDown')}</button><button id="split-agent" class="icon-button" aria-label="Dividir com agente" title="Dividir com Claude, Codex ou outra ferramenta" aria-haspopup="menu" aria-expanded="false" disabled>${icon('sparkle')}</button><button id="launch-claude" class="icon-button agent-launch" aria-label="Abrir Claude Code" title="Abrir Claude Code" disabled><img src="${claudeIcon}" alt="" /></button><button id="launch-codex" class="icon-button agent-launch" aria-label="Abrir Codex" title="Abrir Codex" disabled><img src="${codexIcon}" alt="" /></button><button id="launch-antigravity" class="icon-button agent-launch" aria-label="Abrir Antigravity CLI" title="Abrir Antigravity CLI" hidden><img src="${antigravityIcon}" alt="" /></button><button id="launch-gemini" class="icon-button agent-launch" aria-label="Abrir Gemini CLI" title="Abrir Gemini CLI" hidden><img src="${geminiIcon}" alt="" /></button><button id="launch-dk" class="icon-button agent-launch" aria-label="Abrir DK CLI" title="Abrir DK CLI" hidden><img src="${logoUrl}" alt="" /></button><button id="open-browser" class="icon-button" aria-label="Visualizar protótipo" title="Visualizar protótipo" disabled>${icon('globe')}</button><span class="toolbar-divider" aria-hidden="true"></span><button id="expand-terminal" class="icon-button" aria-label="Expandir terminal" aria-pressed="false" title="Expandir terminal (⌘ ⇧ E)">${icon('expand')}</button><button id="search-toggle" class="icon-button" aria-label="Buscar no terminal" title="Buscar no terminal (⌘ F)" disabled>${icon('search')}</button><button id="new-session" class="icon-button" aria-label="Nova sessão de terminal" title="Nova sessão de terminal (⌘ T)" disabled>${icon('terminalPlus')}</button></div></div>
+        <div class="terminal-toolbar"><div class="workspace-tabs"><div id="tabs" role="tablist" aria-label="Guias do projeto"></div><div id="file-tabs"></div></div><div class="terminal-controls"><button id="single-terminal" class="icon-button" aria-label="Visualização única" title="Visualização única" hidden>${icon('single')}</button><button id="detach-pane" class="icon-button" aria-label="Separar painel ativo do split" title="Separar painel ativo do split" hidden>${icon('detach')}</button><button id="split-right" class="icon-button" aria-label="Dividir terminal à direita" title="Dividir à direita (⌘ D)" disabled>${icon('split')}</button><button id="split-down" class="icon-button" aria-label="Dividir terminal abaixo" title="Dividir abaixo (⌘ ⇧ D)" disabled>${icon('splitDown')}</button><button id="split-agent" class="icon-button" aria-label="Dividir com agente" title="Dividir com Claude, Codex ou outra ferramenta" aria-haspopup="menu" aria-expanded="false" disabled>${icon('sparkle')}</button><button id="launch-claude" class="icon-button agent-launch" aria-label="Abrir Claude Code" title="Abrir Claude Code" disabled><img src="${claudeIcon}" alt="" /></button><button id="launch-agent" class="icon-button agent-task-launch" aria-label="Tarefa com Claude" title="Tarefa com Claude" disabled><img src="${claudeIcon}" alt="" /><span>Tarefa com Claude</span></button><button id="launch-codex" class="icon-button agent-launch" aria-label="Abrir Codex" title="Abrir Codex" disabled><img src="${codexIcon}" alt="" /></button><button id="launch-antigravity" class="icon-button agent-launch" aria-label="Abrir Antigravity CLI" title="Abrir Antigravity CLI" hidden><img src="${antigravityIcon}" alt="" /></button><button id="launch-gemini" class="icon-button agent-launch" aria-label="Abrir Gemini CLI" title="Abrir Gemini CLI" hidden><img src="${geminiIcon}" alt="" /></button><button id="launch-dk" class="icon-button agent-launch" aria-label="Abrir DK CLI" title="Abrir DK CLI" hidden><img src="${logoUrl}" alt="" /></button><button id="open-browser" class="icon-button" aria-label="Visualizar protótipo" title="Visualizar protótipo" disabled>${icon('globe')}</button><span class="toolbar-divider" aria-hidden="true"></span><button id="expand-terminal" class="icon-button" aria-label="Expandir terminal" aria-pressed="false" title="Expandir terminal (⌘ ⇧ E)">${icon('expand')}</button><button id="search-toggle" class="icon-button" aria-label="Buscar no terminal" title="Buscar no terminal (⌘ F)" disabled>${icon('search')}</button><button id="new-session" class="icon-button" aria-label="Nova sessão de terminal" title="Nova sessão de terminal (⌘ T)" disabled>${icon('terminalPlus')}</button></div></div>
         <div id="terminal-workspace" class="terminal-workspace">
         <div id="search-bar" hidden><label for="terminal-search" class="sr-only">Buscar no terminal</label><input id="terminal-search" placeholder="Buscar nesta sessão" autocomplete="off" /><button id="search-previous" class="icon-button" aria-label="Resultado anterior" title="Resultado anterior (⇧ ↵)">${icon('arrowUp')}</button><button id="search-next" class="icon-button" aria-label="Próximo resultado" title="Próximo resultado (↵)">${icon('arrowDown')}</button><button id="search-close" class="icon-button" aria-label="Fechar busca" title="Fechar busca (Esc)">${icon('close')}</button></div>
         <div class="terminal-content"><div id="welcome"><div class="welcome-symbol">${icon('terminal')}</div><span class="eyebrow">MENOS DISTÂNCIA ENTRE IDEIA E ENTREGA</span><h2>O projeto é o ponto de partida.</h2><p>Seu terminal, suas ferramentas e os comandos do DK.<br>Tudo no mesmo espaço, direto no seu computador.</p><button id="welcome-open" class="button primary">${icon('folderOpen')}Abrir um projeto${icon('arrow')}</button><span class="welcome-hint">Selecione uma pasta para começar</span></div><div id="terminal-empty" hidden><span class="welcome-symbol small">${icon('terminal')}</span><h2>Espaço pronto.</h2><p>Abra um terminal quando precisar.</p><button id="empty-new" class="button primary">${icon('terminalPlus')}Nova sessão de terminal</button></div><div id="terminal-host"><section id="editor-view" class="editor-card" aria-label="Editor de arquivos" hidden><div id="editor-content"></div></section></div></div>
@@ -57,6 +63,8 @@ app.innerHTML = `
       <section id="graph-view" class="graph-card" aria-label="Orquestração do DK" hidden><div class="auxiliary-toolbar"><strong>${icon('graph')}Orquestração do DK</strong><button id="refresh-graph" class="icon-button" aria-label="Atualizar orquestração" title="Atualizar orquestração">${icon('refresh')}</button><button id="graph-back" class="button secondary">Voltar ao terminal</button></div><div id="graph-content"></div><footer class="auxiliary-footer">Visualização dos registros locais do DK</footer></section>
       <section id="action-view" class="action-card" aria-label="Resultado do DK" hidden><div class="auxiliary-toolbar"><strong><span id="action-view-icon">${icon('activity')}</span>Resultado do DK</strong><button id="cancel-action" class="button secondary" hidden>Interromper</button><button id="action-back" class="button secondary">Voltar ao terminal</button></div><div id="action-content" role="status" aria-live="polite"></div></section>
       <section id="chat-view" class="chat-card" aria-label="Codex" hidden></section>
+      <section id="agent-view" class="chat-card" aria-label="Tarefa com Claude" hidden></section>
+      <section id="visual-view" class="chat-card" aria-label="Editor visual de HTML" hidden></section>
       <div class="project-inspector">
         <aside id="project-inspector-panel" class="context-panel" aria-label="Painel do projeto" hidden>
           <section id="panel-git" class="inspector-panel" aria-labelledby="tab-git" tabindex="0" hidden></section>
@@ -104,7 +112,7 @@ type InspectorPanel = 'context' | 'services' | 'files' | 'usage' | 'git';
 let selectedPanel: InspectorPanel | null = null;
 let treeProject: string | null = null;
 let treeRequest = 0;
-type MainView = 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'action';
+type MainView = 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'agent' | 'action' | 'visual';
 let mainView: MainView = 'terminal';
 let workspaceView: 'terminal' | 'editor' = 'terminal';
 const views = new ViewRegistry<MainView>();
@@ -113,6 +121,8 @@ views.register('editor', [$('terminal-view'), $('terminal-workspace'), $('editor
 views.register('graph', [$('graph-view')]);
 views.register('browser', [$('terminal-view'), $('browser-view')]);
 views.register('chat', [$('chat-view')]);
+views.register('agent', [$('agent-view')]);
+views.register('visual', [$('visual-view')]);
 views.register('action', [$('action-view')]);
 let focusedPane: 'terminal' | 'editor' = 'terminal';
 type BrowserTab = { id: string | null; ready: Promise<string | null> | null; url: string; wantedService: string; selectedService: string; waitingForService: boolean; status: string; caption?: string };
@@ -125,6 +135,10 @@ const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, 
   try {
     if(editorOpening)await editorOpening;
     if(fileEditor?.hasUnsaved(root))throw new Error('Salve os arquivos abertos no editor antes de trocar de branch.');
+    if(visualView?.isOpenFor(root)) {
+      if(!await leaveVisual())throw new Error('A troca de branch foi cancelada.');
+      if(mainView==='visual')selectMainView('editor');
+    }
     if(fileEditor && !await fileEditor.closeProject(root))throw new Error('A troca de branch foi cancelada.');
     await api.gitBranchAction(root,action,name);
     if(current?.path===root)await loadRootTree();
@@ -136,6 +150,10 @@ let editorOpening: Promise<import('./editor').FileEditor> | null = null;
 let usageSnapshot: UsageSnapshot | null = null, usageLoading = false;
 let chatView: import('./chat').CodexChatView | null = null;
 let chatOpening: Promise<import('./chat').CodexChatView> | null = null;
+let agentView: import('./agent-run').AgentRunView | null = null, agentOpeningView: Promise<import('./agent-run').AgentRunView> | null = null;
+let visualView: import('./visual-editor').VisualEditorView | null = null;
+let visualOpening: Promise<import('./visual-editor').VisualEditorView> | null = null;
+export function visualDirty(): boolean { return visualView?.dirty() ?? false; }
 const actionResults = new Map<string, DkActionResult>();
 const runningActions = new Set<string>();
 
@@ -209,6 +227,12 @@ function rememberRecent(info: Project) {
   launcher.refreshRecents();
 }
 const run = (task: () => Promise<unknown>) => { task().catch(notify); };
+const stageBar = createStageBar($('stage-bar'), { readStages: api.readStages, listCatalog: api.listCatalog, readCatalog: api.readCatalogEntry, stopWatching: api.stopWatchingStages, runAction: async (root, action) => {
+  if (current?.path !== root) throw new Error('O projeto não está ativo.');
+  if (runningActions.has(root)) throw new Error('Aguarde a ação em andamento.');
+  return runDkAction(action);
+}, capabilitiesAgent: api.capabilitiesAgent, openClaude: (_root, preset) => openAgent(preset), notify });
+const catalogPanel = stageBar.attachCatalog(createCatalogPanel(stageBar.catalogHost, { listCatalog: api.listCatalog, readCatalog: api.readCatalogEntry, notify, onClose: () => stageBar.closeCatalog(true) }));
 function renderKit() {
   $('kit-dot').classList.toggle('ready', !!kit);
   const view = describeKit({ status: pluginStatus, ...pluginInfo, kitActive: !!kit }), control = button('install-dk-plugin');
@@ -219,6 +243,7 @@ function renderKit() {
   $('kit-description').title = kit?.path ? `Pasta do kit: ${kit.path}` : '';
   $('action-hint').textContent = !kit ? 'Instale ou ative o plugin DK para executar as ações.' : !current ? 'Abra uma pasta para começar.' : 'Resultados renderizados · JSON disponível.';
   document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach(el => { el.disabled = !kit || !current || runningActions.has(current.path) || (el.dataset.action === 'validate' && !current.isDk); });
+  if (typeof stageBar !== 'undefined') stageBar.setKit(!!kit);
 }
 const PROJECT_FILTER_MIN = 8;
 const openedProjects = new Set<string>();
@@ -282,6 +307,7 @@ function createProjectRow(info: Project) {
     try {
     await opening;
     if (editorOpening && !fileEditor) await editorOpening;
+    if (visualView?.isOpenFor(info.path) && !await leaveVisual()) return;
     if (fileEditor && !await fileEditor.closeProject(info.path)) return;
     const result = await api.closeProjectSessions(info.path);
     for (const [id, session] of [...sessions]) if (session.cwd === info.path) {
@@ -291,6 +317,9 @@ function createProjectRow(info: Project) {
     projects = projects.filter(project => project.path !== info.path); openedProjects.delete(info.path);
     if (current?.path === info.path) {
       current = null; activeId = null;
+      void pluginsPanel?.setProject(null);
+      if (typeof stageBar !== 'undefined') void stageBar.setProject(null); if (typeof catalogPanel !== 'undefined') void catalogPanel.setProject(null);
+      if (typeof agentView !== 'undefined' && agentView) void agentView.open('');
       fileEditor?.setProject('');
       selectMainView('terminal');
       renderProject(); focusSession(null, false);
@@ -313,6 +342,7 @@ function renderProject() {
   if (current) reveal.setAttribute('aria-description', `Pasta: ${current.path}`); else reveal.removeAttribute('aria-description');
   button('new-session').disabled = !current;
   button('show-graph').disabled = !current;
+  button('launch-agent').disabled = !current;
   $('welcome').hidden = !!current;
   $('context-empty').hidden = !!current;
   $('context-details').hidden = !current;
@@ -548,7 +578,8 @@ async function loadRootTree() {
     if (request === treeRequest && current?.path === root) { $('folder-tree').replaceChildren(directoryList(root, listing)); syncTreeSelection(); }
   } catch (error) { if (request === treeRequest && current?.path === root) { $('folder-tree').textContent = 'Não foi possível abrir esta pasta.'; treeProject = null; throw error; } }
 }
-function expandTerminal() {
+async function expandTerminal() {
+  if (!await leaveVisual()) return;
   if (mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
   const expanded = document.body.classList.toggle('terminal-expanded');
   button('expand-terminal').setAttribute('aria-pressed', String(expanded));
@@ -557,7 +588,17 @@ function expandTerminal() {
   button('expand-terminal').innerHTML = icon(expanded ? 'restore' : 'expand');
   requestAnimationFrame(() => { fitActive(); if (focusedPane === 'terminal') active()?.terminal.focus(); });
 }
-function selectMainView(view: typeof mainView) {
+async function leaveVisual(): Promise<boolean> {
+  const root = current?.path;
+  if (visualView?.isOpen() && !await visualView.close(false)) return false;
+  return current?.path === root;
+}
+async function changeMainView(view: MainView): Promise<boolean> {
+  if (view !== 'visual' && !await leaveVisual()) return false;
+  selectMainView(view);
+  return true;
+}
+function selectMainView(view: MainView) {
   const previousView = mainView;
   mainView = view;
   document.body.classList.toggle('browser-active', view === 'browser');
@@ -578,11 +619,17 @@ function selectMainView(view: typeof mainView) {
 }
 async function openFile(root: string, relative: string) {
   if (closingProjects.has(root) || changingBranches.has(root)) return;
+  if (!await leaveVisual()) return;
   if (!editorOpening) editorOpening = import('./editor').then(({ FileEditor }) => {
     fileEditor = new FileEditor($('editor-content'), {
       read: api.readFile, save: api.saveFile, confirmClose: api.confirmCloseFile, tabsHost: $('file-tabs'),
-      onSelect: () => { focusedPane = 'editor'; syncTreeSelection(); if (mainView !== 'editor') selectMainView('editor'); else focusSession(activeId, false); },
+      onSelect: () => {
+        const select = () => { focusedPane = 'editor'; syncTreeSelection(); if (mainView !== 'editor') selectMainView('editor'); else focusSession(activeId, false); };
+        if (visualView?.isOpen()) run(async () => { if (await leaveVisual()) select(); });
+        else select();
+      },
       onDirty: files => { api.setDirtyFiles(files).catch(notify); },
+      onEditVisual: (relative, dirty) => run(() => openVisual(relative, dirty)),
       onEmpty: () => { syncTreeSelection(); if (mainView === 'editor') selectMainView('terminal'); else renderTabs(); }, onError: notify,
     });
     if (current) fileEditor.setProject(current.path);
@@ -593,19 +640,61 @@ async function openFile(root: string, relative: string) {
   selectMainView('editor');
   await editor.open(root, relative);
 }
+async function openVisual(relative: string, codeEditorDirty = false) {
+  if (!current || closingProjects.has(current.path) || changingBranches.has(current.path)) return;
+  const root = current.path;
+  selectMainView('visual');
+  if (!visualView) $('visual-view').textContent = 'Abrindo editor visual…';
+  if (!visualOpening) visualOpening = Promise.all([import('./visual-editor'), import('./visual-editor.css')]).then(([{ VisualEditorView }]) => {
+    const visualApi = api as unknown as VisualApi;
+    return visualView = new VisualEditorView($('visual-view'), {
+      openVisual: visualApi.openVisual, inspectVisual: visualApi.inspectVisual, applyVisual: visualApi.applyVisual,
+      undoVisual: visualApi.undoVisual, redoVisual: visualApi.redoVisual, saveVisual: visualApi.saveVisual,
+      reloadVisual: visualApi.reloadVisual, closeVisual: visualApi.closeVisual, visualState: visualApi.visualState,
+      onVisualEvent: visualApi.onVisualEvent, onBack: () => selectMainView('editor'),
+      onOpenCode: (root, relative) => run(async () => {
+        if (current?.path !== root) return;
+        await openFile(root, relative);
+        if (current?.path === root && fileEditor?.getCurrentFile()?.relative === relative) fileEditor.showCode();
+      }),
+      onSaved: (root, relative) => fileEditor?.refreshFromDisk(root, relative),
+    }, notify);
+  });
+  let view;
+  try { view = await visualOpening; } catch (error) {
+    visualOpening = null;
+    if (current?.path === root && mainView === 'visual') selectMainView('editor');
+    throw error;
+  }
+  if (current?.path !== root || mainView !== 'visual') return;
+  await view.open(root, relative, codeEditorDirty);
+}
 async function openCodex() {
   if (!current || closingProjects.has(current.path)) return;
   const root = current.path;
+  if (!await leaveVisual() || current?.path !== root) return;
   selectMainView('chat');
   if (!chatView) $('chat-view').innerHTML = '<div class="chat-loading" role="status">Abrindo Codex…</div>';
   if (!chatOpening) chatOpening = import('./chat').then(({ CodexChatView }) => {
-    chatView = new CodexChatView($('chat-view'), { create: api.createChat, list: api.listChats, read: api.readChat, send: api.sendChat, cancel: api.cancelChat, approve: api.approveChat, onBack: () => selectMainView(workspaceView) }, notify);
+    chatView = new CodexChatView($('chat-view'), { create: api.createChat, list: api.listChats, read: api.readChat, send: api.sendChat, cancel: api.cancelChat, approve: api.approveChat, onBack: () => run(() => changeMainView(workspaceView)) }, notify);
     return chatView;
   });
   let view;
   try { view = await chatOpening; } catch (error) { chatOpening = null; throw error; }
   if (current?.path !== root || mainView !== 'chat') return;
   await view.open(root);
+}
+async function openAgent(preset?: import('./agent-run').AgentRunPreset) {
+  if (!current || closingProjects.has(current.path)) return;
+  const root = current.path;
+  if (!await leaveVisual() || current?.path !== root) return;
+  selectMainView('agent');
+  if (!agentView) $('agent-view').replaceChildren(Object.assign(document.createElement('div'), { className: 'chat-loading', textContent: 'Abrindo Tarefa com Claude…' }));
+  if (!agentOpeningView) agentOpeningView = import('./agent-run').then(({ AgentRunView }) => (agentView = new AgentRunView($('agent-view'), { capabilities: api.capabilitiesAgent, list: api.listAgentRuns, read: api.readAgentRun, start: api.startAgentRun, cancel: api.cancelAgentRun, approve: api.approveAgentRun, previewPrompt: api.previewAgentPrompt, listCatalog: api.listCatalog, readStages: api.readStages, listDirectory: api.listDirectory, onBack: () => run(() => changeMainView(workspaceView)), onOpenTerminal: () => run(() => newSession(installedExtensions.some(item => item.id === 'claude' && item.available) ? 'extension:claude' : undefined)) }, notify)));
+  let view;
+  try { view = await agentOpeningView; } catch (error) { agentOpeningView = null; throw error; }
+  if (current?.path !== root || mainView !== 'agent') return;
+  await view.open(root, preset);
 }
 async function showActionResult(result: DkActionResult) {
   const { renderAction } = await import('./actions');
@@ -615,6 +704,7 @@ async function showActionResult(result: DkActionResult) {
 async function runDkAction(action: string) {
   if (!current || runningActions.has(current.path)) return;
   const root = current.path;
+  if (!await leaveVisual() || current?.path !== root) return;
   runningActions.add(root); renderKit();
   selectMainView('action');
   $('action-view-icon').innerHTML = icon(action === 'audit' ? 'fileSearch' : action === 'validate' ? 'checkCircle' : 'activity');
@@ -742,6 +832,7 @@ async function prepareBrowserTab(root: string, tab: BrowserTab): Promise<string 
 async function openBrowserView(requestedService?: string) {
   if (!current) return;
   const root = current.path;
+  if (!await leaveVisual() || current?.path !== root) return;
   let tab = browserTabs.get(root);
   const created = !tab;
   if (!tab) {
@@ -774,6 +865,7 @@ async function openBrowserView(requestedService?: string) {
 // Abre na prévia um servidor detectado numa sessão, sem passar por um serviço declarado.
 async function openPreviewAddress(root: string, url: string) {
   if (current?.path !== root || closingProjects.has(root)) throw new Error('Abra o projeto correspondente antes de visualizar o servidor.');
+  if (!await leaveVisual() || current?.path !== root) return;
   let tab = browserTabs.get(root);
   if (!tab) {
     tab = { id: null, ready: null, url: '', wantedService: '', selectedService: '', waitingForService: false, status: 'Carregando prévia…' };
@@ -899,7 +991,7 @@ function renderTabs() {
     select.classList.toggle('exited', session.exited); select.classList.toggle('failed', failed);
     select.title = session.exited ? `${session.label} · ${failed ? `encerrada com erro (código ${session.exitCode})` : 'encerrada'}` : session.label;
     const text = document.createElement('span'); text.textContent = session.label;
-    select.append(text); select.onclick = () => { if (mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView); focusedPane = 'terminal'; focusSession(session.id); };
+    select.append(text); select.onclick = () => run(async () => { if (!await leaveVisual() || current?.path !== session.cwd) return; if (mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView); focusedPane = 'terminal'; focusSession(session.id); });
     const close = document.createElement('button'); close.className = 'icon-button tab-close'; setIconButton(close, 'close', `Fechar ${session.label}`); close.onclick = () => run(() => closeSession(session.id));
     tab.append(select, close); list.append(tab);
   }
@@ -908,7 +1000,7 @@ function renderTabs() {
     const tab = document.createElement('div'); tab.className = `tab${selected ? ' active' : ''}`;
     const select = document.createElement('button'); select.type = 'button'; select.id = 'browser-tab'; select.className = 'tab-select'; select.role = 'tab';
     select.setAttribute('aria-selected', String(selected)); select.setAttribute('aria-controls', 'browser-view'); select.innerHTML = `${icon('globe')}<span>Browser</span>`;
-    select.onclick = () => { if (current?.path === root) selectMainView('browser'); };
+    select.onclick = () => run(async () => { if (await leaveVisual() && current?.path === root) selectMainView('browser'); });
     const close = document.createElement('button'); close.type = 'button'; close.id = 'browser-tab-close'; close.className = 'icon-button tab-close'; close.setAttribute('aria-label', 'Fechar browser'); close.title = 'Fechar browser'; close.innerHTML = icon('close');
     close.onclick = () => run(() => closeBrowserTab(root));
     tab.append(select, close); list.append(tab);
@@ -930,29 +1022,37 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   if (intent < appliedProjectIntent) return false;
   await opening;
   if (intent < appliedProjectIntent) return false;
+  if (current?.path !== info.path && !await leaveVisual()) return false;
+  if (intent < appliedProjectIntent) return false;
+  info = await api.activateProject(info.path);
+  if (intent < appliedProjectIntent) return false;
   if (closingProjects.has(info.path)) throw new Error('Aguarde o encerramento do projeto.');
   appliedProjectIntent = intent;
   const generation = ++activationGeneration;
   const projectChanged = current?.path !== info.path;
   current = info; openedProjects.add(info.path);
+  // Publish only the applied selection, with no await between this and current.
+  void api.setActiveProject(info.path).catch(notify);
   const valid = () => generation === activationGeneration && current?.path === info.path && !closingProjects.has(info.path);
   const projectIndex = projects.findIndex(p => p.path === info.path);
   if (projectIndex >= 0) projects[projectIndex] = info;
   else projects = [...projects, info].slice(-12);
   if (pluginsPanel) run(() => pluginsPanel!.setProject(info.path, info.title || info.name));
+  if (typeof stageBar !== 'undefined') stageBar.setProject(info.path, info.isDk).catch(notify); if (typeof catalogPanel !== 'undefined') catalogPanel.setProject(info.isDk ? info.path : null).catch(notify);
   fileEditor?.setProject(info.path);
   if (projectChanged) workspaceView = projectWorkspaceViews.get(info.path) === 'editor' && hasCurrentEditor() ? 'editor' : 'terminal';
   syncTreeSelection();
   const previous = lastActive.get(info.path);
   activeId = previous && sessions.has(previous) ? previous : [...sessions.values()].find(s => s.cwd === info.path)?.id || null;
   renderProject();
-  if (projectChanged && (mainView === 'terminal' || mainView === 'editor' || mainView === 'browser')) selectMainView(workspaceView);
+  if (projectChanged && (mainView === 'terminal' || mainView === 'editor' || mainView === 'browser' || mainView === 'visual')) selectMainView(workspaceView);
   else focusSession(activeId, mainView !== 'editor');
   if (projectChanged && selectedPanel !== null) selectPanel('files', false);
   // Clear the previous project's tree immediately, even when chat startup is slow.
   // Attach the rejection handler now so a slow chat cannot leave it unhandled.
   const treeLoading = selectedPanel === 'files' && treeProject !== info.path ? loadRootTree().then(() => null, (error: unknown) => ({ error })) : null;
   if (mainView === 'chat' && chatView) { await chatView.open(info.path); if (!valid()) return false; }
+  if (typeof agentView !== 'undefined' && agentView && (projectChanged || mainView === 'agent')) { if (mainView === 'agent') { await agentView.open(info.path); if (!valid()) return false; } else void agentView.open(info.path); }
   if (treeLoading) { const result = await treeLoading; if (!valid()) return false; if (result) throw result.error; }
   await loadServices(info.path, valid); if (!valid()) return false;
   if (mainView === 'graph') { await loadGraph(valid); if (!valid()) return false; }
@@ -975,9 +1075,11 @@ async function openProject() {
 }
 async function newSession(action?: string, duplicate?: string, agent?: string, create?: () => Promise<SessionInfo | null>) {
   if (!current || busy || closingProjects.has(current.path)) return false;
+  const root = current.path;
+  if (!await leaveVisual() || current?.path !== root || busy || closingProjects.has(root)) return false;
   const previousFocus = activeId;
   // A cancelled plugin prompt must leave the current browser/chat/graph intact.
-  if (!create && !duplicate && mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
+  if (mainView === 'visual' || (!create && !duplicate && mainView !== 'terminal' && mainView !== 'editor')) selectMainView(workspaceView);
   busy = true;
   const agentId = agent || (action?.startsWith('extension:') ? action.slice(10) : undefined);
   const agentName = installedExtensions.find(item => item.id === agentId)?.name;
@@ -991,9 +1093,14 @@ async function newSession(action?: string, duplicate?: string, agent?: string, c
   try {
     info = (create ? await create() : duplicate ? await api.splitTerminal(current.path, duplicate, agent) : await api.createTerminal(current.path, action)) || undefined;
     if (!info) return false; // The user cancelled a plugin confirmation.
-    if ((create || duplicate) && mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
     if (duplicate && info.cwdFallback) notify('Não foi possível identificar a pasta atual; o novo terminal abriu na última pasta conhecida.');
     const [{ Terminal }, { FitAddon }] = await Promise.all([import('@xterm/xterm'), import('@xterm/addon-fit')]);
+    if (!await leaveVisual() || current?.path !== root) {
+      await api.closeTerminal(info.id);
+      info = undefined;
+      return false;
+    }
+    if (mainView === 'visual' || ((create || duplicate) && mainView !== 'terminal' && mainView !== 'editor')) selectMainView(workspaceView);
     terminal = new Terminal({
       fontFamily: '"SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace', fontSize: preferences.fontSize, lineHeight: 1.5,
       cursorBlink: false, cursorStyle: 'bar', scrollback: preferences.scrollback, screenReaderMode: false, allowProposedApi: false, disableStdin: true,
@@ -1101,9 +1208,12 @@ api.onTerminalExit(({ id, exitCode }) => {
 });
 api.onServiceChanged(({ path, service }) => updateService(path, service));
 api.onChatEvent(event => { if (idleId === event.sessionId) { idleSnapshot = null; renderIdleNotice(); } chatView?.handle(event); });
+api.onAgentEvent(event => agentView?.handle(event));
 api.onProjectOpened(info => run(async () => { const intent = beginProjectIntent(), snapshot = launcher.captureState(); if (await activate(info, intent)) launcher.completeOpen(snapshot, intent === projectIntent); }));
 api.onOrchestrationChanged(({ path }) => { if (current?.path === path && mainView === 'graph') run(loadGraph); });
-api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.reload()); });
+api.onPluginsChanged(({ path }) => { const panel = pluginsPanel; if (current?.path === path && panel) run(() => panel.setProject(path, current?.title || current?.name)); });
+api.onStagesChanged(({ path }) => { if (current?.path === path) { run(() => stageBar.reload()); agentView?.refreshContext(path); } });
+api.onCatalogChanged(({ path }) => { if (current?.path === path) { run(() => catalogPanel.reload()); agentView?.refreshContext(path); } });
 api.onExtensionsChanged(list => { installedExtensions = list; renderExtensions(); });
 api.onBrowserRequest(event => {
   void (async () => {
@@ -1111,6 +1221,7 @@ api.onBrowserRequest(event => {
     try {
       const root = event.root;
       if (current?.path !== root || closingProjects.has(root)) throw new Error('Abra o projeto correspondente antes de visualizar o protótipo.');
+      if (!await leaveVisual() || current?.path !== root) return;
       let tab = browserTabs.get(root);
       if (!tab) {
         tab = { id: null, ready: null, url: '', wantedService: '', selectedService: '', waitingForService: false, status: 'Carregando prévia…' };
@@ -1154,14 +1265,16 @@ api.onMenu(action => {
   if (action === 'open') run(openProject);
   if (action === 'new') run(() => newSession());
   if (action === 'save' && mainView === 'editor') run(async () => fileEditor?.saveCurrent());
+  if (action === 'save' && mainView === 'visual' && visualView?.isOpen()) run(async () => { await visualView?.save(); });
   if (action === 'close' && mainView === 'editor' && focusedPane === 'editor') run(async () => fileEditor?.closeCurrent());
   else if (action === 'close' && mainView === 'browser' && current) run(() => closeBrowserTab(current!.path));
-  else if (action === 'close' && mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
+  else if (action === 'close' && mainView !== 'terminal' && mainView !== 'editor') run(() => changeMainView(workspaceView));
   else if (action === 'close' && activeId) run(() => closeSession(activeId!));
-  if (action === 'editor') selectMainView('editor');
+  if (action === 'editor') run(() => changeMainView('editor'));
+  if (action === 'visual' && visualView?.isOpen()) run(() => changeMainView('visual'));
   if (action === 'search' && (mainView === 'terminal' || mainView === 'editor')) { if (mainView === 'editor' && focusedPane === 'editor') fileEditor?.search(); else toggleSearch(); }
   if (action === 'clear' && (mainView === 'terminal' || mainView === 'editor')) active()?.terminal.clear();
-  if (action === 'expand') expandTerminal();
+  if (action === 'expand') run(expandTerminal);
   if (action === 'split-right') run(() => splitTerminal('right'));
   if (action === 'split-down') run(() => splitTerminal('down'));
 });
@@ -1192,12 +1305,13 @@ button('install-dk-plugin').onclick = () => run(async () => {
 button('reveal-project').onclick = () => { if (current) run(() => api.revealProject(current!.path)); };
 button('new-session').onclick = button('empty-new').onclick = () => run(() => newSession());
 button('launch-claude').onclick = () => run(() => newSession('extension:claude'));
+button('launch-agent').onclick = () => run(() => openAgent());
 button('launch-codex').onclick = () => run(openCodex);
 for (const id of ['antigravity', 'gemini', 'dk']) button(`launch-${id}`).onclick = () => run(() => newSession(`extension:${id}`));
 button('open-browser').onclick = () => run(openBrowserView);
 document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach(el => { el.onclick = () => run(() => runDkAction(el.dataset.action!)); });
 button('search-toggle').onclick = () => toggleSearch();
-button('expand-terminal').onclick = expandTerminal;
+button('expand-terminal').onclick = () => run(expandTerminal);
 button('split-right').onclick = () => run(() => splitTerminal('right'));
 button('split-down').onclick = () => run(() => splitTerminal('down'));
 function closeSplitMenu() { $('split-menu').hidden = true; button('split-agent').setAttribute('aria-expanded', 'false'); }
@@ -1229,13 +1343,13 @@ button('detach-pane').onclick = () => {
   focusSession(activeId);
 };
 button('single-terminal').onclick = () => { if (current) paneGroups.delete(current.path); focusSession(activeId); };
-button('show-graph').onclick = () => selectMainView('graph');
-button('graph-back').onclick = () => selectMainView(workspaceView);
+button('show-graph').onclick = () => run(() => changeMainView('graph'));
+button('graph-back').onclick = () => run(() => changeMainView(workspaceView));
 button('refresh-graph').onclick = () => run(loadGraph);
-button('action-back').onclick = () => selectMainView(workspaceView);
+button('action-back').onclick = () => run(() => changeMainView(workspaceView));
 button('cancel-action').onclick = () => { if (current) run(() => api.cancelAction(current!.path)); };
 button('refresh-usage').onclick = () => run(() => loadUsage(true));
-button('browser-back').onclick = () => selectMainView(workspaceView);
+button('browser-back').onclick = () => run(() => changeMainView(workspaceView));
 async function copyPreviewInstructions() {
   await api.copyPreviewInstructions();
   notify('Instrução copiada. Cole no chat da IA ou no AGENTS.md, CLAUDE.md ou GEMINI.md do projeto.');

@@ -474,6 +474,17 @@ class CodexChat {
     return workers.length;
   }
 
+  async cancelAll() {
+    const workers = [...this.active.values()];
+    const results = await Promise.allSettled(workers.map(async worker => {
+      try { await this.cancel(worker.session.root, worker.session.id); } catch { worker.cleanupPartial = true; }
+      if (worker.child && worker.child.exitCode === null && worker.child.signalCode === null) this._kill(worker, 'SIGTERM');
+      await worker.run;
+    }));
+    this._save();
+    return { partial: results.some(result => result.status === 'rejected') || workers.some(worker => worker.cleanupPartial) };
+  }
+
   async closeAll() {
     this.closed = true;
     const workers=[...this.active.values()];

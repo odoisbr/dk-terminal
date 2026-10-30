@@ -1,0 +1,878 @@
+{
+  "benchmark": "marcos-m1-m2",
+  "commit": "9c878bb8f7b391712a7d1754eed545e6cfb854af",
+  "dirty": true,
+  "workingTree": {
+    "diffHeadSha256": "5fab8d9321c540daf895342cfe5381b5bee5b36d079cf0701db3a9befe8d50e7",
+    "untrackedFiles": [
+      "benchmarks/marcos-m1-m2.cjs"
+    ]
+  },
+  "version": "0.1.0-alpha.3",
+  "started": "2026-10-30T10:55:28.207Z",
+  "platform": "darwin",
+  "arch": "arm64",
+  "build": {
+    "distMtimeMs": 1793357200833.735,
+    "newestSource": {
+      "path": "src/views.ts",
+      "mtimeMs": 1793356525442.5972
+    }
+  },
+  "environment": {
+    "os": "Darwin",
+    "release": "27.2.0",
+    "osVersion": "Darwin Kernel Version 27.2.0: Wed Oct 14 23:43:44 PDT 2026; root:xnu-13432.41.4~25/RELEASE_ARM64_T8122",
+    "cpu": "Apple M3",
+    "logicalCpus": 8,
+    "totalMemoryMiB": 8192,
+    "freeMemoryMiB": 289.6875,
+    "loadAverage": [
+      8.2724609375,
+      6.15234375,
+      10.796875
+    ],
+    "benchmarkNode": "v24.21.0",
+    "appVersion": "0.1.0-alpha.3",
+    "electron": "45.1.0",
+    "chrome": "156.0.8078.49",
+    "node": "24.22.1",
+    "blockedRequests": 0
+  },
+  "protocol": {
+    "restMs": 5000,
+    "intervalMs": 1500,
+    "sampleCount": 3,
+    "window": {
+      "width": 1400,
+      "height": 900
+    },
+    "cli": "tests/fixtures/agent-run/fake-claude.cjs",
+    "kit": "tests/fixtures/stages/kit-minimo",
+    "project": "tests/fixtures/stages/completo"
+  },
+  "samples": [
+    {
+      "label": "repouso_sem_projeto",
+      "at": "2026-10-30T10:55:30.859Z",
+      "loadAverage": [
+        11.21337890625,
+        6.796875,
+        10.9970703125
+      ],
+      "freeMemoryBytes": 261636096,
+      "samples": [
+        {
+          "at": "2026-10-30T10:55:37.429Z",
+          "elapsedSeconds": 1.539454375,
+          "appMiB": 467.34375,
+          "cpuPercent": 3.897484782554854,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 205.671875,
+              "cpuPercent": 3.247903985462377
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 84.625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.734375,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 134.3125,
+              "cpuPercent": 0.649580797092477
+            }
+          ],
+          "children": []
+        },
+        {
+          "at": "2026-10-30T10:55:39.004Z",
+          "elapsedSeconds": 1.548505916,
+          "appMiB": 467.546875,
+          "cpuPercent": 0.6457837775545191,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 205.71875,
+              "cpuPercent": 0.6457837775545191
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 84.625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.890625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 134.3125,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        },
+        {
+          "at": "2026-10-30T10:55:40.579Z",
+          "elapsedSeconds": 1.548537083,
+          "appMiB": 467.625,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 205.796875,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 84.625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.890625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 134.3125,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        }
+      ],
+      "pidChanges": [],
+      "appMiB": 467.546875,
+      "cpuPercent": 0.6457837775545191,
+      "processCount": 4,
+      "childCount": 0,
+      "descendantCount": 3,
+      "parts": [
+        {
+          "pid": 3089,
+          "type": "Browser",
+          "sampleCount": 3,
+          "memoryMiB": 205.71875,
+          "cpuPercent": 0.6457837775545191
+        },
+        {
+          "pid": 3090,
+          "type": "GPU",
+          "sampleCount": 3,
+          "memoryMiB": 84.625,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3091,
+          "type": "Utility",
+          "sampleCount": 3,
+          "memoryMiB": 42.890625,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3092,
+          "type": "Tab",
+          "sampleCount": 3,
+          "memoryMiB": 134.3125,
+          "cpuPercent": 0
+        }
+      ]
+    },
+    {
+      "label": "projeto_dk_barra_visivel",
+      "at": "2026-10-30T10:55:40.709Z",
+      "loadAverage": [
+        9.86376953125,
+        6.654296875,
+        10.8974609375
+      ],
+      "freeMemoryBytes": 100843520,
+      "samples": [
+        {
+          "at": "2026-10-30T10:55:47.307Z",
+          "elapsedSeconds": 1.549053625,
+          "appMiB": 486.296875,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 216.703125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 85.125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.90625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 141.5625,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        },
+        {
+          "at": "2026-10-30T10:55:48.895Z",
+          "elapsedSeconds": 1.543841916,
+          "appMiB": 485.59375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 216,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 85.125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.90625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 141.5625,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        },
+        {
+          "at": "2026-10-30T10:55:50.448Z",
+          "elapsedSeconds": 1.526769084,
+          "appMiB": 485.59375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 216,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 85.125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.90625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 141.5625,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        }
+      ],
+      "pidChanges": [],
+      "appMiB": 485.59375,
+      "cpuPercent": 0,
+      "processCount": 4,
+      "childCount": 0,
+      "descendantCount": 3,
+      "parts": [
+        {
+          "pid": 3089,
+          "type": "Browser",
+          "sampleCount": 3,
+          "memoryMiB": 216,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3090,
+          "type": "GPU",
+          "sampleCount": 3,
+          "memoryMiB": 85.125,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3091,
+          "type": "Utility",
+          "sampleCount": 3,
+          "memoryMiB": 42.90625,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3092,
+          "type": "Tab",
+          "sampleCount": 3,
+          "memoryMiB": 141.5625,
+          "cpuPercent": 0
+        }
+      ]
+    },
+    {
+      "label": "catalogo_aberto",
+      "at": "2026-10-30T10:55:50.474Z",
+      "loadAverage": [
+        8.7216796875,
+        6.5166015625,
+        10.798828125
+      ],
+      "freeMemoryBytes": 267403264,
+      "samples": [
+        {
+          "at": "2026-10-30T10:55:57.080Z",
+          "elapsedSeconds": 1.549851,
+          "appMiB": 492.734375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 216.0625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 86.34375,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.90625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 147.421875,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        },
+        {
+          "at": "2026-10-30T10:55:58.650Z",
+          "elapsedSeconds": 1.5426235,
+          "appMiB": 492.703125,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 216.03125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 86.34375,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.90625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 147.421875,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        },
+        {
+          "at": "2026-10-30T10:56:00.229Z",
+          "elapsedSeconds": 1.551339625,
+          "appMiB": 487.828125,
+          "cpuPercent": 3.8676250534114955,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 212.921875,
+              "cpuPercent": 1.9338125267057442
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 86.359375,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.90625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 145.640625,
+              "cpuPercent": 1.9338125267057513
+            }
+          ],
+          "children": []
+        }
+      ],
+      "pidChanges": [],
+      "appMiB": 492.703125,
+      "cpuPercent": 0,
+      "processCount": 4,
+      "childCount": 0,
+      "descendantCount": 3,
+      "parts": [
+        {
+          "pid": 3089,
+          "type": "Browser",
+          "sampleCount": 3,
+          "memoryMiB": 216.03125,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3090,
+          "type": "GPU",
+          "sampleCount": 3,
+          "memoryMiB": 86.34375,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3091,
+          "type": "Utility",
+          "sampleCount": 3,
+          "memoryMiB": 42.90625,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3092,
+          "type": "Tab",
+          "sampleCount": 3,
+          "memoryMiB": 147.421875,
+          "cpuPercent": 0
+        }
+      ]
+    },
+    {
+      "label": "tarefa_claude_concluida",
+      "at": "2026-10-30T10:56:00.527Z",
+      "loadAverage": [
+        8.08154296875,
+        6.4501953125,
+        10.724609375
+      ],
+      "freeMemoryBytes": 84688896,
+      "samples": [
+        {
+          "at": "2026-10-30T10:56:07.109Z",
+          "elapsedSeconds": 1.547224709,
+          "appMiB": 501.625,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 1,
+          "descendantCount": 4,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 213.84375,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 85.0625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.703125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 160.015625,
+              "cpuPercent": 0
+            }
+          ],
+          "children": [
+            {
+              "pid": 3145,
+              "ppid": 3089,
+              "command": "/bin/sh"
+            }
+          ]
+        },
+        {
+          "at": "2026-10-30T10:56:08.676Z",
+          "elapsedSeconds": 1.540532875,
+          "appMiB": 501.65625,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 1,
+          "descendantCount": 4,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 213.875,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 85.0625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.703125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 160.015625,
+              "cpuPercent": 0
+            }
+          ],
+          "children": [
+            {
+              "pid": 3145,
+              "ppid": 3089,
+              "command": "/bin/sh"
+            }
+          ]
+        },
+        {
+          "at": "2026-10-30T10:56:10.251Z",
+          "elapsedSeconds": 1.549788875,
+          "appMiB": 500.296875,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 1,
+          "descendantCount": 4,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 213.921875,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 85.0625,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.703125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 158.609375,
+              "cpuPercent": 0
+            }
+          ],
+          "children": [
+            {
+              "pid": 3145,
+              "ppid": 3089,
+              "command": "/bin/sh"
+            }
+          ]
+        }
+      ],
+      "pidChanges": [],
+      "appMiB": 501.625,
+      "cpuPercent": 0,
+      "processCount": 4,
+      "childCount": 1,
+      "descendantCount": 4,
+      "parts": [
+        {
+          "pid": 3089,
+          "type": "Browser",
+          "sampleCount": 3,
+          "memoryMiB": 213.875,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3090,
+          "type": "GPU",
+          "sampleCount": 3,
+          "memoryMiB": 85.0625,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3091,
+          "type": "Utility",
+          "sampleCount": 3,
+          "memoryMiB": 42.703125,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3092,
+          "type": "Tab",
+          "sampleCount": 3,
+          "memoryMiB": 160.015625,
+          "cpuPercent": 0
+        }
+      ]
+    },
+    {
+      "label": "apos_fechar_projeto",
+      "at": "2026-10-30T10:56:10.479Z",
+      "loadAverage": [
+        7.15234375,
+        6.30322265625,
+        10.6220703125
+      ],
+      "freeMemoryBytes": 130449408,
+      "samples": [
+        {
+          "at": "2026-10-30T10:56:17.073Z",
+          "elapsedSeconds": 1.549021375,
+          "appMiB": 502.609375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 214.09375,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 85.125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.703125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 160.6875,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        },
+        {
+          "at": "2026-10-30T10:56:18.647Z",
+          "elapsedSeconds": 1.546902625,
+          "appMiB": 502.609375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 214.09375,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 85.125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.703125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 160.6875,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        },
+        {
+          "at": "2026-10-30T10:56:20.223Z",
+          "elapsedSeconds": 1.54985775,
+          "appMiB": 502.609375,
+          "cpuPercent": 0,
+          "processCount": 4,
+          "childCount": 0,
+          "descendantCount": 3,
+          "parts": [
+            {
+              "pid": 3089,
+              "type": "Browser",
+              "memoryMiB": 214.09375,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3090,
+              "type": "GPU",
+              "memoryMiB": 85.125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3091,
+              "type": "Utility",
+              "memoryMiB": 42.703125,
+              "cpuPercent": 0
+            },
+            {
+              "pid": 3092,
+              "type": "Tab",
+              "memoryMiB": 160.6875,
+              "cpuPercent": 0
+            }
+          ],
+          "children": []
+        }
+      ],
+      "pidChanges": [],
+      "appMiB": 502.609375,
+      "cpuPercent": 0,
+      "processCount": 4,
+      "childCount": 0,
+      "descendantCount": 3,
+      "parts": [
+        {
+          "pid": 3089,
+          "type": "Browser",
+          "sampleCount": 3,
+          "memoryMiB": 214.09375,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3090,
+          "type": "GPU",
+          "sampleCount": 3,
+          "memoryMiB": 85.125,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3091,
+          "type": "Utility",
+          "sampleCount": 3,
+          "memoryMiB": 42.703125,
+          "cpuPercent": 0
+        },
+        {
+          "pid": 3092,
+          "type": "Tab",
+          "sampleCount": 3,
+          "memoryMiB": 160.6875,
+          "cpuPercent": 0
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "fakeClaudeCompleted": true,
+    "idleShellInTaskScenario": true,
+    "noExternalChildrenAfterClose": true
+  },
+  "limits": [
+    "Uma execução sequencial em uma máquina; não mede variabilidade entre execuções nem consumo de energia.",
+    "A carga externa do sistema não é controlada; loadAverage e freeMemoryBytes são registrados no início de cada cenário.",
+    "RSS soma processos Electron e pode duplicar páginas compartilhadas; exclui shells e outros filhos externos.",
+    "CPU é a média do tempo acumulado por ps no macOS em intervalos de 1,5 s; 100% corresponde a um núcleo.",
+    "A resolução de ps limita amostras curtas: 0,01 s equivale a aproximadamente 0,67 ponto percentual por processo.",
+    "PIDs Electron são conferidos nos extremos de cada amostra, com uma repetição se mudarem; processos transitórios podem escapar. Filhos são contados no fim do intervalo.",
+    "childCount conta descendentes externos ao Electron; descendantCount inclui também os descendentes Electron.",
+    "A tarefa concluída mantém uma sessão sh ociosa; os dois cenários de projeto anteriores não têm terminal.",
+    "CLI e kit sintéticos, DNS externo desabilitado e requisições HTTP/WebSocket bloqueadas; não mede Claude real.",
+    "As medianas por PID usam somente as amostras em que o PID foi observado; sampleCount registra essa cobertura.",
+    "repouso_sem_projeto: load1 11.21337890625 excede 50% dos 8 CPUs lógicos; a carga externa pode afetar a medição.",
+    "projeto_dk_barra_visivel: load1 9.86376953125 excede 50% dos 8 CPUs lógicos; a carga externa pode afetar a medição.",
+    "catalogo_aberto: load1 8.7216796875 excede 50% dos 8 CPUs lógicos; a carga externa pode afetar a medição.",
+    "tarefa_claude_concluida: load1 8.08154296875 excede 50% dos 8 CPUs lógicos; a carga externa pode afetar a medição.",
+    "apos_fechar_projeto: load1 7.15234375 excede 50% dos 8 CPUs lógicos; a carga externa pode afetar a medição."
+  ],
+  "finished": "2026-10-30T10:56:20.880Z",
+  "status": "complete"
+}

@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "id": "RF-001",
+      "title": "Objetivo: perfil de usuário no escopo",
+      "type": "RF",
+      "sources": [
+        "EVD-001"
+      ],
+      "status": "aprovado"
+    }
+  ]
+}

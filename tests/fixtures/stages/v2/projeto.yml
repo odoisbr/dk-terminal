@@ -1,0 +1,19 @@
+schema: 2
+cliente: Teste
+projeto: Completo sintético
+slug: completo
+entregaveis: []
+fase_atual: 1
+fases_concluidas: []
+registros:
+  regras: dados/regras.json
+  requisitos: dados/requisitos.json
+  fontes: dados/fontes.json
+  evidencias: dados/evidencias.json
+  relacoes: dados/relacoes.json
+  pendencias: dados/pendencias.json
+  decisoes: dados/decisoes.json
+pastas:
+  levantamento: descoberta
+  design: interface
+  entregaveis: entrega

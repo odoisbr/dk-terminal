@@ -1,0 +1,12 @@
+{
+  "prototipo": {
+    "pasta": "prototipo",
+    "design_system": {
+      "pacote": "base-exemplo",
+      "versao": "1.0.0",
+      "caminho": "design-system",
+      "carga": ["base.css"],
+      "modo": "vendorizado"
+    }
+  }
+}

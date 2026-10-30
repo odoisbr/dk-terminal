@@ -385,7 +385,7 @@ let app;
     await startHeldConfirmation();
     await page.evaluate(dir => window.dk.closeProjectSessions(dir), second);
     await page.evaluate(dir => window.dk.forgetProject(dir), second);
-    await page.evaluate(dir => window.dk.activateProject(dir), second);
+    await page.evaluate(async dir => { await window.dk.activateProject(dir); await window.dk.setActiveProject(dir); }, second);
     await approveHeldConfirmation();
     assert.equal(fs.existsSync(markerB), false);
     console.log('✓ Fechar e reabrir o projeto invalida confirmações pendentes');
@@ -418,7 +418,7 @@ let app;
 
     const stale = await page.evaluate(invoke, { root: second, revision });
     await page.evaluate(dir => window.dk.forgetProject(dir), second);
-    await page.evaluate(dir => window.dk.activateProject(dir), second);
+    await page.evaluate(async dir => { await window.dk.activateProject(dir); await window.dk.setActiveProject(dir); }, second);
     try {
       await assert.rejects(page.evaluate(id => window.dk.startTerminal(id, { cols: 80, rows: 24 }), stale.id));
       assert.equal(fs.existsSync(markerB), false);

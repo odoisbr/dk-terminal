@@ -248,3 +248,49 @@ recarga, canais, registro de views, UI e plano de testes). Para retomar:
    `src/main.ts` e `main.cjs`; executar M0 depois do commit do menu, nunca em
    paralelo.
 4. Melhoria a propor no kit: o retrato deveria respeitar `.gitignore`.
+
+## 10. Execução multi-host de 29/10/2026
+
+A execução dos marcos saiu do runtime `dk coordenar` porque o retrato de escopo dele
+inclui `node_modules/`, `dist/` e `release/`. Cada pacote passou a ser despachado por
+`scripts/despachar-agente.mjs`, com host, modelo e esforço tirados de
+`docs/coordenacoes/atribuicoes.json`, e o gate de escopo compara `git status` com os
+alvos declarados. Pacotes paralelos rodam em worktrees separadas.
+
+| Papel | Host | Modelo | Esforço |
+|---|---|---|---|
+| Inventário | Antigravity | gemini-3.8-flash-medium | medium |
+| Desenho | Claude | fable | high |
+| Módulo do processo principal | Codex | gpt-6.1-sol | high |
+| Canais, runner e partes críticas | Codex | gpt-6-astra | xhigh |
+| Interface | Antigravity | gemini-4-argon-high | high |
+| Teste desktop | Claude | sonnet | medium |
+| Documentação | Antigravity | gemini-3.8-flash-high | high |
+| Revisão cruzada | Claude | opus | high |
+| Revisão de segurança | Claude | fable | high |
+| Segunda opinião | Codex | gpt-6-astra | high |
+
+Resultado:
+
+- **M0**: o host já existia (commit 963b7b8). A verificação de aceite achou um
+  bloqueante de identidade da raiz e corridas de recarga; corrigidos em duas
+  tentativas e aprovados.
+- **M1**: barra com as etapas do kit levantar, entender, entregar e prototipar
+  (decisão revisável; o plano antigo usava levantamento, fluxos, documentação e
+  telas) e catálogo de skills. Catálogos e etapas precisaram de três tentativas.
+- **M2**: runner de tarefas com Claude em modo de permissão manual, compositor de
+  prompt e gate determinístico entre marcos. O Codex continua no painel próprio.
+- `test:all` ao fim do M2: 571 testes unitários e 133 verificações desktop.
+
+O gate do M2 (`node scripts/gate-marco.mjs COORD-PLUGINS-M2 --projeto . --json`)
+bloqueia o M3 até que uma pessoa, fora de um agente, grave os vereditos de revisão
+de cada pacote com `scripts/evidencia-marco.mjs revisar` e execute a rodada manual
+de `docs/planejamento/m2-rodada-manual.md`, ou registre uma decisão de escopo.
+
+Limites observados nas CLIs:
+
+- O Antigravity em modo `-p` aborta a rodada inteira quando um comando cai fora da
+  lista permitida, inclusive `pwd; ls` e `git -C`; os prompts pedem um comando
+  simples por chamada.
+- O sandbox do Codex devolve `EPERM` e `EMFILE` em parte da suíte; a verificação
+  final roda sempre fora dele.

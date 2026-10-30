@@ -32,6 +32,7 @@ function projectTitle(root) {
 
 const ACTIONS = Object.freeze({
   audit: { label: 'Auditoria', args: root => ['audit', '--projeto', root, '--json'] },
+  entender: { label: 'Entendimento', args: root => ['entender', '--projeto', root, '--json'] },
   validate: { label: 'Validação', args: root => ['projeto', 'validar', '--projeto', root, '--json'] },
   doctor: { label: 'Diagnóstico', args: () => ['doctor', '--json'] },
 });

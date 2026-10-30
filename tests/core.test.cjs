@@ -3,7 +3,20 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { actionSpec, dimensions, projectInfo, kitInfo, folderForFile, readState, writeState, knownToolDirectories, extendPath } = require('../electron/core.cjs');
+const { ACTIONS, actionSpec, dimensions, projectInfo, kitInfo, folderForFile, readState, writeState, knownToolDirectories, extendPath } = require('../electron/core.cjs');
+
+test('entender usa os argumentos aprovados e o CLI do kit validado', () => {
+  const project = { path: "/tmp/Projeto O'Connor; $(touch arquivo)", isDk: true };
+  const kit = { cli: '/tmp/Meu kit/cli/dk' };
+  const args = ['entender', '--projeto', project.path, '--json'];
+  assert.equal(ACTIONS.entender.label, 'Entendimento');
+  assert.deepEqual(ACTIONS.entender.args(project.path), args);
+  const result = actionSpec('entender', project, kit, { PATH: '/usr/bin:/opt/homebrew/bin' });
+  assert.equal(result.label, 'Entendimento');
+  assert.match(path.basename(result.file), /^python3(?:\.exe)?$/);
+  assert.deepEqual(result.args, [kit.cli, ...args]);
+  assert.throws(() => actionSpec('entender', project, null, {}), /plugin DK/);
+});
 
 test('ações DK preservam caminhos com espaços e metacaracteres como argumentos', () => {
   const project = { path: "/tmp/Projeto O'Connor; $(touch arquivo)", isDk: true };

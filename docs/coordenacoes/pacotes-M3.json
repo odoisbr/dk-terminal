@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "coordenacao": "COORD-PLUGINS-M3",
+  "pacotes": [
+    {
+      "id": "a",
+      "arquivos": [
+        "electron/html-patch.cjs",
+        "tests/html-patch.test.cjs",
+        "tests/m3-corpus.test.cjs",
+        "package-lock.json",
+        "scripts/package-filter.mjs",
+        "tests/package-filter.test.cjs"
+      ]
+    },
+    {
+      "id": "b",
+      "arquivos": [
+        "electron/visual-protocol.cjs",
+        "tests/visual-protocol.test.cjs",
+        "index.html"
+      ]
+    },
+    {
+      "id": "c",
+      "arquivos": [
+        "electron/visual-bridge.js",
+        "tests/visual-bridge.test.cjs"
+      ]
+    },
+    {
+      "id": "d",
+      "arquivos": [
+        "electron/files.cjs",
+        "tests/files.test.cjs",
+        "electron/visual-session.cjs",
+        "electron/visual-patch-worker.cjs",
+        "tests/visual-session.test.cjs",
+        "electron/main.cjs",
+        "electron/preload.cjs",
+        "src/api.d.ts",
+        "tests/m3-canais.test.cjs"
+      ]
+    },
+    {
+      "id": "e",
+      "arquivos": [
+        "src/visual-editor.ts",
+        "src/visual-editor.css",
+        "src/main.ts",
+        "src/editor.ts",
+        "tests/plugins.test.cjs",
+        "tests/m2-canais.test.cjs"
+      ]
+    },
+    {
+      "id": "f",
+      "arquivos": [
+        "tests/visual-desktop.cjs",
+        "package.json"
+      ]
+    },
+    {
+      "id": "g",
+      "arquivos": [
+        "README.md",
+        "docs/coordenacoes/pacotes-M3.json",
+        "docs/coordenacoes/M4-auditoria.json"
+      ]
+    }
+  ]
+}

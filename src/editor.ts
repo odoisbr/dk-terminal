@@ -38,6 +38,7 @@ interface EditorOptions {
   onDirty(files: string[]): void;
   onEmpty(): void;
   onError(error: unknown): void;
+  onEditVisual(relative: string, dirty: boolean): void;
 }
 interface FileTab {
   key: string;
@@ -108,6 +109,7 @@ export class FileEditor {
   private readonly visualMode = new Compartment();
   private readonly imageCache = new Map<string, Promise<string | null>>();
   private readonly modeButton = element('button', '');
+  private readonly editVisualButton = element('button', '');
   private readonly undoButton = element('button', '');
   private readonly redoButton = element('button', '');
   private diagramTimer: ReturnType<typeof setTimeout> | undefined;
@@ -135,6 +137,11 @@ export class FileEditor {
     this.saveButton.addEventListener('click', () => { void this.saveCurrent(); });
     this.reloadButton.addEventListener('click', () => { void this.reloadCurrent(); });
     this.modeButton.type = 'button'; this.modeButton.addEventListener('click', () => this.toggleMode());
+    this.editVisualButton.type = 'button'; this.editVisualButton.textContent = 'Editar visualmente';
+    this.editVisualButton.addEventListener('click', () => {
+      const tab = this.currentTab();
+      if (tab && htmlFile(tab.relative)) this.options.onEditVisual(tab.relative, tab.dirty);
+    });
     this.undoButton.type = this.redoButton.type = 'button';
     setIconButton(this.undoButton, 'undo', 'Desfazer', '⌘ Z');
     setIconButton(this.redoButton, 'redo', 'Refazer', '⌘ ⇧ Z');
@@ -145,7 +152,7 @@ export class FileEditor {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'z') return;
       event.preventDefault(); event.shiftKey ? redo(this.view) : undo(this.view);
     });
-    actions.append(this.undoButton, this.redoButton, this.modeButton, this.reloadButton, this.saveButton); top.append(actions); this.options.tabsHost.append(this.tabBar);
+    actions.append(this.undoButton, this.redoButton, this.modeButton, this.editVisualButton, this.reloadButton, this.saveButton); top.append(actions); this.options.tabsHost.append(this.tabBar);
     this.diagram.setAttribute('aria-label', 'Diagrama Mermaid');
     this.area.append(this.codeHost, this.diagram, this.preview);
     const status = element('div', 'dk-editor-status'); status.append(this.pathLabel, this.infoLabel);
@@ -245,6 +252,27 @@ export class FileEditor {
 
   getCurrentFile(): { root: string; relative: string } | null { const tab = this.currentTab(); return tab ? { root: tab.root, relative: tab.relative } : null; }
 
+  showCode(): void {
+    const tab = this.currentTab(); if (!tab || !htmlFile(tab.relative)) return;
+    tab.showCode = true; this.render(); this.view.focus();
+  }
+
+  /** Refresh a clean code tab after the visual editor saves the file. */
+  async refreshFromDisk(root: string, relative: string): Promise<void> {
+    const tab = this.tabs.get(`${root}\0${relative}`);
+    if (!tab || tab.dirty || tab.saving || tab.closing) return;
+    const before = tab.state;
+    try {
+      const file = await this.options.read(root, relative);
+      if (this.destroyed || this.tabs.get(tab.key) !== tab || tab.dirty || tab.state !== before) return;
+      tab.file = file;
+      tab.state = file.kind === 'text' ? this.createState(file, tab.visual, root) : null;
+      tab.savedDoc = tab.state?.doc ?? null;
+      this.imageCache.clear();
+      if (this.currentKey === tab.key) this.activate(tab.key, false); else this.renderTabs();
+    } catch (error) { this.options.onError(error); }
+  }
+
   private currentTab(): FileTab | undefined { return this.currentKey ? this.tabs.get(this.currentKey) : undefined; }
 
   private activate(key: string | null, focus = true): void {
@@ -275,6 +303,8 @@ export class FileEditor {
     this.codeHost.classList.toggle('dk-markdown-visual', Boolean(tab?.visual && isText && markdownFile(tab.file.name)));
     this.area.classList.toggle('dk-diagram-layout', isDiagram);
     this.modeButton.hidden = !tab || !isText || !(markdownFile(tab.file.name) || isDiagram || htmlFile(tab.file.name));
+    this.editVisualButton.hidden = !tab || !isText || !htmlFile(tab.relative);
+    this.editVisualButton.disabled = Boolean(tab?.saving || tab?.closing);
     this.modeButton.disabled = Boolean(tab && markdownFile(tab.file.name) && tab.state && tab.state.doc.length > 256 * 1024);
     this.modeButton.textContent = tab && htmlFile(tab.file.name) ? (tab.showCode ? 'Visual' : 'Código') : isDiagram ? (tab?.showCode ? 'Ocultar código' : 'Código') : tab?.visual ? 'Código' : 'Visual';
     this.modeButton.title = this.modeButton.disabled ? 'Visualização disponível para arquivos de até 256 KB' : isDiagram ? 'Mostrar ou ocultar o código do diagrama' : 'Alternar entre edição visual e código Markdown';
@@ -383,6 +413,7 @@ export class FileEditor {
     const tab = this.currentTab();
     this.saveButton.disabled = !tab?.dirty || Boolean(tab.file.readOnly || tab.saving);
     this.saveButton.textContent = tab?.saving ? 'Salvando…' : 'Salvar'; this.reloadButton.disabled = !tab || Boolean(tab.saving);
+    this.editVisualButton.disabled = Boolean(tab?.saving || tab?.closing);
     this.pathLabel.textContent = tab?.relative ?? ''; this.pathLabel.title = tab?.file.path ?? '';
     this.infoLabel.textContent = tab ? [tab.file.readOnly ? 'Somente leitura' : tab.dirty ? 'Não salvo' : 'Salvo', tab.file.kind === 'text' ? `UTF-8${tab.file.bom ? ' BOM' : ''} · ${tab.file.newline === '\r\n' ? 'CRLF' : 'LF'}` : '', `${Math.max(1, Math.round(tab.file.size / 1024))} KB`].filter(Boolean).join(' · ') : '';
     this.renderHistory();

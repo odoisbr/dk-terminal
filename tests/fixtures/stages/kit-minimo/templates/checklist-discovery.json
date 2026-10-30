@@ -1,0 +1,32 @@
+{
+  "versao": 1,
+  "itens": [
+    {
+      "id": "CL-01",
+      "tema": "Objetivo",
+      "pergunta": "Qual o Objetivo?",
+      "prioridade": "CRITICA",
+      "sinais": [
+        "objetivo"
+      ]
+    },
+    {
+      "id": "CL-02",
+      "tema": "Público",
+      "pergunta": "Qual o Público?",
+      "prioridade": "CRITICA",
+      "sinais": [
+        "usuário"
+      ]
+    },
+    {
+      "id": "CL-03",
+      "tema": "Escopo",
+      "pergunta": "Qual o Escopo?",
+      "prioridade": "CRITICA",
+      "sinais": [
+        "escopo"
+      ]
+    }
+  ]
+}

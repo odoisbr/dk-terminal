@@ -11,7 +11,7 @@
     },
     {
       "arquivo": "docs/orquestracao-plugins-projeto.md",
-      "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+      "sha256": "e9c69d0eb2b0b068085fb511dbb6a6aced5e238a329d96a27687172e8e4499ba"
     },
     {
       "arquivo": "docs/planejamento/README.md",
@@ -283,7 +283,7 @@
           },
           {
             "arquivo": "docs/orquestracao-plugins-projeto.md",
-            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+            "sha256": "e9c69d0eb2b0b068085fb511dbb6a6aced5e238a329d96a27687172e8e4499ba"
           },
           {
             "arquivo": "docs/planejamento/README.md",
@@ -297,11 +297,11 @@
         "alvos": [
           {
             "arquivo": "electron/catalogs.cjs",
-            "ausente": true
+            "sha256": "9a88d99672f04958d39410695246f2d7574d875def9aacfc94b7644e2655a139"
           },
           {
             "arquivo": "tests/catalogs.test.cjs",
-            "ausente": true
+            "sha256": "1f105c9ab9f81feab9bde62b4baf0b2c6cd8cd92655528b20023c0daef8e5314"
           }
         ],
         "criterios": [
@@ -406,7 +406,7 @@
           },
           {
             "arquivo": "docs/orquestracao-plugins-projeto.md",
-            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+            "sha256": "e9c69d0eb2b0b068085fb511dbb6a6aced5e238a329d96a27687172e8e4499ba"
           },
           {
             "arquivo": "docs/planejamento/README.md",
@@ -420,11 +420,11 @@
         "alvos": [
           {
             "arquivo": "electron/stages.cjs",
-            "ausente": true
+            "sha256": "9cefc87687d6f36e81cda82e50630bc1c9f7fb3d64267a4c63e179a6323d3a6c"
           },
           {
             "arquivo": "tests/stages.test.cjs",
-            "ausente": true
+            "sha256": "8d013d9901161ba40f0716720c334c0cebc7e95586a9f7ba45eb30540f51e127"
           }
         ],
         "criterios": [
@@ -533,7 +533,7 @@
           },
           {
             "arquivo": "docs/orquestracao-plugins-projeto.md",
-            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+            "sha256": "e9c69d0eb2b0b068085fb511dbb6a6aced5e238a329d96a27687172e8e4499ba"
           },
           {
             "arquivo": "docs/planejamento/README.md",
@@ -547,15 +547,15 @@
         "alvos": [
           {
             "arquivo": "electron/main.cjs",
-            "sha256": "304f8d46bd3accf8eb65bbc3d7e3ef64e42663738bfabd3f7574525cc8cb54b9"
+            "sha256": "7ae54be467e29c1863b10284a19ad5070eedaf41cf1b07afff4ed904067c02a6"
           },
           {
             "arquivo": "electron/preload.cjs",
-            "sha256": "4d22990dfea6433d364174095b73bcde4e6c2f0bdaf6e67e8e826df3a14509c2"
+            "sha256": "36ec6aad7cd2276a84a6c10e0bd515d1560420d52a4d4b1d8705877e57623f26"
           },
           {
             "arquivo": "src/api.d.ts",
-            "sha256": "bc0194b83603f728cc97b02fc1d88c10762ba1e5937152eff146c9039be8b929"
+            "sha256": "fbc07f50fb07fa145cc0c603c080db3be664bfaa7c5b71f750cd281f1defdf03"
           }
         ],
         "criterios": [
@@ -664,7 +664,7 @@
           },
           {
             "arquivo": "docs/orquestracao-plugins-projeto.md",
-            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+            "sha256": "e9c69d0eb2b0b068085fb511dbb6a6aced5e238a329d96a27687172e8e4499ba"
           },
           {
             "arquivo": "docs/planejamento/README.md",
@@ -678,11 +678,11 @@
         "alvos": [
           {
             "arquivo": "src/main.ts",
-            "sha256": "b785ca179d09c98247440acdbd89e26ad47ad867dce8eb6a7353cef2db42449b"
+            "sha256": "f674cd4a6876ff0d0012500b7b81190112efe18e52ea920a869fd8e8598aec82"
           },
           {
             "arquivo": "src/stages.ts",
-            "ausente": true
+            "sha256": "0c274429e484f40ed457dc5b0d52e4866d864c9da8122535b985f9e830ab0faf"
           },
           {
             "arquivo": "src/catalogs.ts",
@@ -690,7 +690,7 @@
           },
           {
             "arquivo": "src/style.css",
-            "sha256": "2de3fe8f45e3adbe8c5bc1e5b73eff59377db4448a1beb0f9c7b033ada5b0778"
+            "sha256": "2ba257b3041a28e4cce917839f6f50f8a9a215b6cd87dd5248de1d09c19e85f2"
           }
         ],
         "criterios": [
@@ -789,7 +789,7 @@
           },
           {
             "arquivo": "docs/orquestracao-plugins-projeto.md",
-            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+            "sha256": "e9c69d0eb2b0b068085fb511dbb6a6aced5e238a329d96a27687172e8e4499ba"
           },
           {
             "arquivo": "docs/planejamento/README.md",
@@ -803,11 +803,11 @@
         "alvos": [
           {
             "arquivo": "tests/stages-desktop.cjs",
-            "ausente": true
+            "sha256": "1656faf21d3af02e8a0a9db5efec0d007e1c8c50f69e08d30fb2fbc71ffb127d"
           },
           {
             "arquivo": "package.json",
-            "sha256": "d3f6ae86c417824e993459d62b7f76110f9d6b7a576b249e1ba0023a650587a1"
+            "sha256": "ae49af6f87a2486b09c9859f86e37ce4338b10bc072aabed74c36e4453d989d4"
           }
         ],
         "criterios": [
@@ -893,7 +893,7 @@
           },
           {
             "arquivo": "docs/orquestracao-plugins-projeto.md",
-            "sha256": "4d8dcc1843d8bc083a425ed5737a95b1581827e9187cc8ddd20930cd17b3ce7a"
+            "sha256": "e9c69d0eb2b0b068085fb511dbb6a6aced5e238a329d96a27687172e8e4499ba"
           },
           {
             "arquivo": "docs/planejamento/README.md",
@@ -907,7 +907,7 @@
         "alvos": [
           {
             "arquivo": "README.md",
-            "sha256": "3ee19ddfe1ff04a52f40dd9ca225205376ceaa54cab15369753f992ec067ef81"
+            "sha256": "853e8d06227312908080c180862a007e4c9720418650773c26c856efe1d08e49"
           }
         ],
         "criterios": [

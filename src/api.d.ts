@@ -30,9 +30,61 @@ type ProjectFile = { path: string; relative: string; name: string; kind: 'text' 
 type UsageWindow = { id: string; label: string; usedPercent: number; resetsAt: number | null; resetLabel?: string };
 type ProviderUsage = { id: string; name: string; account?: string; plan?: string; windows: UsageWindow[]; message: string; source?: string; checkedAt: number };
 type UsageSnapshot = { checkedAt: number; providers: ProviderUsage[] };
+type AgentCapabilities = {
+  claude: { disponivel: boolean; versao: string | null; binario: string | null; motivo: string; aprovacao_host_provada: false };
+  codex: { disponivel: false; motivo: string };
+};
+type AgentRunState = 'na_fila' | 'iniciando' | 'executando' | 'aguardando_aprovacao' | 'prazo_vencido' | 'interrompendo' | 'concluido' | 'interrompido' | 'falhou' | 'expirada';
+type AgentUsage = { input_tokens?: number; output_tokens?: number; cache_read?: number; total_cost_usd?: number };
+type AgentRun = {
+  runId: string; root: string; provider: 'claude'; estado: AgentRunState; sessionId: string; title: string;
+  createdAt: number; updatedAt: number; texto: string; usage: AgentUsage; promptHash: string;
+  parcial: boolean; cleanupPartial: boolean; model?: string; unknownEvents?: number; invalidLines?: number;
+};
+type AgentStartOptions = {
+  provider: 'claude'; prompt: string; sessionId?: string; skillId?: string; designSystemId?: string;
+  files?: string[]; stage?: string; prazoMs?: number; modo?: 'interativo' | 'somente-leitura';
+};
+type AgentPromptOptions = Pick<AgentStartOptions, 'skillId' | 'designSystemId' | 'files' | 'stage'>;
+type PromptPreview = {
+  text: string; totalBytes: number;
+  camadas: { id: 'guia_dk' | 'skill_ativa' | 'design_system' | 'craft' | 'instrucoes_projeto' | 'etapa_ativa' | 'arquivos'; fonte: string | null; bytes: number; bytesOriginais: number; truncado: boolean; ausente: boolean; motivo?: string }[];
+};
+type AgentRunSnapshot = { run: AgentRun; eventos: AgentRunEvent[] };
+type AgentRunEvent = { runId: string; root: string; seq: number; at: number } & (
+  | { type: 'text_delta'; messageId: string; value: string }
+  | { type: 'tool_use'; toolUseId: string; name: string; inputResumo: string; inputBytes: number; estado: 'iniciado' | 'concluido' }
+  | { type: 'tool_result'; toolUseId: string; content: string; is_error: boolean; truncado: boolean }
+  | { type: 'status'; estado: AgentRunState; sessionId?: string; model?: string; permissionMode?: string; tools?: string[]; motivo?: string; parcial?: boolean; cleanupPartial?: boolean; aceito?: boolean; subtype?: string; is_error?: boolean; num_turns?: number; duration_ms?: number; total_cost_usd?: number; permission_denials?: { tool_name: string; tool_use_id: string }[]; session_id?: string }
+  | ({ type: 'usage' } & AgentUsage)
+  | { type: 'error'; message: string; fatal: boolean }
+  | { type: 'approval'; requestId: string; kind: 'tool' | 'prazo'; status: 'pending' | 'allowed' | 'denied' | 'expired'; toolName?: string; displayName?: string; resumo?: string; input?: Record<string, unknown>; description?: string; blockedPath?: string; decisionReason?: string; prazoMs?: number }
+  | ({ type: 'snapshot' } & AgentRunSnapshot)
+);
 type ResourcePart = { cpuPercent: number | null; memoryKiB: number | null; processCount: number };
-type ResourceSnapshot = { app: ResourcePart; children: ResourcePart | null; otherProcesses: ResourcePart | null; total: { cpuPercent: number | null; memoryKiB: number | null }; system: { cpuPercent: number | null; memoryUsedKiB: number | null; memoryTotalKiB: number | null; swap: { usedKiB: number; totalKiB: number } | null; availablePercent:number|null; cache:{memoryKiB:number;kind:'estimate'|'purgeable'}|null; pressure:{kind:'linux-psi';someAvg10:number}|null }; sessions: { id: string; pid?:number; kind: 'terminal' | 'codex'; root?: string; memoryKiB: number; lastActivity: number }[]; sampledAt: number };
+type ResourceSnapshot = { app: ResourcePart; children: ResourcePart | null; otherProcesses: ResourcePart | null; total: { cpuPercent: number | null; memoryKiB: number | null }; system: { cpuPercent: number | null; memoryUsedKiB: number | null; memoryTotalKiB: number | null; swap: { usedKiB: number; totalKiB: number } | null; availablePercent:number|null; cache:{memoryKiB:number;kind:'estimate'|'purgeable'}|null; pressure:{kind:'linux-psi';someAvg10:number}|null }; sessions: { id: string; pid?:number; kind: 'terminal' | 'codex' | 'claude-run'; root?: string; memoryKiB: number; lastActivity: number }[]; sampledAt: number };
 type DkActionResult = { action: string; label: string; root: string; code: number | null; data: unknown; output: string; stderr: string; startedAt: string; finishedAt: string; jsonParsed?: boolean; timedOut?: boolean; cancelled?: boolean; truncated?: boolean; cleanupPartial?: boolean; status?: string; signal?: string | null };
+type StageId = 'levantar' | 'entender' | 'entregar' | 'prototipar';
+type StageState = 'concluido' | 'pendente' | 'indisponivel';
+type StageFix = { kind: 'action'; action: 'entender' } | { kind: 'skill'; skill: string };
+type StageCriterion = { id: string; descricao: string; estado: StageState; motivo: string; fonte: { arquivo: string; regra: string }; detalhes: string[]; fix: StageFix; aplica_se: boolean };
+type StageSnapshot = { id: StageId; nome: string; skill: string; ordem: number; estado: StageState; liberada: boolean; bloqueio: string | null; criterios: StageCriterion[] };
+type StagesSnapshot = {
+  root: string; isDk: boolean; formato: 'v2' | 'v1-pt' | 'legacyEN' | 'ausente'; esquema: 'canonico' | 'dk' | 'ausente';
+  kit: { path: string; version?: string } | null; declarado: { fase_atual?: unknown; fases_concluidas?: unknown };
+  computedAt: string; stages: StageSnapshot[]; errors: string[]; watching: boolean;
+};
+type CatalogFrontmatter = { name?: string; description?: string; 'argument-hint'?: string; 'allowed-tools'?: string | string[]; 'forma-da-saida'?: string; parser: 'yaml' | 'regex' };
+type CatalogEntry = { id: string; name: string; title: string; description: string; stage: StageId | 'audit' | 'handoff' | 'git' | ''; gate: boolean; path: string; bytes: number; mtimeMs: number; frontmatter: CatalogFrontmatter; errors: string[] };
+type Catalog = { id: string; kind: 'skills' | 'design-systems'; origin: { type: 'kit' | 'project' | 'plugin'; label: string; pluginId?: string }; root: string; entries: CatalogEntry[]; errors: string[]; truncated: boolean };
+type CatalogList = { root: string; kit: { path: string; version?: string } | null; catalogs: Catalog[]; errors: string[]; watching: boolean };
+type CatalogRead = { catalogId: string; entryId: string; frontmatter: CatalogFrontmatter; text: string; bytes: number };
+type VisualReason = string;
+interface VisualDocInfo { url: string; gen: number; chan: string; nodes: number; warnings: string[]; scripts: number; handlers: number; eol: 'lf'|'crlf'|'mixed'|'none'; loneCR: boolean }
+interface VisualState { open: boolean; relative: string | null; dirty: boolean; canUndo: boolean; canRedo: boolean; truncated: boolean; gen: number | null }
+type VisualResult<T> = ({ ok: true } & T) | { ok: false; reason: VisualReason; message: string };
+interface VisualInspect { tag: string; text: string | null; attrs: Record<string,string>; style: Record<string,string>; can: { text: boolean; attrs: string[]; css: boolean }; reasons: string[]; readonly: string | null }
+type VisualOp = { type: 'text'; node: number; value: string } | { type: 'attr'; node: number; name: string; value: string | null } | { type: 'css'; node: number; prop: string; value: string | null };
 interface Window {
   dk: {
     bootstrap(): Promise<Bootstrap>;
@@ -67,8 +119,9 @@ interface Window {
     selectProject(): Promise<Project | null>;
     createProject(name: string): Promise<Project | null>;
     activateProject(path: string): Promise<Project>;
+    setActiveProject(path: string): Promise<void>;
     forgetProject(path: string): Promise<Bootstrap>;
-    closeProjectSessions(path: string): Promise<{closed:number;chats:number;partial:boolean}>;
+    closeProjectSessions(path: string): Promise<{closed:number;chats:number;agents:number;partial:boolean}>;
     checkClaudePlugin(path: string | null): Promise<ClaudePlugin>;
     installClaudePlugin(path: string | null): Promise<ClaudePlugin>;
     updateClaudePlugin(path: string | null): Promise<ClaudePlugin>;
@@ -79,6 +132,16 @@ interface Window {
     saveFile(path: string, relative: string, text: string, revision: string): Promise<ProjectFile>;
     confirmCloseFile(name: string): Promise<'save' | 'discard' | 'cancel'>;
     setDirtyFiles(files: string[]): Promise<void>;
+    openVisual(root: string, relative: string, options: { codeEditorDirty: boolean }): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    inspectVisual(root: string, gen: number, node: number): Promise<VisualResult<{ inspect: VisualInspect }>>;
+    applyVisual(root: string, gen: number, op: VisualOp): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    undoVisual(root: string, gen: number): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    redoVisual(root: string, gen: number): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    saveVisual(root: string, gen: number): Promise<VisualResult<{ state: VisualState; revision: string }>>;
+    reloadVisual(root: string): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    closeVisual(root: string): Promise<{ ok: true }>;
+    visualState(root: string): Promise<VisualState>;
+    onVisualEvent(callback: (event: { type: 'revoked'; reason: string }) => void): () => void;
     readUsage(path: string, refresh?: boolean): Promise<UsageSnapshot>;
     createChat(path: string): Promise<import('./chat').CodexChatSession>;
     listChats(path: string): Promise<import('./chat').CodexChatSession[]>;
@@ -87,6 +150,14 @@ interface Window {
     cancelChat(path: string, id: string): Promise<void>;
     approveChat(path: string, id: string, requestId: string, choice: 'accept' | 'decline'): Promise<void>;
     onChatEvent(callback: (event: import('./chat').CodexChatEvent) => void): () => void;
+    capabilitiesAgent(path: string): Promise<AgentCapabilities>;
+    listAgentRuns(path: string): Promise<AgentRun[]>;
+    readAgentRun(path: string, runId: string): Promise<AgentRunSnapshot>;
+    startAgentRun(path: string, options: AgentStartOptions): Promise<Pick<AgentRun, 'runId' | 'estado'>>;
+    cancelAgentRun(path: string, runId: string): Promise<void>;
+    approveAgentRun(path: string, runId: string, requestId: string, choice: 'allow' | 'deny'): Promise<void>;
+    previewAgentPrompt(path: string, options?: AgentPromptOptions): Promise<PromptPreview>;
+    onAgentEvent(callback: (event: AgentRunEvent) => void): () => void;
     runAction(path: string, action: string): Promise<DkActionResult>;
     cancelAction(path: string): Promise<number>;
     listOrchestrations(path: string): Promise<GraphListing>;
@@ -98,6 +169,12 @@ interface Window {
     executePlugin(path: string, pluginId: string, actionId: string, revision: string): Promise<SessionInfo | null>;
     onPluginsChanged(callback: (event: { path: string }) => void): () => void;
     onExtensionsChanged(callback: (extensions: Extension[]) => void): () => void;
+    listCatalog(path: string, refresh?: boolean): Promise<CatalogList>;
+    readCatalogEntry(path: string, catalogId: string, entryId: string): Promise<CatalogRead>;
+    readStages(path: string, refresh?: boolean): Promise<StagesSnapshot>;
+    stopWatchingStages(): Promise<void>;
+    onStagesChanged(callback: (event: { path: string }) => void): () => void;
+    onCatalogChanged(callback: (event: { path: string }) => void): () => void;
     createBrowserTab(path: string): Promise<string>;
     openBrowser(path: string, url: string, bounds: PreviewBounds, id: string): Promise<{ url: string; cancelled?: boolean }>;
     selectBrowser(path: string | null, id?: string): Promise<boolean>;

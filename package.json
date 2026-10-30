@@ -1,7 +1,7 @@
 {
   "name": "dk-terminal",
   "productName": "SEA Dock",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "private": true,
   "type": "module",
   "description": "Ambiente local de projetos e terminais para o Design Kit",
@@ -21,6 +21,9 @@
     "release": "node scripts/release.mjs",
     "test:editor": "npm run build && node tests/editor-desktop.cjs",
     "test:plugins": "npm run build && node tests/plugins-desktop.cjs",
+    "test:stages": "npm run build && node tests/stages-desktop.cjs",
+    "test:agent-run": "npm run build && node tests/agent-run-desktop.cjs",
+    "test:visual": "npm run build && node tests/visual-desktop.cjs",
     "test:cursor": "npm run build && node tests/cursor-desktop.cjs",
     "test:browser:fullscreen": "npm run build && node tests/browser-fullscreen-desktop.cjs",
     "test:browser:tabs": "npm run build && node tests/browser-tabs-desktop.cjs",
@@ -31,7 +34,7 @@
     "test:rebrand:profile": "npm run build && node tests/rebrand-profile-desktop.cjs",
     "test:git:workflow": "npm run build && node tests/git-desktop.cjs && node tests/git-branches-desktop.cjs && node tests/git-workflow-desktop.cjs && node tests/git-dirty-ipc-desktop.cjs",
     "test:launcher": "npm run build && node tests/launcher-desktop.cjs && node tests/sea-login-desktop.cjs",
-    "test:all": "npm run build && npm test && node tests/single-instance-desktop.cjs && node tests/project-close-desktop.cjs && node tests/project-sessions-desktop.cjs && node tests/project-activation-race-desktop.cjs && node tests/shutdown-processes-desktop.cjs && node tests/terminal-visibility-desktop.cjs && node tests/terminal-output-desktop.cjs && node tests/session-cycle-desktop.cjs && node tests/tree-menu-desktop.cjs && node tests/project-inspector-desktop.cjs && node tests/rebrand-profile-desktop.cjs && node tests/git-desktop.cjs && node tests/git-branches-desktop.cjs && node tests/git-workflow-desktop.cjs && node tests/git-dirty-ipc-desktop.cjs && node tests/extra-cli-desktop.cjs && node tests/machine-desktop.cjs && node tests/resources-panel-desktop.cjs && node tests/browser-desktop.cjs && node tests/browser-tabs-desktop.cjs && node tests/static-preview-desktop.cjs && node tests/dependency-cache-desktop.cjs && node tests/browser-fullscreen-desktop.cjs && node tests/local-gitlab-desktop.cjs && node tests/new-project-desktop.cjs && node tests/welcome-desktop.cjs && node tests/launcher-desktop.cjs && node tests/launcher-async-desktop.cjs && node tests/sea-login-desktop.cjs && node tests/editor-desktop.cjs && node tests/plugins-desktop.cjs && node tests/cursor-desktop.cjs && node tests/idle-desktop.cjs && node tests/sidebar-desktop.cjs && node tests/claude-plugin-status-desktop.cjs && node tests/dock-preview-desktop.cjs && node tests/session-services-desktop.cjs && node tests/agents-guide-desktop.cjs && node tests/debug-mode-desktop.cjs && node tests/gitlab-publish-desktop.cjs && node tests/desktop.cjs",
+    "test:all": "npm run build && npm test && node tests/single-instance-desktop.cjs && node tests/project-close-desktop.cjs && node tests/project-sessions-desktop.cjs && node tests/project-activation-race-desktop.cjs && node tests/shutdown-processes-desktop.cjs && node tests/terminal-visibility-desktop.cjs && node tests/terminal-output-desktop.cjs && node tests/session-cycle-desktop.cjs && node tests/tree-menu-desktop.cjs && node tests/project-inspector-desktop.cjs && node tests/rebrand-profile-desktop.cjs && node tests/git-desktop.cjs && node tests/git-branches-desktop.cjs && node tests/git-workflow-desktop.cjs && node tests/git-dirty-ipc-desktop.cjs && node tests/extra-cli-desktop.cjs && node tests/machine-desktop.cjs && node tests/resources-panel-desktop.cjs && node tests/browser-desktop.cjs && node tests/browser-tabs-desktop.cjs && node tests/static-preview-desktop.cjs && node tests/dependency-cache-desktop.cjs && node tests/browser-fullscreen-desktop.cjs && node tests/local-gitlab-desktop.cjs && node tests/new-project-desktop.cjs && node tests/welcome-desktop.cjs && node tests/launcher-desktop.cjs && node tests/launcher-async-desktop.cjs && node tests/sea-login-desktop.cjs && node tests/editor-desktop.cjs && node tests/plugins-desktop.cjs && node tests/stages-desktop.cjs && node tests/agent-run-desktop.cjs && node tests/visual-desktop.cjs && node tests/cursor-desktop.cjs && node tests/idle-desktop.cjs && node tests/sidebar-desktop.cjs && node tests/claude-plugin-status-desktop.cjs && node tests/dock-preview-desktop.cjs && node tests/session-services-desktop.cjs && node tests/agents-guide-desktop.cjs && node tests/debug-mode-desktop.cjs && node tests/gitlab-publish-desktop.cjs && node tests/desktop.cjs",
     "benchmark:resources": "node tests/resource-benchmark.cjs",
     "test:static:desktop": "npm run build && node tests/static-preview-desktop.cjs",
     "test:dependencies:desktop": "npm run build && node tests/dependency-cache-desktop.cjs",
@@ -57,6 +60,7 @@
     "dompurify": "3.4.17",
     "mermaid": "12.2.0",
     "node-pty": "1.1.0",
+    "parse5": "7.3.0",
     "yaml": "2.9.1"
   },
   "devDependencies": {
