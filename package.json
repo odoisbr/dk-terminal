@@ -1,7 +1,7 @@
 {
   "name": "dk-terminal",
   "productName": "SEA Dock",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "private": true,
   "type": "module",
   "description": "Ambiente local de projetos e terminais para o Design Kit",
