@@ -27,6 +27,7 @@ import './agent-run.css';
 import { installDebugCapture } from './debug';
 import { DetectedServicesView } from './session-services';
 import { icon, setIconButton } from './icons';
+import type { VisualApi } from './visual-editor';
 
 installDebugCapture();
 
@@ -63,6 +64,7 @@ app.innerHTML = `
       <section id="action-view" class="action-card" aria-label="Resultado do DK" hidden><div class="auxiliary-toolbar"><strong><span id="action-view-icon">${icon('activity')}</span>Resultado do DK</strong><button id="cancel-action" class="button secondary" hidden>Interromper</button><button id="action-back" class="button secondary">Voltar ao terminal</button></div><div id="action-content" role="status" aria-live="polite"></div></section>
       <section id="chat-view" class="chat-card" aria-label="Codex" hidden></section>
       <section id="agent-view" class="chat-card" aria-label="Tarefa com Claude" hidden></section>
+      <section id="visual-view" class="chat-card" aria-label="Editor visual de HTML" hidden></section>
       <div class="project-inspector">
         <aside id="project-inspector-panel" class="context-panel" aria-label="Painel do projeto" hidden>
           <section id="panel-git" class="inspector-panel" aria-labelledby="tab-git" tabindex="0" hidden></section>
@@ -110,7 +112,7 @@ type InspectorPanel = 'context' | 'services' | 'files' | 'usage' | 'git';
 let selectedPanel: InspectorPanel | null = null;
 let treeProject: string | null = null;
 let treeRequest = 0;
-type MainView = 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'agent' | 'action';
+type MainView = 'terminal' | 'graph' | 'browser' | 'editor' | 'chat' | 'agent' | 'action' | 'visual';
 let mainView: MainView = 'terminal';
 let workspaceView: 'terminal' | 'editor' = 'terminal';
 const views = new ViewRegistry<MainView>();
@@ -120,6 +122,7 @@ views.register('graph', [$('graph-view')]);
 views.register('browser', [$('terminal-view'), $('browser-view')]);
 views.register('chat', [$('chat-view')]);
 views.register('agent', [$('agent-view')]);
+views.register('visual', [$('visual-view')]);
 views.register('action', [$('action-view')]);
 let focusedPane: 'terminal' | 'editor' = 'terminal';
 type BrowserTab = { id: string | null; ready: Promise<string | null> | null; url: string; wantedService: string; selectedService: string; waitingForService: boolean; status: string; caption?: string };
@@ -132,6 +135,10 @@ const gitView = new GitView($('panel-git'), {getRoot:()=>current?.path || null, 
   try {
     if(editorOpening)await editorOpening;
     if(fileEditor?.hasUnsaved(root))throw new Error('Salve os arquivos abertos no editor antes de trocar de branch.');
+    if(visualView?.isOpenFor(root)) {
+      if(!await leaveVisual())throw new Error('A troca de branch foi cancelada.');
+      if(mainView==='visual')selectMainView('editor');
+    }
     if(fileEditor && !await fileEditor.closeProject(root))throw new Error('A troca de branch foi cancelada.');
     await api.gitBranchAction(root,action,name);
     if(current?.path===root)await loadRootTree();
@@ -144,6 +151,9 @@ let usageSnapshot: UsageSnapshot | null = null, usageLoading = false;
 let chatView: import('./chat').CodexChatView | null = null;
 let chatOpening: Promise<import('./chat').CodexChatView> | null = null;
 let agentView: import('./agent-run').AgentRunView | null = null, agentOpeningView: Promise<import('./agent-run').AgentRunView> | null = null;
+let visualView: import('./visual-editor').VisualEditorView | null = null;
+let visualOpening: Promise<import('./visual-editor').VisualEditorView> | null = null;
+export function visualDirty(): boolean { return visualView?.dirty() ?? false; }
 const actionResults = new Map<string, DkActionResult>();
 const runningActions = new Set<string>();
 
@@ -297,6 +307,7 @@ function createProjectRow(info: Project) {
     try {
     await opening;
     if (editorOpening && !fileEditor) await editorOpening;
+    if (visualView?.isOpenFor(info.path) && !await leaveVisual()) return;
     if (fileEditor && !await fileEditor.closeProject(info.path)) return;
     const result = await api.closeProjectSessions(info.path);
     for (const [id, session] of [...sessions]) if (session.cwd === info.path) {
@@ -567,7 +578,8 @@ async function loadRootTree() {
     if (request === treeRequest && current?.path === root) { $('folder-tree').replaceChildren(directoryList(root, listing)); syncTreeSelection(); }
   } catch (error) { if (request === treeRequest && current?.path === root) { $('folder-tree').textContent = 'Não foi possível abrir esta pasta.'; treeProject = null; throw error; } }
 }
-function expandTerminal() {
+async function expandTerminal() {
+  if (!await leaveVisual()) return;
   if (mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
   const expanded = document.body.classList.toggle('terminal-expanded');
   button('expand-terminal').setAttribute('aria-pressed', String(expanded));
@@ -576,7 +588,17 @@ function expandTerminal() {
   button('expand-terminal').innerHTML = icon(expanded ? 'restore' : 'expand');
   requestAnimationFrame(() => { fitActive(); if (focusedPane === 'terminal') active()?.terminal.focus(); });
 }
-function selectMainView(view: typeof mainView) {
+async function leaveVisual(): Promise<boolean> {
+  const root = current?.path;
+  if (visualView?.isOpen() && !await visualView.close(false)) return false;
+  return current?.path === root;
+}
+async function changeMainView(view: MainView): Promise<boolean> {
+  if (view !== 'visual' && !await leaveVisual()) return false;
+  selectMainView(view);
+  return true;
+}
+function selectMainView(view: MainView) {
   const previousView = mainView;
   mainView = view;
   document.body.classList.toggle('browser-active', view === 'browser');
@@ -597,11 +619,17 @@ function selectMainView(view: typeof mainView) {
 }
 async function openFile(root: string, relative: string) {
   if (closingProjects.has(root) || changingBranches.has(root)) return;
+  if (!await leaveVisual()) return;
   if (!editorOpening) editorOpening = import('./editor').then(({ FileEditor }) => {
     fileEditor = new FileEditor($('editor-content'), {
       read: api.readFile, save: api.saveFile, confirmClose: api.confirmCloseFile, tabsHost: $('file-tabs'),
-      onSelect: () => { focusedPane = 'editor'; syncTreeSelection(); if (mainView !== 'editor') selectMainView('editor'); else focusSession(activeId, false); },
+      onSelect: () => {
+        const select = () => { focusedPane = 'editor'; syncTreeSelection(); if (mainView !== 'editor') selectMainView('editor'); else focusSession(activeId, false); };
+        if (visualView?.isOpen()) run(async () => { if (await leaveVisual()) select(); });
+        else select();
+      },
       onDirty: files => { api.setDirtyFiles(files).catch(notify); },
+      onEditVisual: (relative, dirty) => run(() => openVisual(relative, dirty)),
       onEmpty: () => { syncTreeSelection(); if (mainView === 'editor') selectMainView('terminal'); else renderTabs(); }, onError: notify,
     });
     if (current) fileEditor.setProject(current.path);
@@ -612,13 +640,43 @@ async function openFile(root: string, relative: string) {
   selectMainView('editor');
   await editor.open(root, relative);
 }
+async function openVisual(relative: string, codeEditorDirty = false) {
+  if (!current || closingProjects.has(current.path) || changingBranches.has(current.path)) return;
+  const root = current.path;
+  selectMainView('visual');
+  if (!visualView) $('visual-view').textContent = 'Abrindo editor visual…';
+  if (!visualOpening) visualOpening = Promise.all([import('./visual-editor'), import('./visual-editor.css')]).then(([{ VisualEditorView }]) => {
+    const visualApi = api as unknown as VisualApi;
+    return visualView = new VisualEditorView($('visual-view'), {
+      openVisual: visualApi.openVisual, inspectVisual: visualApi.inspectVisual, applyVisual: visualApi.applyVisual,
+      undoVisual: visualApi.undoVisual, redoVisual: visualApi.redoVisual, saveVisual: visualApi.saveVisual,
+      reloadVisual: visualApi.reloadVisual, closeVisual: visualApi.closeVisual, visualState: visualApi.visualState,
+      onVisualEvent: visualApi.onVisualEvent, onBack: () => selectMainView('editor'),
+      onOpenCode: (root, relative) => run(async () => {
+        if (current?.path !== root) return;
+        await openFile(root, relative);
+        if (current?.path === root && fileEditor?.getCurrentFile()?.relative === relative) fileEditor.showCode();
+      }),
+      onSaved: (root, relative) => fileEditor?.refreshFromDisk(root, relative),
+    }, notify);
+  });
+  let view;
+  try { view = await visualOpening; } catch (error) {
+    visualOpening = null;
+    if (current?.path === root && mainView === 'visual') selectMainView('editor');
+    throw error;
+  }
+  if (current?.path !== root || mainView !== 'visual') return;
+  await view.open(root, relative, codeEditorDirty);
+}
 async function openCodex() {
   if (!current || closingProjects.has(current.path)) return;
   const root = current.path;
+  if (!await leaveVisual() || current?.path !== root) return;
   selectMainView('chat');
   if (!chatView) $('chat-view').innerHTML = '<div class="chat-loading" role="status">Abrindo Codex…</div>';
   if (!chatOpening) chatOpening = import('./chat').then(({ CodexChatView }) => {
-    chatView = new CodexChatView($('chat-view'), { create: api.createChat, list: api.listChats, read: api.readChat, send: api.sendChat, cancel: api.cancelChat, approve: api.approveChat, onBack: () => selectMainView(workspaceView) }, notify);
+    chatView = new CodexChatView($('chat-view'), { create: api.createChat, list: api.listChats, read: api.readChat, send: api.sendChat, cancel: api.cancelChat, approve: api.approveChat, onBack: () => run(() => changeMainView(workspaceView)) }, notify);
     return chatView;
   });
   let view;
@@ -629,9 +687,10 @@ async function openCodex() {
 async function openAgent(preset?: import('./agent-run').AgentRunPreset) {
   if (!current || closingProjects.has(current.path)) return;
   const root = current.path;
+  if (!await leaveVisual() || current?.path !== root) return;
   selectMainView('agent');
   if (!agentView) $('agent-view').replaceChildren(Object.assign(document.createElement('div'), { className: 'chat-loading', textContent: 'Abrindo Tarefa com Claude…' }));
-  if (!agentOpeningView) agentOpeningView = import('./agent-run').then(({ AgentRunView }) => (agentView = new AgentRunView($('agent-view'), { capabilities: api.capabilitiesAgent, list: api.listAgentRuns, read: api.readAgentRun, start: api.startAgentRun, cancel: api.cancelAgentRun, approve: api.approveAgentRun, previewPrompt: api.previewAgentPrompt, listCatalog: api.listCatalog, readStages: api.readStages, listDirectory: api.listDirectory, onBack: () => selectMainView(workspaceView), onOpenTerminal: () => run(() => newSession(installedExtensions.some(item => item.id === 'claude' && item.available) ? 'extension:claude' : undefined)) }, notify)));
+  if (!agentOpeningView) agentOpeningView = import('./agent-run').then(({ AgentRunView }) => (agentView = new AgentRunView($('agent-view'), { capabilities: api.capabilitiesAgent, list: api.listAgentRuns, read: api.readAgentRun, start: api.startAgentRun, cancel: api.cancelAgentRun, approve: api.approveAgentRun, previewPrompt: api.previewAgentPrompt, listCatalog: api.listCatalog, readStages: api.readStages, listDirectory: api.listDirectory, onBack: () => run(() => changeMainView(workspaceView)), onOpenTerminal: () => run(() => newSession(installedExtensions.some(item => item.id === 'claude' && item.available) ? 'extension:claude' : undefined)) }, notify)));
   let view;
   try { view = await agentOpeningView; } catch (error) { agentOpeningView = null; throw error; }
   if (current?.path !== root || mainView !== 'agent') return;
@@ -645,6 +704,7 @@ async function showActionResult(result: DkActionResult) {
 async function runDkAction(action: string) {
   if (!current || runningActions.has(current.path)) return;
   const root = current.path;
+  if (!await leaveVisual() || current?.path !== root) return;
   runningActions.add(root); renderKit();
   selectMainView('action');
   $('action-view-icon').innerHTML = icon(action === 'audit' ? 'fileSearch' : action === 'validate' ? 'checkCircle' : 'activity');
@@ -772,6 +832,7 @@ async function prepareBrowserTab(root: string, tab: BrowserTab): Promise<string 
 async function openBrowserView(requestedService?: string) {
   if (!current) return;
   const root = current.path;
+  if (!await leaveVisual() || current?.path !== root) return;
   let tab = browserTabs.get(root);
   const created = !tab;
   if (!tab) {
@@ -804,6 +865,7 @@ async function openBrowserView(requestedService?: string) {
 // Abre na prévia um servidor detectado numa sessão, sem passar por um serviço declarado.
 async function openPreviewAddress(root: string, url: string) {
   if (current?.path !== root || closingProjects.has(root)) throw new Error('Abra o projeto correspondente antes de visualizar o servidor.');
+  if (!await leaveVisual() || current?.path !== root) return;
   let tab = browserTabs.get(root);
   if (!tab) {
     tab = { id: null, ready: null, url: '', wantedService: '', selectedService: '', waitingForService: false, status: 'Carregando prévia…' };
@@ -929,7 +991,7 @@ function renderTabs() {
     select.classList.toggle('exited', session.exited); select.classList.toggle('failed', failed);
     select.title = session.exited ? `${session.label} · ${failed ? `encerrada com erro (código ${session.exitCode})` : 'encerrada'}` : session.label;
     const text = document.createElement('span'); text.textContent = session.label;
-    select.append(text); select.onclick = () => { if (mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView); focusedPane = 'terminal'; focusSession(session.id); };
+    select.append(text); select.onclick = () => run(async () => { if (!await leaveVisual() || current?.path !== session.cwd) return; if (mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView); focusedPane = 'terminal'; focusSession(session.id); });
     const close = document.createElement('button'); close.className = 'icon-button tab-close'; setIconButton(close, 'close', `Fechar ${session.label}`); close.onclick = () => run(() => closeSession(session.id));
     tab.append(select, close); list.append(tab);
   }
@@ -938,7 +1000,7 @@ function renderTabs() {
     const tab = document.createElement('div'); tab.className = `tab${selected ? ' active' : ''}`;
     const select = document.createElement('button'); select.type = 'button'; select.id = 'browser-tab'; select.className = 'tab-select'; select.role = 'tab';
     select.setAttribute('aria-selected', String(selected)); select.setAttribute('aria-controls', 'browser-view'); select.innerHTML = `${icon('globe')}<span>Browser</span>`;
-    select.onclick = () => { if (current?.path === root) selectMainView('browser'); };
+    select.onclick = () => run(async () => { if (await leaveVisual() && current?.path === root) selectMainView('browser'); });
     const close = document.createElement('button'); close.type = 'button'; close.id = 'browser-tab-close'; close.className = 'icon-button tab-close'; close.setAttribute('aria-label', 'Fechar browser'); close.title = 'Fechar browser'; close.innerHTML = icon('close');
     close.onclick = () => run(() => closeBrowserTab(root));
     tab.append(select, close); list.append(tab);
@@ -959,6 +1021,8 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   rememberRecent(info);
   if (intent < appliedProjectIntent) return false;
   await opening;
+  if (intent < appliedProjectIntent) return false;
+  if (current?.path !== info.path && !await leaveVisual()) return false;
   if (intent < appliedProjectIntent) return false;
   info = await api.activateProject(info.path);
   if (intent < appliedProjectIntent) return false;
@@ -981,7 +1045,7 @@ async function activate(info: Project, intent = beginProjectIntent()): Promise<b
   const previous = lastActive.get(info.path);
   activeId = previous && sessions.has(previous) ? previous : [...sessions.values()].find(s => s.cwd === info.path)?.id || null;
   renderProject();
-  if (projectChanged && (mainView === 'terminal' || mainView === 'editor' || mainView === 'browser')) selectMainView(workspaceView);
+  if (projectChanged && (mainView === 'terminal' || mainView === 'editor' || mainView === 'browser' || mainView === 'visual')) selectMainView(workspaceView);
   else focusSession(activeId, mainView !== 'editor');
   if (projectChanged && selectedPanel !== null) selectPanel('files', false);
   // Clear the previous project's tree immediately, even when chat startup is slow.
@@ -1011,9 +1075,11 @@ async function openProject() {
 }
 async function newSession(action?: string, duplicate?: string, agent?: string, create?: () => Promise<SessionInfo | null>) {
   if (!current || busy || closingProjects.has(current.path)) return false;
+  const root = current.path;
+  if (!await leaveVisual() || current?.path !== root || busy || closingProjects.has(root)) return false;
   const previousFocus = activeId;
   // A cancelled plugin prompt must leave the current browser/chat/graph intact.
-  if (!create && !duplicate && mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
+  if (mainView === 'visual' || (!create && !duplicate && mainView !== 'terminal' && mainView !== 'editor')) selectMainView(workspaceView);
   busy = true;
   const agentId = agent || (action?.startsWith('extension:') ? action.slice(10) : undefined);
   const agentName = installedExtensions.find(item => item.id === agentId)?.name;
@@ -1027,9 +1093,14 @@ async function newSession(action?: string, duplicate?: string, agent?: string, c
   try {
     info = (create ? await create() : duplicate ? await api.splitTerminal(current.path, duplicate, agent) : await api.createTerminal(current.path, action)) || undefined;
     if (!info) return false; // The user cancelled a plugin confirmation.
-    if ((create || duplicate) && mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
     if (duplicate && info.cwdFallback) notify('Não foi possível identificar a pasta atual; o novo terminal abriu na última pasta conhecida.');
     const [{ Terminal }, { FitAddon }] = await Promise.all([import('@xterm/xterm'), import('@xterm/addon-fit')]);
+    if (!await leaveVisual() || current?.path !== root) {
+      await api.closeTerminal(info.id);
+      info = undefined;
+      return false;
+    }
+    if (mainView === 'visual' || ((create || duplicate) && mainView !== 'terminal' && mainView !== 'editor')) selectMainView(workspaceView);
     terminal = new Terminal({
       fontFamily: '"SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace', fontSize: preferences.fontSize, lineHeight: 1.5,
       cursorBlink: false, cursorStyle: 'bar', scrollback: preferences.scrollback, screenReaderMode: false, allowProposedApi: false, disableStdin: true,
@@ -1150,6 +1221,7 @@ api.onBrowserRequest(event => {
     try {
       const root = event.root;
       if (current?.path !== root || closingProjects.has(root)) throw new Error('Abra o projeto correspondente antes de visualizar o protótipo.');
+      if (!await leaveVisual() || current?.path !== root) return;
       let tab = browserTabs.get(root);
       if (!tab) {
         tab = { id: null, ready: null, url: '', wantedService: '', selectedService: '', waitingForService: false, status: 'Carregando prévia…' };
@@ -1195,12 +1267,12 @@ api.onMenu(action => {
   if (action === 'save' && mainView === 'editor') run(async () => fileEditor?.saveCurrent());
   if (action === 'close' && mainView === 'editor' && focusedPane === 'editor') run(async () => fileEditor?.closeCurrent());
   else if (action === 'close' && mainView === 'browser' && current) run(() => closeBrowserTab(current!.path));
-  else if (action === 'close' && mainView !== 'terminal' && mainView !== 'editor') selectMainView(workspaceView);
+  else if (action === 'close' && mainView !== 'terminal' && mainView !== 'editor') run(() => changeMainView(workspaceView));
   else if (action === 'close' && activeId) run(() => closeSession(activeId!));
-  if (action === 'editor') selectMainView('editor');
+  if (action === 'editor') run(() => changeMainView('editor'));
   if (action === 'search' && (mainView === 'terminal' || mainView === 'editor')) { if (mainView === 'editor' && focusedPane === 'editor') fileEditor?.search(); else toggleSearch(); }
   if (action === 'clear' && (mainView === 'terminal' || mainView === 'editor')) active()?.terminal.clear();
-  if (action === 'expand') expandTerminal();
+  if (action === 'expand') run(expandTerminal);
   if (action === 'split-right') run(() => splitTerminal('right'));
   if (action === 'split-down') run(() => splitTerminal('down'));
 });
@@ -1237,7 +1309,7 @@ for (const id of ['antigravity', 'gemini', 'dk']) button(`launch-${id}`).onclick
 button('open-browser').onclick = () => run(openBrowserView);
 document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach(el => { el.onclick = () => run(() => runDkAction(el.dataset.action!)); });
 button('search-toggle').onclick = () => toggleSearch();
-button('expand-terminal').onclick = expandTerminal;
+button('expand-terminal').onclick = () => run(expandTerminal);
 button('split-right').onclick = () => run(() => splitTerminal('right'));
 button('split-down').onclick = () => run(() => splitTerminal('down'));
 function closeSplitMenu() { $('split-menu').hidden = true; button('split-agent').setAttribute('aria-expanded', 'false'); }
@@ -1269,13 +1341,13 @@ button('detach-pane').onclick = () => {
   focusSession(activeId);
 };
 button('single-terminal').onclick = () => { if (current) paneGroups.delete(current.path); focusSession(activeId); };
-button('show-graph').onclick = () => selectMainView('graph');
-button('graph-back').onclick = () => selectMainView(workspaceView);
+button('show-graph').onclick = () => run(() => changeMainView('graph'));
+button('graph-back').onclick = () => run(() => changeMainView(workspaceView));
 button('refresh-graph').onclick = () => run(loadGraph);
-button('action-back').onclick = () => selectMainView(workspaceView);
+button('action-back').onclick = () => run(() => changeMainView(workspaceView));
 button('cancel-action').onclick = () => { if (current) run(() => api.cancelAction(current!.path)); };
 button('refresh-usage').onclick = () => run(() => loadUsage(true));
-button('browser-back').onclick = () => selectMainView(workspaceView);
+button('browser-back').onclick = () => run(() => changeMainView(workspaceView));
 async function copyPreviewInstructions() {
   await api.copyPreviewInstructions();
   notify('Instrução copiada. Cole no chat da IA ou no AGENTS.md, CLAUDE.md ou GEMINI.md do projeto.');
