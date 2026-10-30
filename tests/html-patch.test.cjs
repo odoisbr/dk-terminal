@@ -508,7 +508,9 @@ test('D7 interrompe atributos acima de 256, inclusive repetidos e tags incomplet
   assert.ok(docOf(`<!--${literal}--><style>${literal}</style>`));
 });
 
-test('D7 conta elementos durante o parse: 200000 aceitos, o próximo interrompe', () => {
+test('D7 conta elementos durante o parse: 200000 aceitos, o próximo interrompe', t => {
+  // Contagens, não tempo: o teto de tempo do parse fica congelado para não depender da carga da máquina.
+  t.mock.method(performance, 'now', () => 0);
   // Include the three implicit html/head/body elements in the ceiling.
   const html = '<!doctype html>' + '<br>'.repeat(199997);
   const doc = docOf(html);
@@ -588,7 +590,9 @@ test('sondas de fechamento ignorado e i aninhado em table interrompem ou ficam a
   timed('endScope com tag truncada', () => assert.throws(() => serve(truncated, options), { reason: 'verify-tree' }));
 });
 
-test('orçamento total conta elementos, textos e comentários, sem contar tokens de texto mesclados', () => {
+test('orçamento total conta elementos, textos e comentários, sem contar tokens de texto mesclados', t => {
+  // Contagens, não tempo: o teto de tempo do parse fica congelado para não depender da carga da máquina.
+  t.mock.method(performance, 'now', () => 0);
   // Three implicit elements + 299998 comments + 299999 texts = 600000.
   // Both default text insertion and foster insertion must use our counter.
   const base = '<!doctype html>' + 'x<!>'.repeat(299998);
@@ -650,8 +654,10 @@ test('desempenho: prepare, serve e apply abaixo de 5 s cada em quase 2 MiB de ir
   const html = prefix + siblings + '<!--' + ' '.repeat(size - prefix.length - siblings.length - suffix.length - 7) + '-->' + suffix;
   const bytes = Buffer.from(html);
   assert.equal(bytes.length, size);
+  // O teto de tempo do parse fica congelado; a medição usa hrtime e continua exigindo menos de 5 s.
+  t.mock.method(performance, 'now', () => 0);
   function timed(name, run) {
-    const start = performance.now(), result = run(), ms = performance.now() - start;
+    const start = process.hrtime.bigint(), result = run(), ms = Number(process.hrtime.bigint() - start) / 1e6;
     t.diagnostic(`${name}: ${ms.toFixed(1)} ms (${bytes.length} bytes, 150000 div irmãos)`);
     assert.ok(ms < 5000, `${name} took ${ms.toFixed(1)} ms`);
     return result;
