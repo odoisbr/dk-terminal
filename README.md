@@ -253,6 +253,20 @@ A transição entre marcos do projeto é controlada por scripts determinísticos
 
 O arquivo de evidência é autodeclarado no repositório. A integridade do marco é garantida pela execução do gate pelo orquestrador e pelo bloqueio de aprovações automáticas. O script de evidência recusa execução em ambientes automatizados de agentes e exige confirmação manual digitada em terminal interativo. Agentes não gravam aprovações nem liberam marcos.
 
+### Editor visual de protótipos HTML
+
+Arquivos `.html` e `.htm` do projeto abrem no editor visual pelo botão "Editar visualmente" do editor de código. O documento aparece num iframe isolado, com `sandbox="allow-scripts"` e sem a mesma origem do aplicativo. Um clique seleciona o elemento, e o painel ao lado mostra o que pode ser editado: texto de elementos folha, atributos permitidos (`id`, `class`, `title`, `lang`, `dir`, `hidden`, `role`, `aria-label`, `href` em links e `src`, `alt`, `width` e `height` em imagens) e 30 propriedades de estilo com gramática fechada. Nenhuma alteração é aplicada ao digitar; cada uma exige o botão "Aplicar".
+
+O arquivo do usuário só muda ao salvar. A edição troca apenas a faixa de texto do elemento alterado, sem reserializar o documento: BOM, finais de linha (inclusive mistos e `\r` solitário), entidades, comentários e formatação do restante continuam byte a byte. Os identificadores `data-dk-node` e a ponte de comunicação existem só na cópia servida ao iframe e nunca são gravados. Cada edição passa por verificação dupla: prefixo e sufixo idênticos e reanálise da árvore com o alvo na mesma posição. Se a verificação falhar, a edição é recusada e o arquivo continua como estava.
+
+A cópia é servida pelo esquema `dk-preview://`, com um token aleatório por abertura e uma geração por edição. Documentos de gerações antigas respondem 410. A política de segurança do documento bloqueia rede, formulários, workers e frames; só carregam CSS, imagens e fontes de dentro do projeto, com limites de tamanho e de quantidade por geração. Os scripts do próprio documento ficam desativados no modo de edição, e a interface avisa quantos scripts e manipuladores foram ignorados. Recursos externos não carregam, e a interface informa quantos foram bloqueados e de quais hosts. Para ver o comportamento com scripts, use a prévia normal.
+
+Desfazer e refazer atuam só na cópia em memória, com até 200 entradas e 8 MiB de histórico. Salvar grava os bytes exatos com escrita atômica e confere a revisão do disco: se o arquivo mudou por fora, nada é gravado, a cópia e o histórico são mantidos, e a pessoa escolhe entre recarregar (descartando as alterações) ou continuar editando. Alterações não salvas no editor visual contam como trabalho pendente ao fechar a janela, trocar de projeto ou trocar de branch. Se o aplicativo cair, o que não foi salvo se perde.
+
+O processamento roda num worker com prazo de 5 segundos por operação e limite de memória. Documentos que excedem os limites são recusados com motivo: acima de 2 MiB, fora de UTF-8, com `charset` diferente de UTF-8, com marcadores `<?` ou `<%` fora de comentários, `frameset` ou `plaintext`, terminados dentro de comentário ou elemento de texto bruto, com aninhamento de 512 níveis, mais de 256 atributos numa tag, mais de 200 mil elementos ou análise acima de 1,5 segundo. Elementos criados implicitamente pelo navegador, clonados por HTML mal aninhado, ou dentro de `template`, SVG ou MathML podem ser selecionados, mas ficam somente leitura com o motivo exibido.
+
+Limites conhecidos desta versão: protótipos montados por JavaScript mostram no editor visual só o HTML estático do arquivo, porque os scripts ficam desativados; projetos React e servidores de desenvolvimento não são editáveis visualmente; um `meta refresh` para endereço externo deixa a área de edição vazia até a próxima alteração (nenhum tráfego sai); o editor visual foi testado só no macOS.
+
 ## Gerar o aplicativo
 
 ```sh
@@ -297,6 +311,7 @@ npm run test:project:race
 npm run test:launcher:race
 npm run test:rebrand:profile
 npm run test:git:workflow
+npm run test:visual
 npm run test:all  # suíte completa, incluindo interface gráfica e regressões de projeto
 ```
 
@@ -391,6 +406,7 @@ Todas as sessões exportam `SEA_DOCK_AGENTS_MD=<caminho do guia>` e têm o coman
 - `electron/preload.cjs`: API limitada exposta à interface isolada.
 - `electron/terminals.cjs`: sessões PTY, fluxo de saída, redimensionamento e encerramento.
 - `electron/core.cjs`: inspeção de pastas, comandos DK e persistência.
+- `electron/html-patch.cjs`, `electron/visual-session.cjs`, `electron/visual-patch-worker.cjs`, `electron/visual-protocol.cjs` e `electron/visual-bridge.js`: editor visual (patch por faixa, sessão e worker, esquema `dk-preview://` e ponte do iframe).
 - `src/`: interface, terminal e tokens visuais próprios deste aplicativo.
 
 Os projetos recentes e a localização do kit ficam em `settings.json`, na pasta de dados do aplicativo. A saída dos terminais comuns e as credenciais não são gravadas pelo SEA Dock. O painel Codex mantém seu histórico privado conforme descrito acima. O shell e os programas que você executar mantêm seu comportamento normal, inclusive seu próprio histórico.
