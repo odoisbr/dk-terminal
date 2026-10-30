@@ -1265,11 +1265,13 @@ api.onMenu(action => {
   if (action === 'open') run(openProject);
   if (action === 'new') run(() => newSession());
   if (action === 'save' && mainView === 'editor') run(async () => fileEditor?.saveCurrent());
+  if (action === 'save' && mainView === 'visual' && visualView?.isOpen()) run(async () => { await visualView?.save(); });
   if (action === 'close' && mainView === 'editor' && focusedPane === 'editor') run(async () => fileEditor?.closeCurrent());
   else if (action === 'close' && mainView === 'browser' && current) run(() => closeBrowserTab(current!.path));
   else if (action === 'close' && mainView !== 'terminal' && mainView !== 'editor') run(() => changeMainView(workspaceView));
   else if (action === 'close' && activeId) run(() => closeSession(activeId!));
   if (action === 'editor') run(() => changeMainView('editor'));
+  if (action === 'visual' && visualView?.isOpen()) run(() => changeMainView('visual'));
   if (action === 'search' && (mainView === 'terminal' || mainView === 'editor')) { if (mainView === 'editor' && focusedPane === 'editor') fileEditor?.search(); else toggleSearch(); }
   if (action === 'clear' && (mainView === 'terminal' || mainView === 'editor')) active()?.terminal.clear();
   if (action === 'expand') run(expandTerminal);
