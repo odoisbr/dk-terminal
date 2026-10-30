@@ -79,6 +79,12 @@ type CatalogEntry = { id: string; name: string; title: string; description: stri
 type Catalog = { id: string; kind: 'skills' | 'design-systems'; origin: { type: 'kit' | 'project' | 'plugin'; label: string; pluginId?: string }; root: string; entries: CatalogEntry[]; errors: string[]; truncated: boolean };
 type CatalogList = { root: string; kit: { path: string; version?: string } | null; catalogs: Catalog[]; errors: string[]; watching: boolean };
 type CatalogRead = { catalogId: string; entryId: string; frontmatter: CatalogFrontmatter; text: string; bytes: number };
+type VisualReason = string;
+interface VisualDocInfo { url: string; gen: number; chan: string; nodes: number; warnings: string[]; scripts: number; handlers: number; eol: 'lf'|'crlf'|'mixed'|'none'; loneCR: boolean }
+interface VisualState { open: boolean; relative: string | null; dirty: boolean; canUndo: boolean; canRedo: boolean; truncated: boolean; gen: number | null }
+type VisualResult<T> = ({ ok: true } & T) | { ok: false; reason: VisualReason; message: string };
+interface VisualInspect { tag: string; text: string | null; attrs: Record<string,string>; style: Record<string,string>; can: { text: boolean; attrs: string[]; css: boolean }; reasons: string[]; readonly: string | null }
+type VisualOp = { type: 'text'; node: number; value: string } | { type: 'attr'; node: number; name: string; value: string | null } | { type: 'css'; node: number; prop: string; value: string | null };
 interface Window {
   dk: {
     bootstrap(): Promise<Bootstrap>;
@@ -126,6 +132,16 @@ interface Window {
     saveFile(path: string, relative: string, text: string, revision: string): Promise<ProjectFile>;
     confirmCloseFile(name: string): Promise<'save' | 'discard' | 'cancel'>;
     setDirtyFiles(files: string[]): Promise<void>;
+    openVisual(root: string, relative: string, options: { codeEditorDirty: boolean }): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    inspectVisual(root: string, gen: number, node: number): Promise<VisualResult<{ inspect: VisualInspect }>>;
+    applyVisual(root: string, gen: number, op: VisualOp): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    undoVisual(root: string, gen: number): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    redoVisual(root: string, gen: number): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    saveVisual(root: string, gen: number): Promise<VisualResult<{ state: VisualState; revision: string }>>;
+    reloadVisual(root: string): Promise<VisualResult<{ doc: VisualDocInfo; state: VisualState }>>;
+    closeVisual(root: string): Promise<{ ok: true }>;
+    visualState(root: string): Promise<VisualState>;
+    onVisualEvent(callback: (event: { type: 'revoked'; reason: string }) => void): () => void;
     readUsage(path: string, refresh?: boolean): Promise<UsageSnapshot>;
     createChat(path: string): Promise<import('./chat').CodexChatSession>;
     listChats(path: string): Promise<import('./chat').CodexChatSession[]>;

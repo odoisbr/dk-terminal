@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, ShareMenu, Menu, protocol, net } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, ShareMenu, Menu, protocol, net, session } = require('electron');
 const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
@@ -36,8 +36,10 @@ const { windowIcon } = require('./app-icon.cjs');
 const dockCli = require('./dock-cli.cjs');
 const { DebugLog, captureConsole, formatArgs } = require('./debug-log.cjs');
 const { SessionServices } = require('./session-services.cjs');
+const { VisualSessions } = require('./visual-session.cjs');
+const { PRIVILEGES, createHandler, frameNavigationAllowed, isPreviewUrl } = require('./visual-protocol.cjs');
 
-protocol.registerSchemesAsPrivileged([{ scheme: 'dk-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
+protocol.registerSchemesAsPrivileged([{ scheme: 'dk-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }, PRIVILEGES]);
 const testing = process.env.DK_TERMINAL_TEST === '1' && !app.isPackaged;
 if (!process.env.DK_TERMINAL_DATA_DIR && !(testing && process.env.DK_TERMINAL_TEST_DATA)) {
   // Resolve the former default exactly as the previous version did, including
@@ -102,6 +104,7 @@ let window, terminals, services, extensions, orchestration, preview, previewBrid
 let gitlabPublisher;
 let dirtyFiles = [], closePrompt = false, allowClose = false, quitRequested = false, machineCacheBusy = false, windowClosing = false, windowCleanupDone = false;
 const selected = new Set();
+let visualSessions;
 let activeProjectRoot = null;
 const closingProjects = new Set();
 // A recent project may be reopened, but closing it revokes plugin access until then.
@@ -183,12 +186,13 @@ function closeProjectBrowser(root) {
   return preview.closeProject(root);
 }
 function hasDirtyFilesInProject(root) {
-  return dirtyFiles.some(file => {
+  return (activeProjectRoot === root && !!visualSessions?.dirty(window)) || dirtyFiles.some(file => {
     const rel = path.relative(root, file);
     return rel && rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel);
   });
 }
 function advancePluginGeneration(root) {
+  visualSessions?.revokeProject(root, 'project-changed');
   const next = (pluginProjectGenerations.get(root) || 0) + 1;
   pluginProjectGenerations.set(root, next);
   return next;
@@ -202,6 +206,7 @@ function rememberPluginIdentity(root) {
 }
 function remember(root) {
   const info = projectInfo(root);
+  if (info.path === activeProjectRoot && visualSessions?.dirty(window)) throw new Error('Salve ou descarte as alterações do editor visual antes de reabrir o projeto.');
   selected.add(info.path);
   rememberPluginIdentity(info.path);
   advancePluginGeneration(info.path);
@@ -406,6 +411,7 @@ function registerHandlers() {
   handle('gitlab:publish', (root, planId) => {
     const info = project(root);
     if (typeof planId !== 'string' || planId.length > 64) throw new Error('Revise os dados antes de criar o projeto.');
+    if (hasDirtyFilesInProject(info.path)) throw new Error('Salve os arquivos abertos no editor antes de publicar o projeto. O Git registra o conteúdo salvo no disco.');
     return gitlabPublisher.publish(info.path, planId);
   });
   handle('app:optimize', async () => { if (!window || window.isDestroyed()) throw new Error('Janela indisponível.'); await window.webContents.session.clearCache(); return true; });
@@ -448,15 +454,29 @@ function registerHandlers() {
   });
   // Preparing a recent project can be abandoned by the renderer (Esc or a newer intent).
   handle('project:activate', root => remember(knownProject(root).path));
-  handle('project:set-active', root => { activeProjectRoot = pluginProject(root).path; });
+  handle('project:set-active', root => {
+    const info = pluginProject(root);
+    if (info.path !== activeProjectRoot && visualSessions?.dirty(window)) throw new Error('Salve ou descarte as alterações do editor visual antes de trocar de projeto.');
+    activeProjectRoot = info.path;
+    visualSessions?.byWindow(window); // Revalidating revokes the previous project's token immediately.
+  });
   handle('tree:list', (root, relative) => listDirectory(project(root).path, relative));
   handle('tree:action', (root, relative, action) => treeAction(project(root).path, relative, action, {shell,clipboard,ShareMenu,window}));
   handle('file:read', (root, relative) => readProjectFile(project(root).path, relative));
   handle('file:save', (root, relative, text, revision) => saveProjectFile(project(root).path, relative, text, revision));
+  handle('visual:open', (root, relative, options) => visualSessions.open(window, root, relative, options));
+  handle('visual:inspect', (root, gen, node) => visualSessions.inspect(window, root, gen, node));
+  handle('visual:apply', (root, gen, op) => visualSessions.apply(window, root, gen, op));
+  handle('visual:undo', (root, gen) => visualSessions.undo(window, root, gen));
+  handle('visual:redo', (root, gen) => visualSessions.redo(window, root, gen));
+  handle('visual:save', (root, gen) => visualSessions.save(window, root, gen));
+  handle('visual:reload', root => visualSessions.reload(window, root));
+  handle('visual:close', root => visualSessions.close(window, root));
+  handle('visual:state', root => visualSessions.state(window, root));
   handle('file:dirty', files => {
     if (!Array.isArray(files) || files.length > 12 || files.some(file => typeof file !== 'string' || file.length > 8192)) throw new Error('Lista de arquivos inválida.');
     dirtyFiles = files;
-    window?.setDocumentEdited(!!files.length);
+    window?.setDocumentEdited(!!files.length || !!visualSessions?.dirty(window));
   });
   handle('file:confirm-close', async name => {
     if (typeof name !== 'string' || name.length > 8192) throw new Error('Nome de arquivo inválido.');
@@ -586,6 +606,7 @@ function registerHandlers() {
   handle('browser:close', (root, id) => preview.close(project(root).path, id));
   handle('project:forget', async root => {
     const info = project(root);
+    if (info.path === activeProjectRoot && visualSessions?.dirty(window)) throw new Error('Salve ou descarte as alterações do editor visual antes de remover o projeto.');
     advancePluginGeneration(root);
     if (activeProjectRoot === root) activeProjectRoot = null;
     closedPluginProjects.add(root);
@@ -601,6 +622,7 @@ function registerHandlers() {
   });
   handle('project:close-sessions', async root => {
     const info = project(root);
+    if (info.path === activeProjectRoot && visualSessions?.dirty(window)) throw new Error('Salve ou descarte as alterações do editor visual antes de fechar o projeto.');
     if (closingProjects.has(info.path)) throw new Error('O projeto já está sendo encerrado.');
     closingProjects.add(info.path);
     advancePluginGeneration(info.path);
@@ -757,10 +779,14 @@ function createWindow() {
   browserFullscreen = new BrowserFullscreen(window, active => send('browser:fullscreen-changed', active));
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', event => event.preventDefault());
+  window.webContents.on('will-frame-navigate', event => {
+    if (!event.isMainFrame && !frameNavigationAllowed(event.url, visualSessions?.byWindow(agentWindow))) event.preventDefault();
+  });
   window.webContents.on('will-attach-webview', event => event.preventDefault());
   window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   window.webContents.session.setPermissionCheckHandler(() => false);
   window.webContents.on('render-process-gone', () => {
+    visualSessions?.revokeWindow(agentWindow, 'renderer-gone');
     activeProjectRoot = null;
     extensions.close(); catalogs.close(); stages.close(); void terminals.closeAllAndWait().catch(() => {});
     void codexChat?.cancelAll?.().catch(() => {}); void agentRun?.cancelAll().catch(() => {});
@@ -771,19 +797,24 @@ function createWindow() {
   window.once('ready-to-show', () => window.show());
   window.on('focus', () => { void refreshEnvironment(); });
   window.on('close', event => {
-    if (dirtyFiles.length && !allowClose) {
+    if ((dirtyFiles.length || visualSessions?.dirty(agentWindow)) && !allowClose) {
       event.preventDefault();
       if (closePrompt) return;
       closePrompt = true;
-      dialog.showMessageBox(window, { type: 'question', message: 'Há arquivos com alterações não salvas.', detail: 'Volte ao editor para salvar ou descarte as alterações antes de fechar.', buttons: ['Voltar ao editor', 'Descartar alterações'], defaultId: 0, cancelId: 0, noLink: true }).then(({ response }) => {
+      const onlyVisual = !dirtyFiles.length;
+      dialog.showMessageBox(window, { type: 'question',
+        message: onlyVisual ? 'Há alterações não salvas no editor visual.' : 'Há arquivos com alterações não salvas.',
+        detail: onlyVisual ? 'Volte ao editor visual para salvar ou descarte as alterações antes de fechar.' : 'Volte ao editor para salvar ou descarte as alterações antes de fechar.',
+        buttons: [onlyVisual ? 'Voltar ao editor visual' : 'Voltar ao editor', 'Descartar alterações'], defaultId: 0, cancelId: 0, noLink: true }).then(({ response }) => {
         if (response === 1) { allowClose = true; if (quitRequested) app.quit(); else window?.close(); }
-        else { quitRequested = false; send('app:menu', 'editor'); }
+        else { quitRequested = false; send('app:menu', onlyVisual ? 'visual' : 'editor'); }
       }).finally(() => { closePrompt = false; });
       return;
     }
     if(windowCleanupDone)return;
     event.preventDefault();if(windowClosing)return;windowClosing=true;
     const closingWindow=window;
+    visualSessions?.revokeWindow(closingWindow);
     // Prevent new edits while the explicit close drains known child processes.
     try { closingWindow.setEnabled(false); } catch {}
     try { services.closeAll(); } catch {}
@@ -806,6 +837,7 @@ function createWindow() {
     });
   });
   window.on('closed', () => {
+    visualSessions?.revokeWindow(agentWindow);
     browserFullscreen?.dispose(); browserFullscreen = null;
     previewBridge.revokeAll(); filePreviews.closeAll(); terminals.closeAll(); services.closeAll(); extensions.close(); catalogs.close(); stages.close(); orchestration.close(); preview.closeAll(); preview.setVisible(true); usage.close(); actions.closeAll(); codexChat.closeAll().catch(() => {}); agentRun?.cancelAll().catch(() => {}); window = null; dirtyFiles = [];
     const reopen=focusRequested && !quitRequested;windowClosing=false;windowCleanupDone=false;
@@ -858,6 +890,24 @@ if (primaryInstance) app.whenReady().then(async () => {
     const target = path.resolve(dist, '.' + decodeURIComponent(url.pathname));
     if (url.hostname !== 'app' || !target.startsWith(dist + path.sep)) return new Response('Não encontrado', { status: 404 });
     return net.fetch(pathToFileURL(target).href);
+  });
+  visualSessions = new VisualSessions({
+    context: owner => {
+      if (window !== owner || owner.isDestroyed() || windowClosing || !activeProjectRoot ||
+          !selected.has(activeProjectRoot) || closingProjects.has(activeProjectRoot) || closedPluginProjects.has(activeProjectRoot)) return null;
+      return { root: activeProjectRoot, generation: pluginProjectGenerations.get(activeProjectRoot) };
+    },
+    validateProject: root => pluginProject(root),
+    log: message => debugLog.error('visual', message),
+    emit: (owner, event) => { if (!owner.isDestroyed()) owner.webContents.send('visual:event', event); },
+    changed: owner => { if (!owner.isDestroyed()) owner.setDocumentEdited(!!dirtyFiles.length || visualSessions.dirty(owner)); },
+  });
+  protocol.handle('dk-preview', createHandler(visualSessions));
+  session.defaultSession.on('will-download', (event, item, contents, frame) => {
+    // Electron 45 supplies the initiating frame separately from webContents.
+    // The Dock's subframes are preview iframes; include detached/stale URLs.
+    if (isPreviewUrl(item.getURL()) || isPreviewUrl(frame?.url) ||
+        (contents === window?.webContents && frame && frame !== contents.mainFrame)) event.preventDefault();
   });
   stateFile = path.join(app.getPath('userData'), 'settings.json');
   config = readState(stateFile);
@@ -917,4 +967,4 @@ if (primaryInstance) app.whenReady().then(async () => {
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { quitRequested = true; });
 app.on('will-quit', () => { debugLog.event('app', 'SEA Dock encerrando.'); });
-app.on('will-quit', () => { filePreviews?.closeAll(); previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); catalogs?.close(); stages?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); agentRun?.closeAll().catch(() => {}); });
+app.on('will-quit', () => { filePreviews?.closeAll(); visualSessions?.closeAll(); previewBridge?.close(); terminals?.closeAll(); services?.closeAll(); extensions?.close(); catalogs?.close(); stages?.close(); orchestration?.close(); preview?.closeAll(); usage?.close(); actions?.closeAll(); codexChat?.closeAll().catch(() => {}); agentRun?.closeAll().catch(() => {}); });
