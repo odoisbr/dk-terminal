@@ -40,7 +40,8 @@ function decodeText(data) {
   try {
     const decoded = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bom ? data.subarray(3) : data);
     const crlf = decoded.includes('\r\n');
-    return { content: decoded.replace(/\r\n/g, '\n'), bom, newline: crlf ? '\r\n' : '\n' };
+    const lf = /(^|[^\r])\n/.test(decoded);
+    return { content: decoded.replace(/\r\n/g, '\n'), bom, newline: crlf ? '\r\n' : '\n', eol: crlf ? (lf ? 'mixed' : 'crlf') : (lf ? 'lf' : 'none'), loneCR: /\r(?!\n)/.test(decoded) };
   } catch { return null; }
 }
 function description(file, data, override = {}) {
@@ -64,6 +65,25 @@ function readProjectFile(root, relative) {
   return description(file, data, { kind: 'text', ...text });
 }
 function conflict() { const error = new Error('O arquivo foi alterado fora do DK. Suas alterações foram mantidas no editor; recarregue o arquivo antes de tentar salvar novamente.'); error.code = 'FILE_CONFLICT'; return error; }
+function writeAtomic(root, relative, file, data, expectedRevision) {
+  const temporary = path.join(path.dirname(file.absolute), `.${path.basename(file.absolute)}.dk-terminal-${process.pid}-${randomUUID()}.tmp`);
+  let descriptor;
+  try {
+    descriptor = fs.openSync(temporary, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL, file.stat.mode & 0o7777);
+    fs.writeFileSync(descriptor, data);
+    fs.fchmodSync(descriptor, file.stat.mode & 0o7777);
+    fs.fsyncSync(descriptor);
+    const opened = descriptor; descriptor = undefined; fs.closeSync(opened);
+    // Recheck after preparing the replacement, before committing it.
+    const current = resolveFile(root, relative);
+    const latest = current.absolute === file.absolute ? readBounded(current, TEXT_LIMIT) : null;
+    if (!latest || revision(latest) !== expectedRevision) throw conflict();
+    fs.renameSync(temporary, file.absolute);
+  } finally {
+    try { if (descriptor !== undefined) fs.closeSync(descriptor); }
+    finally { try { fs.unlinkSync(temporary); } catch (error) { if (error.code !== 'ENOENT') throw error; } }
+  }
+}
 function saveProjectFile(root, relative, text, expectedRevision) {
   if (typeof text !== 'string' || Buffer.byteLength(text, 'utf8') > TEXT_LIMIT || typeof expectedRevision !== 'string' || !/^[a-f0-9]{64}$/.test(expectedRevision)) throw new Error('Conteúdo ou revisão de arquivo inválida.');
   const file = resolveFile(root, relative);
@@ -78,22 +98,21 @@ function saveProjectFile(root, relative, text, expectedRevision) {
   if (decoded.newline === '\r\n') output = output.replace(/\n/g, '\r\n');
   const data = Buffer.from((decoded.bom ? '\ufeff' : '') + output, 'utf8');
   if (data.length > TEXT_LIMIT) throw new Error('O conteúdo excede o limite de edição de 2 MB.');
-  const temporary = path.join(path.dirname(file.absolute), `.${path.basename(file.absolute)}.dk-terminal-${process.pid}-${randomUUID()}.tmp`);
-  let descriptor;
-  try {
-    descriptor = fs.openSync(temporary, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL, file.stat.mode & 0o7777);
-    fs.writeFileSync(descriptor, data);
-    fs.fchmodSync(descriptor, file.stat.mode & 0o7777);
-    fs.fsyncSync(descriptor); fs.closeSync(descriptor); descriptor = undefined;
-    // Recheck after preparing the replacement, before committing it.
-    const current = resolveFile(root, relative);
-    const latest = current.absolute === file.absolute ? readBounded(current, TEXT_LIMIT) : null;
-    if (!latest || revision(latest) !== expectedRevision) throw conflict();
-    fs.renameSync(temporary, file.absolute);
-  } finally {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-    try { fs.unlinkSync(temporary); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  }
+  writeAtomic(root, relative, file, data, expectedRevision);
   return description(file, data, { kind: 'text', content: text.replace(/\r\n/g, '\n'), bom: decoded.bom, newline: decoded.newline });
 }
-module.exports = { readProjectFile, saveProjectFile };
+function saveProjectBytes(root, relative, bytes, expectedRevision) {
+  if (!Buffer.isBuffer(bytes) || bytes.length > TEXT_LIMIT || typeof expectedRevision !== 'string' || !/^[a-f0-9]{64}$/.test(expectedRevision)) throw new Error('Conteúdo ou revisão de arquivo inválida.');
+  const file = resolveFile(root, relative);
+  if (file.stat.size > TEXT_LIMIT) throw new Error('O arquivo excede o limite de edição de 2 MB.');
+  fs.accessSync(file.absolute, fs.constants.W_OK);
+  if ((file.stat.mode & 0o222) === 0) throw new Error('Este arquivo é somente leitura.');
+  const original = readBounded(file, TEXT_LIMIT);
+  if (!original || revision(original) !== expectedRevision) throw conflict();
+  if (!decodeText(original) || IMAGE_TYPES[path.extname(relative).toLowerCase()]) throw new Error('Este arquivo está disponível somente para visualização.');
+  const decoded = decodeText(bytes);
+  if (!decoded) throw new Error('O conteúdo não pode ser editado como UTF-8.');
+  writeAtomic(root, relative, file, bytes, expectedRevision);
+  return description(file, bytes, { kind: 'text', ...decoded });
+}
+module.exports = { readProjectFile, saveProjectFile, saveProjectBytes, resolveFile, readBounded };
