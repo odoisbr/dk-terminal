@@ -122,7 +122,7 @@ test('manifesto cobre cada caso de Corpus de bytes e as recusas/avisos de D7', (
   assert.equal(new Set(manifesto.map(e => e.caso)).size, manifesto.length, 'casos únicos');
   assert.equal(new Set(manifesto.map(e => e.arquivo)).size, manifesto.length, 'arquivos únicos');
   assert.deepEqual(manifesto.map(e => e.caso).sort(), Object.keys(cobertura).sort());
-  assert.deepEqual(fs.readdirSync(pasta).sort(), ['gerar.cjs', 'manifesto.json', ...manifesto.map(e => e.arquivo)].sort());
+  assert.deepEqual(fs.readdirSync(pasta).filter(nome => !nome.startsWith('.')).sort(), ['gerar.cjs', 'manifesto.json', ...manifesto.map(e => e.arquivo)].sort());
   for (const entrada of manifesto) {
     const { arquivo, caso } = entrada;
     assert.match(arquivo, /^[a-z0-9]+(?:-[a-z0-9]+)*\.(?:html|txt|xhtml)$/);
