@@ -9,8 +9,9 @@ const CHAN = '0123456789abcdef0123456789abcdef';
 const GEN = 7;
 
 // No browser, network or real clock: exercise the page script as served by main.
-function harness({ loading = false, nodeCount, clobbered = false } = {}) {
+function harness({ loading = false, nodeCount, clobbered = false, reportingObserver = true } = {}) {
   let time = 0;
+  let occurrence = 0;
   let nextTimer = 1;
   const timers = new Map();
   const messages = [];
@@ -28,7 +29,7 @@ function harness({ loading = false, nodeCount, clobbered = false } = {}) {
     }
     emit(type, fields = {}) {
       const event = {
-        type, target: this, defaultPrevented: false, stopped: false,
+        type, target: this, timeStamp: time + ++occurrence / 1000, defaultPrevented: false, stopped: false,
         preventDefault() { this.defaultPrevented = true; },
         stopImmediatePropagation() { this.stopped = true; },
         ...fields,
@@ -156,6 +157,7 @@ function harness({ loading = false, nodeCount, clobbered = false } = {}) {
     get readyState() { return loading ? 'loading' : 'complete'; }
     get documentElement() { return this._documentElement; }
     createElement(name) {
+      if (clobbered) context.ReportingObserver = new Element('input');
       return name === 'img' ? new HTMLImageElement() : name === 'link' ? new HTMLLinkElement() : new Element(name);
     }
     querySelectorAll(selector) {
@@ -203,9 +205,54 @@ function harness({ loading = false, nodeCount, clobbered = false } = {}) {
     }
     time = end;
   }
+  const reportBuffer = [];
+  const observers = [];
+  const reporting = { observed: 0, taken: 0, delivered: 0 };
+  class ReportingObserver {
+    constructor(callback, options) {
+      assert.deepEqual(Array.from(options.types), ['csp-violation']);
+      assert.equal(options.buffered, true);
+      this.callback = callback;
+      this.options = options;
+      this.records = [];
+      this.active = false;
+      observers.push(this);
+      if (clobbered) {
+        this.observe = new Element('input');
+        this.takeRecords = new Element('input');
+      }
+    }
+    enqueue(report) {
+      if (!this.options.types.includes(report.type)) return;
+      this.records.push(report);
+      const id = nextTimer++;
+      timers.set(id, { at: time, fn: () => {
+        const records = this.records.splice(0);
+        if (records.length) {
+          reporting.delivered += records.length;
+          this.callback(records, this);
+        }
+      } });
+    }
+    observe() {
+      reporting.observed++;
+      this.active = true;
+      if (this.options.buffered) reportBuffer.forEach(report => this.enqueue(report));
+    }
+    takeRecords() {
+      reporting.taken++;
+      return this.records.splice(0);
+    }
+  }
+  function report(effectiveDirective, blockedURL, fields = {}) {
+    const record = { type: 'csp-violation', body: { effectiveDirective, blockedURL }, ...fields };
+    reportBuffer.push(record);
+    for (const observer of observers) if (observer.active) observer.enqueue(record);
+  }
   const context = vm.createContext({
     window, document, URL, EventTarget: Events, Node, Element, Document,
     HTMLImageElement, HTMLLinkElement, DOMTokenList,
+    ReportingObserver: reportingObserver ? ReportingObserver : undefined,
     performance: { now: () => time },
     setTimeout(fn, delay) { const id = nextTimer++; timers.set(id, { at: time + delay, fn }); return id; },
   });
@@ -217,7 +264,7 @@ function harness({ loading = false, nodeCount, clobbered = false } = {}) {
     data: { type: 'dk-edit-mark', dk: 1, v: 1, chan: CHAN, gen: GEN, node: 1, ...fields },
     ...event,
   });
-  return { document, window, parent, messages, shadows, add, advance, run, mark,
+  return { document, window, parent, messages, shadows, add, advance, run, mark, report, reporting,
     realDocumentElement: document._documentElement,
     text: ancestor => Node.prototype.appendChild.call(ancestor, new Node(3)),
     ofType: type => messages.filter(item => item.data.type === type),
@@ -287,7 +334,8 @@ for (const loading of [false, true]) {
     }
     h.document.emit('error', { target: form });
     h.document.emit('error', { target: image });
-    h.document.emit('securitypolicyviolation', { effectiveDirective: 'connect-src', blockedURI: 'https://policy.test/private' });
+    h.report('img-src', image.src);
+    h.report('connect-src', 'https://policy.test/private');
     h.advance(500);
     assert.deepEqual(h.ofType('dk-edit-blocked')[0].data.counts, { img: 1, style: 0, font: 0, connect: 1, other: 0 });
   });
@@ -460,10 +508,10 @@ test('blocked reports retain totals and hosts across global rate-limit drops', (
   const target = h.add('p', 1);
   h.run();
   for (let i = 0; i < 29; i++) h.document.emit('click', { target });
-  h.document.emit('securitypolicyviolation', { effectiveDirective: 'img-src', blockedURI: 'https://first.test/private' });
+  h.report('img-src', 'https://first.test/private');
   h.advance(500);
   assert.equal(h.ofType('dk-edit-blocked').length, 0);
-  h.document.emit('securitypolicyviolation', { effectiveDirective: 'font-src', blockedURI: 'https://second.test/private' });
+  h.report('font-src', 'https://second.test/private');
   h.advance(499);
   assert.equal(h.messages.length, 30);
   h.advance(1);
@@ -471,7 +519,7 @@ test('blocked reports retain totals and hosts across global rate-limit drops', (
   assert.equal(report.time, 1000);
   assert.deepEqual(report.data.counts, { img: 1, style: 0, font: 1, connect: 0, other: 0 });
   assert.deepEqual(report.data.hosts, ['first.test', 'second.test']);
-  h.document.emit('securitypolicyviolation', { effectiveDirective: 'img-src', blockedURI: 'https://third.test/private' });
+  h.report('img-src', 'https://third.test/private');
   h.advance(500);
   assert.deepEqual(h.ofType('dk-edit-blocked')[1].data.counts, { img: 1, style: 0, font: 0, connect: 0, other: 0 });
   assert.deepEqual(h.ofType('dk-edit-blocked')[1].data.hosts, ['third.test']);
@@ -496,37 +544,93 @@ test('scroll reports at most every 250ms, using the latest position on trailing 
   assert.equal(h.ofType('dk-edit-scroll').at(-1).data.y, 0);
 });
 
-test('CSP and img/link failures aggregate by category every 500ms and disclose only ten hosts', () => {
+test('only ReportingObserver counts one external image and stylesheet despite CSP/error events', () => {
   const h = harness();
   const image = h.add('img', 1);
   image.currentSrc = 'https://user:password@images.test:8443/private/image.png?secret=yes#fragment';
   const stylesheet = h.add('link', 2);
   stylesheet.relList.add('stylesheet');
   stylesheet.href = 'https://styles.test/private/style.css?secret=yes';
-  const font = h.add('link', 3);
-  font.as = 'font';
-  font.href = 'https://fonts.test/private/font.woff2';
   h.run();
-  for (const directive of ['img-src', 'style-src', 'style-src-elem', 'style-src-attr', 'font-src', 'connect-src', 'script-src']) {
-    h.document.emit('securitypolicyviolation', { effectiveDirective: directive, blockedURI: 'https://policy.test/private?secret=yes' });
+  h.report('img-src', image.currentSrc);
+  h.report('style-src-elem', stylesheet.href);
+  for (const [effectiveDirective, blockedURI, target] of [
+    ['img-src', image.currentSrc, image], ['style-src-elem', stylesheet.href, stylesheet],
+  ]) {
+    h.document.emit('securitypolicyviolation', { effectiveDirective, blockedURI });
+    h.document.emit('error', { target });
   }
-  h.document.emit('securitypolicyviolation', { effectiveDirective: 'script-src', blockedURI: 'inline' });
-  for (const target of [image, stylesheet, font]) h.document.emit('error', { target });
-  h.document.emit('error', { target: h.window }); // Runtime errors are not resource failures.
-  for (let i = 0; i < 20; i++) h.document.emit('securitypolicyviolation', {
-    effectiveDirective: 'connect-src', blockedURI: `https://host${i}.test/private?secret=yes`,
-  });
   h.advance(499);
   assert.equal(h.ofType('dk-edit-blocked').length, 0);
   h.advance(1);
   const first = h.ofType('dk-edit-blocked')[0].data;
-  assert.deepEqual(first.counts, { img: 2, style: 4, font: 2, connect: 21, other: 0 });
-  assert.equal(first.hosts.length, 10);
-  assert.ok(first.hosts.includes('images.test:8443'));
-  assert.ok(first.hosts.includes('policy.test'));
+  assert.deepEqual(first.counts, { img: 1, style: 1, font: 0, connect: 0, other: 0 });
+  assert.deepEqual(first.hosts, ['images.test:8443', 'styles.test']);
+  assert.doesNotMatch(JSON.stringify(first), /private|secret|password|https:/);
+  assert.equal(h.document.listeners.has('securitypolicyviolation'), false);
+  assert.equal(h.document.listeners.has('error'), false);
+  h.advance(1000);
+  assert.equal(h.ofType('dk-edit-blocked').length, 1);
+});
+
+test('buffered violations before bridge startup are drained once, then live reports arrive by callback', () => {
+  const h = harness({ loading: true });
+  h.report('style-src-elem', 'https://head-css.test/private.css');
+  h.report('img-src', 'https://head-image.test/private.png');
+  h.run();
+  assert.equal(h.reporting.observed, 1);
+  assert.equal(h.reporting.taken, 1);
+  h.advance(500);
+  assert.equal(h.reporting.delivered, 0, 'takeRecords drained the pending callback');
+  assert.equal(h.ofType('dk-edit-ready').length, 0);
+  assert.deepEqual(h.ofType('dk-edit-blocked')[0].data.counts, { img: 1, style: 1, font: 0, connect: 0, other: 0 });
+  assert.deepEqual(h.ofType('dk-edit-blocked')[0].data.hosts, ['head-css.test', 'head-image.test']);
+  h.document.emit('DOMContentLoaded');
+  h.report('img-src', 'https://head-image.test/private.png');
+  h.report('img-src', 'https://head-image.test/private.png');
+  h.advance(500);
+  assert.equal(h.reporting.delivered, 2, 'separate reports for the same URL each count');
+  assert.deepEqual(h.ofType('dk-edit-blocked')[1].data.counts, { img: 2, style: 0, font: 0, connect: 0, other: 0 });
+  h.advance(1000);
+  assert.equal(h.ofType('dk-edit-blocked').length, 2);
+});
+
+for (const reportingObserver of [true, false]) {
+  test(`element error events never count missing local or external resources (observer=${reportingObserver})`, () => {
+    const h = harness({ reportingObserver });
+    h.run();
+    for (const url of ['dk-preview://private-token/missing', 'https://external.test/private']) {
+      const image = h.add('img', 1);
+      image.src = image.currentSrc = url;
+      const stylesheet = h.add('link', 2);
+      stylesheet.href = url;
+      stylesheet.relList.add('stylesheet');
+      for (const target of [image, stylesheet, h.window]) h.document.emit('error', { target });
+    }
+    h.advance(1000);
+    assert.equal(h.ofType('dk-edit-blocked').length, 0);
+    assert.equal(h.document.listeners.has('error'), false);
+  });
+}
+
+test('CSP reports aggregate by directive every 500ms and disclose only ten hosts', () => {
+  const h = harness();
+  h.run();
+  for (const directive of ['img-src', 'style-src', 'style-src-elem', 'style-src-attr', 'font-src', 'connect-src', 'object-src']) {
+    h.report(directive, 'https://user:password@policy.test:8443/private?secret=yes');
+  }
+  // Report metadata and unrelated report types must never be counted or sent.
+  h.report('img-src', 'https://ignored.test/private', { type: 'deprecation' });
+  for (let i = 0; i < 20; i++) h.report('connect-src', `https://host${i}.test/private?secret=yes`);
+  h.advance(499);
+  assert.equal(h.ofType('dk-edit-blocked').length, 0);
+  h.advance(1);
+  const first = h.ofType('dk-edit-blocked')[0].data;
+  assert.deepEqual(first.counts, { img: 1, style: 2, font: 1, connect: 21, other: 2 });
+  assert.deepEqual(first.hosts, ['policy.test:8443', ...Array.from({ length: 9 }, (_, i) => `host${i}.test`)]);
   assert.ok(first.hosts.every(host => !/[/?#@]/.test(host)));
   assert.doesNotMatch(JSON.stringify(first), /private|secret|password|https:/);
-  h.document.emit('securitypolicyviolation', { effectiveDirective: 'font-src', blockedURI: 'data:font/woff2;base64,SECRET' });
+  h.report('font-src', 'data:font/woff2;base64,SECRET');
   h.advance(500);
   assert.deepEqual(h.ofType('dk-edit-blocked')[1].data.counts, { img: 0, style: 0, font: 1, connect: 0, other: 0 });
   assert.deepEqual(h.ofType('dk-edit-blocked')[1].data.hosts, []);
@@ -537,14 +641,14 @@ test('script CSP violations never schedule or contribute to resource reports', (
   const h = harness();
   h.run();
   const scripts = () => {
-    for (const effectiveDirective of ['script-src', 'script-src-elem', 'script-src-attr']) {
-      h.document.emit('securitypolicyviolation', { effectiveDirective, blockedURI: 'https://scripts.test/private.js' });
+    for (const effectiveDirective of ['script-src', 'script-src-elem', 'script-src-attr', 'script-src-future']) {
+      h.report(effectiveDirective, 'https://scripts.test/private.js');
     }
   };
   scripts();
   h.advance(1000);
   assert.equal(h.ofType('dk-edit-blocked').length, 0);
-  h.document.emit('securitypolicyviolation', { effectiveDirective: 'object-src', blockedURI: 'https://objects.test/private' });
+  h.report('object-src', 'https://objects.test/private');
   scripts();
   h.advance(500);
   assert.deepEqual(h.ofType('dk-edit-blocked')[0].data.counts, { img: 0, style: 0, font: 0, connect: 0, other: 1 });
@@ -563,12 +667,48 @@ test('resource hosts include only http/https and never the preview token', () =>
     'ftp://files.test/private', 'ws://socket.test/private', 'wss://secure-socket.test/private',
     'file://local.test/private', 'data:image/png,PRIVATE', 'inline',
     'http://plain.test/private?q=secret', 'https://secure.test:8443/private?q=secret',
-  ]) h.document.emit('securitypolicyviolation', { effectiveDirective: 'img-src', blockedURI });
+  ]) h.report('img-src', blockedURI, { url: `dk-preview://${token}/document.html` });
   h.advance(500);
   const report = h.ofType('dk-edit-blocked')[0].data;
-  assert.equal(report.counts.img, 11);
+  assert.equal(report.counts.img, 10);
   assert.deepEqual(report.hosts, ['plain.test', 'secure.test:8443']);
   assert.doesNotMatch(JSON.stringify(report), new RegExp(`${token}|private|secret`, 'i'));
+});
+
+test('fallback deduplicates directive + URI + occurrence while preserving distinct violations', () => {
+  const h = harness({ reportingObserver: false, clobbered: true });
+  h.run();
+  assert.equal(h.reporting.observed, 0);
+  const image = { effectiveDirective: 'img-src', blockedURI: 'https://shared.test/private', timeStamp: 10 };
+  const style = { ...image, effectiveDirective: 'style-src-elem' };
+  for (const violation of [image, style]) {
+    h.document.emit('securitypolicyviolation', violation);
+    h.document.emit('securitypolicyviolation', { ...violation });
+  }
+  h.document.emit('error', { target: h.add('img', 1) });
+  h.advance(500);
+  assert.deepEqual(h.ofType('dk-edit-blocked')[0].data.counts, { img: 1, style: 1, font: 0, connect: 0, other: 0 });
+  h.document.emit('securitypolicyviolation', { ...image }); // Same occurrence after a flush.
+  h.document.emit('securitypolicyviolation', { ...style });
+  h.advance(500);
+  assert.equal(h.ofType('dk-edit-blocked').length, 1);
+  for (const violation of [
+    { ...image, timeStamp: 11 }, // Same resource, another occurrence.
+    { ...image, blockedURI: 'http://other.test/private' }, // Same timestamp, another URI.
+    { effectiveDirective: 'style-src', blockedURI: 'inline' },
+    { effectiveDirective: 'font-src', blockedURI: 'data:font/woff2,SECRET' },
+    { effectiveDirective: 'connect-src', blockedURI: 'wss://socket.test/private' },
+    { effectiveDirective: 'object-src', blockedURI: 'dk-preview://PRIVATE_TOKEN/private' },
+  ]) h.document.emit('securitypolicyviolation', violation);
+  for (const effectiveDirective of ['script-src', 'script-src-elem', 'script-src-attr', 'script-src-future']) {
+    h.document.emit('securitypolicyviolation', { effectiveDirective, blockedURI: 'https://scripts.test/private' });
+  }
+  h.advance(500);
+  const second = h.ofType('dk-edit-blocked')[1].data;
+  assert.deepEqual(second.counts, { img: 2, style: 1, font: 1, connect: 1, other: 1 });
+  assert.deepEqual(second.hosts, ['shared.test', 'other.test']);
+  assert.doesNotMatch(JSON.stringify(second), /private|SECRET|PRIVATE_TOKEN|scripts\.test/i);
+  assert.ok(h.document.listeners.get('securitypolicyviolation').every(entry => entry.capture));
 });
 
 test('source contains one of each injection marker and no content/network/execution APIs', () => {
@@ -585,6 +725,12 @@ test('source contains one of each injection marker and no content/network/execut
   assert.match(source, /attachShadow\.call\(host, \{ mode: 'closed' \}\)/);
   assert.match(source, /window\.parent\.postMessage\(message, '\*'\)/);
   assert.equal([...source.matchAll(/\bpostMessage\b/g)].length, 1);
+  assert.match(source, /const NativeReportingObserver = typeof ReportingObserver === 'function' \? ReportingObserver : null/);
+  for (const method of ['observe', 'takeRecords']) {
+    assert.match(source, new RegExp('NativeReportingObserver\\.prototype\\.' + method));
+    assert.doesNotMatch(source, new RegExp('observer\\.' + method + '\\s*\\('));
+  }
+  assert.doesNotMatch(source, /addEventListener\.call\(document, 'error'/);
   const attributeCalls = [...source.matchAll(/\bgetAttribute\s*(?:\.\s*call\s*)?\(([^)]*)\)/g)];
   assert.ok(attributeCalls.length > 0);
   for (const call of attributeCalls) assert.match(call[1], /(?:^|,)\s*'data-dk-node'\s*$/);

@@ -14,17 +14,13 @@
   const setAttribute = Element.prototype.setAttribute;
   const attachShadow = Element.prototype.attachShadow;
   const getBoundingClientRect = Element.prototype.getBoundingClientRect;
-  const localName = Object.getOwnPropertyDescriptor(Element.prototype, 'localName').get;
   const parentNode = Object.getOwnPropertyDescriptor(Node.prototype, 'parentNode').get;
   const nodeType = Object.getOwnPropertyDescriptor(Node.prototype, 'nodeType').get;
   const isConnected = Object.getOwnPropertyDescriptor(Node.prototype, 'isConnected').get;
   const appendChild = Node.prototype.appendChild;
-  const imageSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src').get;
-  const imageCurrentSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'currentSrc').get;
-  const linkHref = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, 'href').get;
-  const linkAs = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, 'as').get;
-  const linkRelList = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, 'relList').get;
-  const tokenContains = DOMTokenList.prototype.contains;
+  const NativeReportingObserver = typeof ReportingObserver === 'function' ? ReportingObserver : null;
+  const observeReports = NativeReportingObserver && NativeReportingObserver.prototype.observe;
+  const takeReports = NativeReportingObserver && NativeReportingObserver.prototype.takeRecords;
 
   // Replaced by the main process in the served copy, never in the author file.
   const chan = '__DK_CHAN__';
@@ -206,30 +202,39 @@
     }
   }
 
-  addEventListener.call(document, 'securitypolicyviolation', event => {
-    const directive = event.effectiveDirective;
-    if (directive === 'script-src' || directive === 'script-src-elem' || directive === 'script-src-attr') return;
+  function recordViolation(directive, resource) {
+    if (typeof directive === 'string' && directive.startsWith('script-src')) return;
     let category = 'other';
     if (directive === 'img-src') category = 'img';
-    else if (directive === 'style-src' || directive === 'style-src-elem' || directive === 'style-src-attr') category = 'style';
+    else if (directive === 'style-src' || directive === 'style-src-elem') category = 'style';
     else if (directive === 'font-src') category = 'font';
     else if (directive === 'connect-src') category = 'connect';
-    recordBlocked(category, event.blockedURI);
-  }, true);
+    recordBlocked(category, resource);
+  }
 
-  addEventListener.call(document, 'error', event => {
-    const element = event.target;
-    if (!(element instanceof Element)) return;
-    // Resource properties are used only to extract a host, never forwarded.
-    if (localName.call(element) === 'img') recordBlocked('img', imageCurrentSrc.call(element) || imageSrc.call(element));
-    else if (localName.call(element) === 'link') {
-      const as = linkAs.call(element);
-      const category = as === 'font' ? 'font'
-        : tokenContains.call(linkRelList.call(element), 'stylesheet') || as === 'style' ? 'style'
-          : as === 'image' ? 'img' : 'other';
-      recordBlocked(category, linkHref.call(element));
-    }
-  }, true);
+  if (NativeReportingObserver) {
+    const recordReports = reports => {
+      for (const report of reports) {
+        if (report.type === 'csp-violation' && report.body) {
+          recordViolation(report.body.effectiveDirective, report.body.blockedURL);
+        }
+      }
+    };
+    const observer = new NativeReportingObserver(recordReports, { types: ['csp-violation'], buffered: true });
+    observeReports.call(observer);
+    // Draining removes these records from the pending callback, so each counts once.
+    recordReports(takeReports.call(observer));
+  } else {
+    const occurrences = new Set();
+    addEventListener.call(document, 'securitypolicyviolation', event => {
+      // A timestamp distinguishes repeated requests for the same resource from
+      // duplicate delivery of one occurrence. Keep this identity across flushes.
+      const key = JSON.stringify([event.effectiveDirective, event.blockedURI, event.timeStamp]);
+      if (occurrences.has(key)) return;
+      occurrences.add(key);
+      recordViolation(event.effectiveDirective, event.blockedURI);
+    }, true);
+  }
 
   function ready() {
     removeEventListener.call(document, 'DOMContentLoaded', ready);
